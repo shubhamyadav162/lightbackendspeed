@@ -1,0 +1,45 @@
+# LightSpeedPay Project Rules
+
+## Implementation Patterns
+
+### Database Schema
+- All tables should have created_at and updated_at timestamps
+- Use UUID as primary keys across all tables
+- Follow proper naming conventions (snake_case for tables and columns)
+- Add appropriate indexes for columns used in WHERE clauses
+- Encrypt sensitive data (API keys, credentials) before storage
+
+### Code Structure
+- Follow a clean architecture approach
+- Group code by feature rather than by type
+- Use repository pattern for database access
+- Implement proper error handling and logging
+- Create abstractions for external services
+
+### API Design
+- All endpoints should validate inputs using Zod schemas
+- Return consistent error formats across all APIs
+- Include appropriate status codes and messages
+- Implement rate limiting for public-facing endpoints
+- Document all APIs with clear request/response examples
+
+### Security Practices
+- Never log sensitive information
+- Always validate and sanitize user inputs
+- Use parameterized queries to prevent SQL injection
+- Generate strong, random API keys and salts
+- Implement proper CORS policies
+
+### Development Workflow
+- Follow conventional commits format
+- Write tests for critical components
+- Document changes in memory bank
+- Keep third-party dependencies to a minimum
+- Perform regular security audits
+
+## Project-Specific Intelligence
+- Primary focus is on reliability and security
+- Critical payment data should never be lost
+- Real-time monitoring is essential
+- System should handle graceful degradation
+- Favor consistency over performance when necessary 

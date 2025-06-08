@@ -1,0 +1,1 @@
+cmd /c npx -y @supabase/mcp-server-supabase --access-token sbp_v0_e11876d323df76345dc69647a8e8f774c23a68c6

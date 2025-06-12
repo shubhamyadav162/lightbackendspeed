@@ -1,4 +1,4 @@
-# Active Context – Rolling Window (last updated 2025-06-20)
+# Active Context – Rolling Window (last updated 2025-07-05)
 
 This file tracks the most recent work focus and decisions so we can edit quickly without touching the 3 800-line legacy `activeContext.md`. Older context remains there for historical reference.
 
@@ -84,14 +84,15 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-07-05 – Implemented global loading indicators:
   * Added `LoadingIndicatorProvider` using React Query's `useIsFetching` to display a gradient top-bar while any request is in-flight.
   * Integrated provider into `frontend/src/app/layout.tsx` just above `ToasterProvider`, giving users instant feedback during data fetches.
+- 2025-07-05 – Verified Integration Center Playwright E2E passes (copy-to-clipboard and credentials load) after global loading bar integration.
+- 2025-07-05 – Added SLA uptime monitor worker (`src/workers/sla-monitor`) that pings critical endpoints every minute and upserts latency stats into `system_status`; added `worker:sla-monitor` npm script and new env placeholders `SLA_MONITOR_INTERVAL_MS`, `SLA_MONITOR_ENDPOINTS`.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
 * Added React Query mutations `
 
 ## In Progress (NEXT)
-- Verify E2E flow for IntegrationCenter; ensure Playwright spec covers copy-to-clipboard behaviour.
-- Optional: production deployment & final SLA monitoring checks.
+- Optional: production deployment & final SLA monitoring dashboards/alert thresholds.
 
 ## Blockers / Considerations
 - None – all backend queues and workers healthy.

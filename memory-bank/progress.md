@@ -322,3 +322,8 @@
 - Implemented `LoadingIndicatorProvider` using React Query's global `useIsFetching` state to show an animated gradient top-bar while any network request is pending.
 - Integrated the provider into root `layout.tsx` just above `ToasterProvider`.
 - Frontend UX polish item "Loading States" is now complete; remaining frontend work limited to final E2E confirmations and production deployment checklists.
+
+## 2025-07-05 – Integration Center E2E & SLA Monitor
+- Verified Playwright E2E `integration-center.spec.ts` passes after global loading bar integration; copy-to-clipboard action confirmed via toast.
+- Added uptime monitoring worker `src/workers/sla-monitor` which pings critical public endpoints every minute and upserts status/latency into `system_status` table. Added `worker:sla-monitor` npm script and env placeholders `SLA_MONITOR_INTERVAL_MS`, `SLA_MONITOR_ENDPOINTS`.
+- Project backend and frontend feature scope now COMPLETE; remaining tasks limited to production deployment & SLA alert threshold tuning.

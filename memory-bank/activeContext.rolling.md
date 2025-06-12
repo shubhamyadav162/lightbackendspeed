@@ -51,6 +51,7 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * `WhatsAppLogs` at `/dashboard/admin/whatsapp`
   Added reusable UI primitives (Switch, Table) and wrapped app with `QueryProvider`.
 - 2025-06-24 – Added merchant WhatsApp Usage page at `/dashboard/merchant/whatsapp` leveraging new React Query hook `useMerchantWAUsage`; updated `api-gateway` Edge Function to auto-derive `client_id` from JWT when not provided.
+- 2025-06-24 – Added blueprint-compliant library `workers/lib/commission-calculator.ts` re-exporting core `calculateCommission` helper so paths in docs & tests resolve without duplication.
 
 ## In Progress
 

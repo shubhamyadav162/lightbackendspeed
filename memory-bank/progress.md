@@ -194,6 +194,7 @@
 - 2025-06-22 – Enhanced `transaction-processor` worker to create PSP orders (stub) & persist gateway_txn_id; added Razorpay/PayU stubs.
 - 2025-06-22 – Updated `webhook-processor` worker with `parseWebhook` helper supporting Razorpay & PayU payloads.
 - 2025-06-22 – Added monitoring worker `worker-health-monitor` and corresponding npm script plus env vars; critical alerts now generated for stale heartbeats.
+- Added compatibility wrapper `workers/lib/commission-calculator.ts` pointing to `src/lib/commission-calculator.ts` so Phase-1 docs paths compile. (2025-06-24)
 
 # 2025-06-13 – Codecov Integration
 - Integrated Codecov upload in CI workflow (`.github/workflows/ci.yml`) using `codecov/codecov-action@v3` and secret `CODECOV_TOKEN`.

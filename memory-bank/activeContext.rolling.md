@@ -35,6 +35,9 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-24 – Implemented real PayU order creation inside `transaction-processor` worker with SHA-512 hash & generated checkout URL; removed placeholder.
 - 2025-06-24 – Added Jest unit test `gateway-selector.test.ts` ensuring gateway selection logic & error paths.
 - 2025-06-24 – Added Playwright E2E test `payment-flow.spec.ts` exercising initiate → DB insert flow and Supabase verification.
+- 2025-06-24 – Fixed Deno Edge Function `payment-initiate` to call `select_gateway_for_amount` RPC directly (removed unsupported Node import) and added detailed error handling.
+- 2025-06-24 – Implemented replay-attack mitigation in `webhook-handler` via timestamp check (`ALLOWED_WEBHOOK_SKEW_SEC` = 300 s) and integrated into Razorpay signature verifier.
+- 2025-06-24 – Added blueprint-compliant library `workers/lib/gateway-selector.ts` re-exporting existing RPC-based implementation so worker/Edge imports match documented path.
 
 ## In Progress
 

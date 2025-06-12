@@ -16,8 +16,25 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-async function verifyRazorpay(body: string, headerSig: string | null) {
+// Allowable clock skew for incoming webhook requests (seconds)
+const ALLOWED_WEBHOOK_SKEW_SEC = 300; // 5 minutes
+
+function isTimestampFresh(tsMillis: number): boolean {
+  const now = Date.now();
+  return Math.abs(now - tsMillis) <= ALLOWED_WEBHOOK_SKEW_SEC * 1000;
+}
+
+async function verifyRazorpay(body: string, headerSig: string | null, timestampHeader: string | null) {
   if (!headerSig) return false;
+
+  // Basic replay-attack mitigation – ensure timestamp freshness if provided
+  if (timestampHeader) {
+    const ts = Number(timestampHeader);
+    if (!isNaN(ts) && !isTimestampFresh(ts * 1000)) {
+      console.warn("[webhook-handler] Razorpay timestamp outside allowed skew");
+      return false;
+    }
+  }
 
   // For simplicity, resolve a single shared webhook secret via env var first
   const secret = Deno.env.get("RAZORPAY_WEBHOOK_SECRET");
@@ -78,7 +95,7 @@ async function verifyPayU(bodyObj: any) {
 async function verifySignature(req: Request, rawBody: string): Promise<boolean> {
   const hdr = req.headers;
   if (hdr.has("x-razorpay-signature")) {
-    return await verifyRazorpay(rawBody, hdr.get("x-razorpay-signature"));
+    return await verifyRazorpay(rawBody, hdr.get("x-razorpay-signature"), hdr.get("x-razorpay-request-timestamp"));
   }
 
   // Attempt PayU verification when body contains 'txnid' field

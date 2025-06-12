@@ -203,6 +203,8 @@
   * Added Jest unit test `encryption.test.ts` validating round-trip encryption.
   * Extended `env.example` with `ENCRYPTION_KEY` placeholder. (2025-06-26)
 - Added placeholders for `SUPABASE_SERVICE_ROLE_KEY`, `BULLMQ_PREFIX`, and `MAX_CONCURRENCY_*` (transaction/webhook/WhatsApp) to `env.example` ensuring ENV aligns with backend workers & functions. (2025-06-26)
+- Added Slack alert integration (2025-06-27)
+- - Enhanced `webhook-processor` worker to forward webhook payloads to merchant `webhook_url` and log status in `webhook_events` with retry scheduling (2025-06-27)
 
 # 2025-06-13 – Codecov Integration
 - Integrated Codecov upload in CI workflow (`.github/workflows/ci.yml`) using `codecov/codecov-action@v3` and secret `CODECOV_TOKEN`.

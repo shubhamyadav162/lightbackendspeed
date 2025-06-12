@@ -57,12 +57,72 @@ export const worker = new Worker(
 
       const { data: client } = await supabase
         .from("clients")
-        .select("fee_percent")
+        .select("fee_percent, webhook_url")
         .eq("id", txn.client_id)
         .single();
 
       await calculateCommission(transaction_id, txn.amount, client.fee_percent);
+
+      // Forward webhook to merchant if configured
+      if (client.webhook_url) {
+        // Insert / update webhook_events tracking row
+        const { data: existingEvent } = await supabase
+          .from("webhook_events")
+          .select("id, attempts")
+          .eq("transaction_id", transaction_id)
+          .single();
+
+        const attempts = existingEvent?.attempts ?? 0;
+        const now = new Date();
+
+        // Attempt to send webhook
+        let forwardStatus: "sent" | "failed" = "sent";
+        let errorMsg: string | null = null;
+        try {
+          const fwRes = await fetch(client.webhook_url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transaction_id,
+              status,
+              amount: txn.amount,
+            }),
+            // Optional: add timeout handling separately if needed
+          });
+          if (!fwRes.ok) {
+            forwardStatus = "failed";
+            errorMsg = `HTTP_${fwRes.status}`;
+          }
+        } catch (err: any) {
+          forwardStatus = "failed";
+          errorMsg = err.message;
+        }
+
+        if (existingEvent) {
+          await supabase
+            .from("webhook_events")
+            .update({
+              attempts: attempts + 1,
+              status: forwardStatus,
+              last_error: errorMsg,
+              next_retry_at: forwardStatus === "failed" ? new Date(now.getTime() + 15 * 60 * 1000) : null,
+            })
+            .eq("id", existingEvent.id);
+        } else {
+          await supabase.from("webhook_events").insert({
+            transaction_id,
+            attempts: 1,
+            status: forwardStatus,
+            last_error: errorMsg,
+            next_retry_at: forwardStatus === "failed" ? new Date(now.getTime() + 15 * 60 * 1000) : null,
+          });
+        }
+      }
     }
   },
   { connection, concurrency: Number(process.env.MAX_CONCURRENCY_WEBHOOK) || 50, attempts: 5 }
-); 
+);
+
+worker.on("completed", (job) => {
+  console.log(`[webhook-processor] Job ${job.id} completed.`);
+}); 

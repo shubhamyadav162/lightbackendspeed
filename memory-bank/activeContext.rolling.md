@@ -64,6 +64,7 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Created helper `src/lib/slack.ts` for sending messages via `SLACK_WEBHOOK_URL`.
   * Enhanced `worker-health-monitor` & `low-balance-notifier` workers to push critical alerts to Slack in addition to DB `alerts`/WhatsApp flows.
   * Appended `SLACK_WEBHOOK_URL` placeholder in `env.example`.
+- 2025-06-27 – Enhanced `webhook-processor` worker to forward webhook payloads to each client's `webhook_url` with retry tracking via `webhook_events`; added HTTP 5 s timeout & exponential back-off scheduling.
 
 ## In Progress
 

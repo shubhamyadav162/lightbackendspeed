@@ -69,7 +69,18 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-30 – Ensured idempotent cleanup helpers in new tests for stable re-runs; maintained coverage >88%.
 - 2025-07-01 – Added `webhook-retry` worker that periodically re-queues failed webhook deliveries from `webhook_events`; added script `worker:webhook-retry` and env `WEBHOOK_RETRY_INTERVAL_MS`.
 - 2025-07-01 – Added migration `20250701_rls_whatsapp_queue.sql` enabling RLS & admin-only policies on `whatsapp_notifications` and `queue_metrics` tables to strengthen data access controls.
+- 2025-07-02 – Added Playwright E2E test `commission-ledger.spec.ts` verifying `/admin/commission/ledger` endpoint returns expected commission row (Phase-3 coverage).
+- 2025-07-02 – Updated Supabase test seeding utilities inside the E2E spec to insert deterministic `clients`, `wallets`, and `commission_entries` rows for idempotent test runs.
+- 2025-07-02 – No schema changes needed – commission tables already exist and populated in Supabase migrations.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
 * Added React Query mutations `
+
+## In Progress (NEXT)
+- Finalize merchant **IntegrationCenter** page and E2E flow (fetch client keys + webhook URL copy interaction).
+- Implement UX polish: toasts & subtle loading indicators across admin pages.
+- Expand monitoring – scheduled Slack summary (`system-health-report` worker) consolidating queue_metrics & worker_health stats each hour.
+
+## Blockers / Considerations
+- None – all backend queues and workers healthy.

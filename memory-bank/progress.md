@@ -202,6 +202,7 @@
   * Updated `transaction-processor` worker to decrypt using existing Node helper.
   * Added Jest unit test `encryption.test.ts` validating round-trip encryption.
   * Extended `env.example` with `ENCRYPTION_KEY` placeholder. (2025-06-26)
+- Added placeholders for `SUPABASE_SERVICE_ROLE_KEY`, `BULLMQ_PREFIX`, and `MAX_CONCURRENCY_*` (transaction/webhook/WhatsApp) to `env.example` ensuring ENV aligns with backend workers & functions. (2025-06-26)
 
 # 2025-06-13 – Codecov Integration
 - Integrated Codecov upload in CI workflow (`.github/workflows/ci.yml`) using `codecov/codecov-action@v3` and secret `CODECOV_TOKEN`.

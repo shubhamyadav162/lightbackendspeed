@@ -59,6 +59,7 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Updated `api-gateway` Edge Function to encrypt `api_key` & `api_secret` on create/update of gateways.
   * Updated `transaction-processor` worker to decrypt credentials before PSP calls.
   * Added `ENCRYPTION_KEY` placeholder to `env.example`.
+- 2025-06-26 – Added missing env placeholders for `SUPABASE_SERVICE_ROLE_KEY`, `BULLMQ_PREFIX`, and worker concurrency variables (`MAX_CONCURRENCY_*`) in `env.example` to align with backend code; updated progress.md accordingly.
 
 ## In Progress
 

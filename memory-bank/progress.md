@@ -330,3 +330,4 @@
 - Added SLA uptime monitor worker and docs update. (2025-07-05)
 - Added Supabase migration `20250705_system_status_table.sql` providing `system_status` table with UNIQUE(component) constraint and auto-updated_at trigger, enabling safe upsert by SLA monitor; patched worker to stringify status and inserted `PUBLIC_BASE_URL` env placeholder. (2025-07-05)
 - Added Grafana dashboards (`system_status_dashboard.json`, `queue_metrics_dashboard.json`) and Prometheus alert rules (`system_status_alerts.yaml`) to provide live SLA & queue monitoring (2025-07-06).
+- Implemented automated Commission Payout Processor & reporting view (2025-07-07)

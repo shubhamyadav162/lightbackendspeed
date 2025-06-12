@@ -17,6 +17,7 @@
     "worker:webhook-retry": "ts-node src/workers/webhook-retry/index.ts",
     "worker:system-health": "ts-node src/workers/system-health-report/index.ts",
     "worker:sla-monitor": "ts-node src/workers/sla-monitor/index.ts",
+    "worker:commission-payout": "ts-node src/workers/commission-payout-processor/index.ts",
     "migrate": "npx supabase db diff --schema=public --use-migra -f",
     "migrate:apply": "npx supabase db push",
     "migrate:new": "npx supabase migration new",

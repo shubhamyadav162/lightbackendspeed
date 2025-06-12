@@ -94,13 +94,13 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Created `monitoring/grafana/queue_metrics_dashboard.json` for BullMQ metrics.
   * Added Prometheus alert rules `monitoring/alertmanager/system_status_alerts.yaml` triggering Slack alerts on non-2xx status.
   These complete Phase-3 observability item (dashboards & alert thresholds).
+- 2025-07-07 – Implemented automated **Commission Payout Processor**:
+  * Added worker `src/workers/commission-payout-processor` scanning `commission_wallets` and performing payouts when `balance_due` ≥ MIN_PAYOUT_AMOUNT.
+  * Created Supabase stored procedure `process_commission_payout` and migration `20250707_commission_payout.sql` which inserts negative `COMMISSION_PAYOUT` entries and decrements wallet balance atomically.
+  * Added reporting view `vw_commission_daily` aggregating commission vs payout per day.
+  * Added Slack alerts for payout success/failure and new env placeholders `COMMISSION_PAYOUT_INTERVAL_MS`, `MIN_PAYOUT_AMOUNT_PAISE`.
+  * Memory Bank updated to reflect new worker, migration and env variables.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
 * Added React Query mutations `
-
-## In Progress (NEXT)
-- Optional: production deployment & final SLA monitoring dashboards/alert thresholds.
-
-## Blockers / Considerations
-- None – all backend queues and workers healthy.

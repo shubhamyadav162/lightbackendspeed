@@ -18,6 +18,7 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Queue } from "https://esm.sh/bullmq@3";
+import { encrypt as enc } from "../_shared/encryption.ts";
 
 // Environment Variables (set via Supabase secrets)
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -57,6 +58,8 @@ async function listGateways() {
 }
 
 async function createGateway(body: Record<string, unknown>) {
+  if (body.api_key) body.api_key = await enc(body.api_key as string);
+  if (body.api_secret) body.api_secret = await enc(body.api_secret as string);
   const { data, error } = await supabase
     .from("payment_gateways")
     .insert(body)
@@ -67,6 +70,8 @@ async function createGateway(body: Record<string, unknown>) {
 }
 
 async function updateGateway(id: string, body: Record<string, unknown>) {
+  if (body.api_key) body.api_key = await enc(body.api_key as string);
+  if (body.api_secret) body.api_secret = await enc(body.api_secret as string);
   const { data, error } = await supabase
     .from("payment_gateways")
     .update(body)

@@ -195,7 +195,13 @@
 - 2025-06-22 – Updated `webhook-processor` worker with `parseWebhook` helper supporting Razorpay & PayU payloads.
 - 2025-06-22 – Added monitoring worker `worker-health-monitor` and corresponding npm script plus env vars; critical alerts now generated for stale heartbeats.
 - Added compatibility wrapper `workers/lib/commission-calculator.ts` pointing to `src/lib/commission-calculator.ts` so Phase-1 docs paths compile. (2025-06-24)
-- Added worker `low-balance-notifier` which scans `commission_wallets` for overdue balances and enqueues WhatsApp LOW_BALANCE notifications, increasing system pro-activeness. (2025-06-25)
+- Added worker `low-balance-notifier` which scans `commission_wallets` for overdue balances and enqueues LOW_BALANCE WhatsApp messages when `balance_due` exceeds `warn_threshold` (respects 24-hour cooldown). (2025-06-25)
+- Implemented gateway credential encryption using AES-256-GCM:
+  * Added Edge Function crypto util (Deno) `supabase/functions/_shared/encryption.ts`.
+  * Updated `api-gateway` to encrypt `api_key` / `api_secret` on insert/update.
+  * Updated `transaction-processor` worker to decrypt using existing Node helper.
+  * Added Jest unit test `encryption.test.ts` validating round-trip encryption.
+  * Extended `env.example` with `ENCRYPTION_KEY` placeholder. (2025-06-26)
 
 # 2025-06-13 – Codecov Integration
 - Integrated Codecov upload in CI workflow (`.github/workflows/ci.yml`) using `codecov/codecov-action@v3` and secret `CODECOV_TOKEN`.

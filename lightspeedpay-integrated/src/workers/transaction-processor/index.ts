@@ -4,6 +4,7 @@
 
 import { Worker } from "bullmq";
 import { createClient } from "@supabase/supabase-js";
+import { decrypt as dec } from "../../lib/encryption";
 
 const connection = { url: process.env.REDIS_URL! };
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -126,8 +127,13 @@ export const worker = new Worker(
       throw new Error(gwErr?.message || "GATEWAY_NOT_FOUND");
     }
 
+    const creds = {
+      api_key: dec(gateway.api_key as string),
+      api_secret: dec(gateway.api_secret as string),
+    };
+
     // 2. Create order on PSP (stubbed)
-    const { gateway_txn_id, checkout_url } = await createOrder(gateway.provider, gateway, {
+    const { gateway_txn_id, checkout_url } = await createOrder(gateway.provider, creds, {
       amount,
       order_id,
       transaction_id,

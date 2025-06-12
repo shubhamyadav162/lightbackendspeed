@@ -52,7 +52,13 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   Added reusable UI primitives (Switch, Table) and wrapped app with `QueryProvider`.
 - 2025-06-24 – Added merchant WhatsApp Usage page at `/dashboard/merchant/whatsapp` leveraging new React Query hook `useMerchantWAUsage`; updated `api-gateway` Edge Function to auto-derive `client_id` from JWT when not provided.
 - 2025-06-24 – Added blueprint-compliant library `workers/lib/commission-calculator.ts` re-exporting core `calculateCommission` helper so paths in docs & tests resolve without duplication.
-- 2025-06-25 – Added worker `low-balance-notifier` scanning `commission_wallets` every 5 min and enqueuing LOW_BALANCE WhatsApp messages when `balance_due` exceeds `warn_threshold` (respects 24-hour cooldown). Added new env vars `LOW_BALANCE_SCAN_INTERVAL_MS`, `LOW_BALANCE_COOLDOWN_MS`.
+- 2025-06-25 – Added worker `low-balance-notifier` scanning `commission_wallets` every 5 min and enqueuing LOW_BALANCE WhatsApp messages when `balance_due` exceeds `warn_threshold` (respects 24-hour cooldown).
+- 2025-06-26 – Implemented credential encryption:
+  * Created shared Edge Function util `supabase/functions/_shared/encryption.ts` using Web Crypto AES-256-GCM (Deno).
+  * Added Node-side unit test `src/workers/tests/encryption.test.ts` ensuring symmetric encrypt/decrypt.
+  * Updated `api-gateway` Edge Function to encrypt `api_key` & `api_secret` on create/update of gateways.
+  * Updated `transaction-processor` worker to decrypt credentials before PSP calls.
+  * Added `ENCRYPTION_KEY` placeholder to `env.example`.
 
 ## In Progress
 

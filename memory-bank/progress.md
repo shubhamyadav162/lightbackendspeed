@@ -310,3 +310,5 @@
 * Updated `queue-metrics-recorder` worker to respect `BULLMQ_PREFIX` env variable, ensuring metrics align with queue naming across services.
 
 ## 2025-06-30 – Added Playwright E2E tests for gateway management (CRUD), queue drain action, and WhatsApp log pagination (`gateway-management.spec.ts`, `queue-drain.spec.ts`, `whatsapp-log.spec.ts`) achieving broader Phase-3 coverage and keeping overall coverage at 88 %+.
+
+- Added `webhook-retry` worker that scans `webhook_events` for failed attempts and requeues them; added script `worker:webhook-retry` and env var; added RLS migration `20250701_rls_whatsapp_queue.sql` for strengthened access control (2025-07-01)

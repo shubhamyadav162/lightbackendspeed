@@ -67,6 +67,8 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-27 – Enhanced `webhook-processor` worker to forward webhook payloads to each client's `webhook_url` with retry tracking via `webhook_events`; added HTTP 5 s timeout & exponential back-off scheduling.
 - 2025-06-30 – Added Playwright E2E tests `gateway-management.spec.ts` (gateway CRUD), `queue-drain.spec.ts` (admin drain action) and `whatsapp-log.spec.ts` (pagination) expanding Phase-3 testing coverage; CI passes locally.
 - 2025-06-30 – Ensured idempotent cleanup helpers in new tests for stable re-runs; maintained coverage >88%.
+- 2025-07-01 – Added `webhook-retry` worker that periodically re-queues failed webhook deliveries from `webhook_events`; added script `worker:webhook-retry` and env `WEBHOOK_RETRY_INTERVAL_MS`.
+- 2025-07-01 – Added migration `20250701_rls_whatsapp_queue.sql` enabling RLS & admin-only policies on `whatsapp_notifications` and `queue_metrics` tables to strengthen data access controls.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 

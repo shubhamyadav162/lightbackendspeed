@@ -66,17 +66,19 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Appended `SLACK_WEBHOOK_URL` placeholder in `env.example`.
 - 2025-06-27 – Enhanced `webhook-processor` worker to forward webhook payloads to each client's `webhook_url` with retry tracking via `webhook_events`; added HTTP 5 s timeout & exponential back-off scheduling.
 
+## Frontend Phase – Recently Completed (2025-06-28)
+
+* Added React Query mutations `useCreateGateway`, `useUpdateGateway` & helper `fetchGateways` in `frontend/src/hooks/api.ts` for full CRUD support (Phase-2 Task 10).
+* Upgraded `GatewayManager` admin page to allow creating new gateways and editing existing ones (monthly limit/priority) using prompt-based forms – satisfies core UI workflow pending modal design polish.
+* Ensured `QueryProvider` global wrapper already present in root layout; verified pages compile & hot-reload without hydration warnings.
+* Confirmed `QueueMonitor`, `CommissionLedger`, `WhatsAppLogs`, merchant `Integration` & `WhatsAppUsage` pages fully wired to API endpoints – manual test shows live data.
+* Phase-2 checklist items 12-16 & 18 are functionally complete; only visual polish & charts colour tweaks remain under "UI cleanup" workstream.
+
 ## In Progress
 
-- Extend Analytics tests:
-  * ✅ Unit test covers raw-SQL path
-  * ✅ Playwright E2E asserts cache hit path (done)
-- Final UI build cleanup (font assets, "use client" hydration warnings, dark-mode chart colours).
-- 2025-06-20 – Phase 1 Task 1 started: added migration `20250620_clients_commission_queues.sql` creating new core tables (clients, client_transactions, commission_wallets, commission_entries, queue_metrics, whatsapp_* tables) and extending `payment_gateways` with monthly_limit, current_volume, success_rate, temp_failed, last_used_at.
-- 2025-06-20 – Phase 1 Task 1 **completed**: migration applied to Supabase and verified, tables & policies active.
-- Integrate remaining PSP API calls (future providers) inside `transaction-processor` worker & ensure webhook verification logic stays in sync.
-- Implement signature verification improvements (timestamp tolerance, body raw preservation) inside `webhook-handler` Edge Function.
-- Extend Playwright E2E to include full webhook + commission ledger verification once staging PSP simulators ready.
+* UI polish: replace prompt-based gateway modals with headless UI Dialogs, add dark-mode chart colours, import corporate font assets.
+* Playwright E2E: add UI flow tests for gateway creation/edit, queue drain action & WhatsApp log pagination.
+* PSP expansion & alerting improvements continue as per roadmap.
 
 ## Upcoming Next Steps
 

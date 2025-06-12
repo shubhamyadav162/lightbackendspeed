@@ -297,3 +297,10 @@
   * Updated `worker-health-monitor` to send critical stale worker notifications to Slack.
   * Updated `low-balance-notifier` to send low balance due alerts to Slack.
   (2025-06-27)
+
+2025-06-28: Frontend Phase-2 CORE implemented:
+* Added React Query mutations (`useCreateGateway`, `useUpdateGateway`) and refactored `useGateways` to exported helper in `frontend/src/hooks/api.ts`.
+* Enhanced admin `GatewayManager` page – can now create & edit gateways; uses prompt-based interaction for MVP.
+* Verified `QueueMonitor`, `CommissionLedger`, `WhatsAppLogs`, merchant `Integration` & `WhatsAppUsage` pages fully functional with live Supabase-backed APIs.
+* Phase-2 tasks 12–16, 18 marked COMPLETE; remaining work limited to UI/UX polish and Playwright E2E flows.
+* Updated Memory Bank (`activeContext.rolling.md`) to reflect Phase-2 completion & new in-progress items.

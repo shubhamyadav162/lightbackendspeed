@@ -10,8 +10,9 @@ const fetchJSON = async (url: string, options?: RequestInit) => {
 };
 
 // ------ Admin Gateways ------
+export const fetchGateways = () => fetchJSON("/api/admin/gateways");
 export const useGateways = () =>
-  useQuery(["gateways"], () => fetchJSON("/api/admin/gateways"));
+  useQuery(["gateways"], fetchGateways);
 
 type ToggleGatewayArgs = { id: string; active: boolean };
 export const useToggleGateway = () => {
@@ -22,6 +23,45 @@ export const useToggleGateway = () => {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_active: active }),
+      }),
+    {
+      onSuccess: () => qc.invalidateQueries(["gateways"]),
+    },
+  );
+};
+
+// NEW: create gateway
+export const useCreateGateway = () => {
+  const qc = useQueryClient();
+  return useMutation(
+    async (payload: {
+      name: string;
+      provider: string;
+      api_key: string;
+      api_secret: string;
+      monthly_limit?: number;
+      priority?: number;
+    }) =>
+      fetchJSON(`/api/admin/gateways`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }),
+    {
+      onSuccess: () => qc.invalidateQueries(["gateways"]),
+    },
+  );
+};
+
+// NEW: update gateway generic
+export const useUpdateGateway = () => {
+  const qc = useQueryClient();
+  return useMutation(
+    async ({ id, ...payload }: { id: string } & Record<string, any>) =>
+      fetchJSON(`/api/admin/gateways/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       }),
     {
       onSuccess: () => qc.invalidateQueries(["gateways"]),

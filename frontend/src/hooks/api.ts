@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from 'sonner';
 
 const fetchJSON = async (url: string, options?: RequestInit) => {
   const res = await fetch(url, options);
@@ -25,7 +26,11 @@ export const useToggleGateway = () => {
         body: JSON.stringify({ is_active: active }),
       }),
     {
-      onSuccess: () => qc.invalidateQueries(["gateways"]),
+      onSuccess: () => {
+        qc.invalidateQueries(["gateways"]);
+        toast.success('Gateway status updated');
+      },
+      onError: (err: any) => toast.error(err.message),
     },
   );
 };
@@ -48,7 +53,11 @@ export const useCreateGateway = () => {
         body: JSON.stringify(payload),
       }),
     {
-      onSuccess: () => qc.invalidateQueries(["gateways"]),
+      onSuccess: () => {
+        qc.invalidateQueries(["gateways"]);
+        toast.success('Gateway created');
+      },
+      onError: (err: any) => toast.error(err.message),
     },
   );
 };
@@ -64,7 +73,11 @@ export const useUpdateGateway = () => {
         body: JSON.stringify(payload),
       }),
     {
-      onSuccess: () => qc.invalidateQueries(["gateways"]),
+      onSuccess: () => {
+        qc.invalidateQueries(["gateways"]);
+        toast.success('Gateway updated');
+      },
+      onError: (err: any) => toast.error(err.message),
     },
   );
 };

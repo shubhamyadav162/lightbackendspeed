@@ -76,6 +76,11 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Added `/merchant/integration` endpoint in `api-gateway` Edge Function returning `client_key`, `client_salt`, and `webhook_url`.
   * Added React Query hook `useMerchantIntegration` and wired `merchant/integration` page to live credentials with copy-to-clipboard and dynamic code snippets.
 - 2025-07-03 – Added **system-health-report** worker (`src/workers/system-health-report`) sending hourly Slack summaries aggregating BullMQ queue stats & stale worker counts; added `SYSTEM_HEALTH_INTERVAL_MS` env placeholder and npm script `worker:system-health`.
+- 2025-07-04 – Added global toast notifications using `sonner` library:
+  * Created `ToasterProvider` and integrated into root layout.
+  * Enhanced gateway mutations (create/update/toggle) to show success/error toasts.
+- 2025-07-04 – Added ambient TypeScript type declaration for `sonner` to silence linter.
+- 2025-07-04 – Added Playwright E2E test `integration-center.spec.ts` verifying Integration Center page shows credentials & copy buttons.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 

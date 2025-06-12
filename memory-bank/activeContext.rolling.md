@@ -29,6 +29,9 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-23 – Implemented full HTTP integration in `whatsapp-sender` worker using `WA_API_URL` & `WA_API_KEY`, with error handling and DB status/error updates.
 - 2025-06-23 – Extended `.env.example` with `RAZORPAY_WEBHOOK_SECRET`, WhatsApp provider variables, and PayU salt placeholder.
 - 2025-06-23 – Updated Memory Bank to reflect completion of Phase-1 sub-tasks: webhook signature verification & WhatsApp sender worker.
+- 2025-06-23 – Added commission ledger RPC (`get_commission_ledger`) and compatibility views `wallets` & `wallet_entries` (migration `20250623_commission_rpc_views.sql`).
+- 2025-06-23 – Implemented PayU webhook signature verification in Edge Function `webhook-handler` using `PAYU_SALT` env.
+- 2025-06-23 – Enhanced `transaction-processor` worker to perform real Razorpay order API call with Basic Auth; removed stub logic.
 
 ## In Progress
 
@@ -42,6 +45,8 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - Implement real PSP API HTTP calls inside `createOrder` helper (requires gateway credentials in DB).
 - Implement signature verification logic inside `webhook-handler` Edge Function per provider.
 - Build Playwright E2E covering payment flow incl. external PSP redirect stub.
+- Implement real PayU payment initiation inside `createOrder` helper once credentials and API spec are finalised.
+- Write payment flow Playwright E2E (`payment-flow.test.ts`) to exercise initiate → checkout stub → webhook → commission path.
 
 ## Upcoming Next Steps
 

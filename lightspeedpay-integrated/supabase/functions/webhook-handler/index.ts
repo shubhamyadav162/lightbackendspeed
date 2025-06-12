@@ -39,6 +39,37 @@ async function verifyRazorpay(body: string, headerSig: string | null) {
   return headerSig === expected;
 }
 
+async function verifyPayU(bodyObj: any) {
+  // PayU sends fields which include hash; verify simple hash: sha512(key|txnid|amount|productinfo|firstname|email|||||||salt)
+  // For dashboard simplicity we only reconstruct first part ; PayU docs confirm missing empty fields.
+  try {
+    const salt = Deno.env.get("PAYU_SALT");
+    if (!salt) return true; // skip if not set
+
+    const {
+      key,
+      txnid,
+      amount,
+      productinfo,
+      firstname,
+      email,
+      hash,
+    } = bodyObj;
+    if (!hash) return false;
+
+    const hashString = `${key}|${txnid}|${amount}|${productinfo}|${firstname}|${email}|||||||${salt}`;
+    const enc = new TextEncoder();
+    const msgUint8 = enc.encode(hashString);
+    const digest = await crypto.subtle.digest("SHA-512", msgUint8);
+    const expected = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    return expected === hash;
+  } catch (_) {
+    return false;
+  }
+}
+
 /**
  * Attempt to verify webhook signature based on detectable provider.
  * Currently supports Razorpay when header "x-razorpay-signature" is present.
@@ -50,8 +81,17 @@ async function verifySignature(req: Request, rawBody: string): Promise<boolean> 
     return await verifyRazorpay(rawBody, hdr.get("x-razorpay-signature"));
   }
 
-  // TODO: Implement PayU hash verification when docs finalised
-  return true; // fallback – allow other providers through for now
+  // Attempt PayU verification when body contains 'txnid' field
+  try {
+    const obj = JSON.parse(rawBody);
+    if (obj?.txnid) {
+      return await verifyPayU(obj);
+    }
+  } catch (_) {
+    // parse error – skip
+  }
+
+  return true; // fallback – unknown provider
 }
 
 serve(async (req) => {

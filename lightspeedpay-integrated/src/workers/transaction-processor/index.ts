@@ -21,15 +21,37 @@ async function createOrder(
 ) {
   switch (provider) {
     case "razorpay": {
-      // TODO: Replace stub with real Razorpay order creation call
-      const gateway_txn_id = `rzp_${payload.transaction_id}`;
+      const body = {
+        amount: payload.amount, // in paisa
+        currency: "INR",
+        receipt: payload.order_id,
+        notes: { transaction_id: payload.transaction_id },
+      } as Record<string, unknown>;
+      if (payload.redirect_url) body["callback_url"] = payload.redirect_url;
+
+      const auth = Buffer.from(`${creds.api_key}:${creds.api_secret}`).toString("base64");
+      const res = await fetch("https://api.razorpay.com/v1/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${auth}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`RAZORPAY_ORDER_FAILED_${errText}`);
+      }
+      const json = await res.json();
+      const gateway_txn_id = json.id;
       const checkout_url = `https://checkout.razorpay.com/v1/checkout.js?order_id=${gateway_txn_id}`;
       return { gateway_txn_id, checkout_url };
     }
     case "payu": {
-      // TODO: Replace stub with real PayU payment initiation call
+      // TODO: Implement real PayU API once credentials & endpoints are known.
       const gateway_txn_id = `payu_${payload.transaction_id}`;
-      const checkout_url = `https://secure.payu.in/_payment?txnid=${gateway_txn_id}`;
+      const checkout_url =
+        `https://secure.payu.in/_payment?txnid=${gateway_txn_id}&amount=${payload.amount}`;
       return { gateway_txn_id, checkout_url };
     }
     default: {

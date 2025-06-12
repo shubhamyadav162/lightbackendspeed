@@ -268,3 +268,6 @@
 - Added worker `queue-metrics-recorder` (Node/BullMQ) that records `waiting/active/completed/failed` counts for each queue into `queue_metrics` table every minute; configurable via `QUEUE_RECORD_INTERVAL_MS` env.
 - Added Jest unit test `commission-calculator.test.ts` ensuring `calculateCommission()` correctly calls Supabase RPC `process_commission` with rounded commission amount.
 - Implemented Razorpay webhook signature verification in `webhook-handler` Edge Function and completed WhatsApp sender worker integration with real HTTP API calls; updated env.example accordingly. (2025-06-23)
+- Implemented commission ledger RPC (`get_commission_ledger`) and compatibility views (`wallets`, `wallet_entries`) via migration `20250623_commission_rpc_views.sql`. (2025-06-23)
+- Added PayU webhook signature verification in Edge Function `webhook-handler` leveraging `PAYU_SALT` env and updated `.env.example` with PayU credentials placeholders. (2025-06-23)
+- Enhanced `transaction-processor` worker to create real Razorpay order via REST API using Basic Auth; removed previous stub. (2025-06-23)

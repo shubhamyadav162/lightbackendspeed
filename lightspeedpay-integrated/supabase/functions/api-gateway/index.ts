@@ -169,6 +169,17 @@ function getClientIdFromAuth(authHeader?: string | null): string | null {
   }
 }
 
+/********************** Merchant Integration Details **********************/
+async function getIntegrationDetails(client_id: string) {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("client_key,client_salt,webhook_url")
+    .eq("id", client_id)
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 /********************** Request Router **********************/
 serve(async (req) => {
   try {
@@ -216,6 +227,16 @@ serve(async (req) => {
       }
       if (!client_id) return new Response("client_id required", { status: 400 });
       return Response.json(await getWAUsage(client_id));
+    }
+
+    // Merchant Integration details
+    if (pathname === "/merchant/integration" && req.method === "GET") {
+      let client_id = url.searchParams.get("client_id") ?? "";
+      if (!client_id) {
+        client_id = getClientIdFromAuth(req.headers.get("authorization"));
+      }
+      if (!client_id) return new Response("client_id required", { status: 400 });
+      return Response.json(await getIntegrationDetails(client_id));
     }
 
     return new Response("Not Found", { status: 404 });

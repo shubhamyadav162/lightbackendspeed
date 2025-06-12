@@ -15,6 +15,7 @@
     "worker:health-monitor": "ts-node src/workers/worker-health-monitor/index.ts",
     "worker:low-balance": "ts-node src/workers/low-balance-notifier/index.ts",
     "worker:webhook-retry": "ts-node src/workers/webhook-retry/index.ts",
+    "worker:system-health": "ts-node src/workers/system-health-report/index.ts",
     "migrate": "npx supabase db diff --schema=public --use-migra -f",
     "migrate:apply": "npx supabase db push",
     "migrate:new": "npx supabase migration new",

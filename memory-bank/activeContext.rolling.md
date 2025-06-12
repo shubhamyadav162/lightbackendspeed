@@ -72,15 +72,19 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-07-02 – Added Playwright E2E test `commission-ledger.spec.ts` verifying `/admin/commission/ledger` endpoint returns expected commission row (Phase-3 coverage).
 - 2025-07-02 – Updated Supabase test seeding utilities inside the E2E spec to insert deterministic `clients`, `wallets`, and `commission_entries` rows for idempotent test runs.
 - 2025-07-02 – No schema changes needed – commission tables already exist and populated in Supabase migrations.
+- 2025-07-03 – Implemented **merchant IntegrationCenter completion**:
+  * Added `/merchant/integration` endpoint in `api-gateway` Edge Function returning `client_key`, `client_salt`, and `webhook_url`.
+  * Added React Query hook `useMerchantIntegration` and wired `merchant/integration` page to live credentials with copy-to-clipboard and dynamic code snippets.
+- 2025-07-03 – Added **system-health-report** worker (`src/workers/system-health-report`) sending hourly Slack summaries aggregating BullMQ queue stats & stale worker counts; added `SYSTEM_HEALTH_INTERVAL_MS` env placeholder and npm script `worker:system-health`.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
 * Added React Query mutations `
 
 ## In Progress (NEXT)
-- Finalize merchant **IntegrationCenter** page and E2E flow (fetch client keys + webhook URL copy interaction).
-- Implement UX polish: toasts & subtle loading indicators across admin pages.
-- Expand monitoring – scheduled Slack summary (`system-health-report` worker) consolidating queue_metrics & worker_health stats each hour.
+- Minor UX polish: global toasts & loading indicators across admin/merchant pages.
+- Verify E2E flow for IntegrationCenter; add Playwright spec if gaps remain.
+- Optional: production deployment & final SLA monitoring checks.
 
 ## Blockers / Considerations
 - None – all backend queues and workers healthy.

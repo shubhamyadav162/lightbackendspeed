@@ -86,4 +86,7 @@ export const useWhatsAppLog = (page = 1) =>
   );
 
 export const useMerchantWAUsage = () =>
-  useQuery(['wa-usage'], () => fetchJSON('/api/merchant/whatsapp/usage')); 
+  useQuery(['wa-usage'], () => fetchJSON('/api/merchant/whatsapp/usage'));
+
+export const useMerchantIntegration = () =>
+  useQuery(['integration'], () => fetchJSON('/api/merchant/integration')); 

@@ -313,3 +313,5 @@
 
 - Added `webhook-retry` worker that scans `webhook_events` for failed attempts and requeues them; added script `worker:webhook-retry` and env var; added RLS migration `20250701_rls_whatsapp_queue.sql` for strengthened access control (2025-07-01)
 + Added Playwright E2E test `commission-ledger.spec.ts` covering admin commission ledger endpoint – closes final Phase-3 coverage gap (2025-07-02)
+
+- 2025-07-03: Completed merchant IntegrationCenter page live credential integration & added system-health-report worker with hourly Slack summary. Added `/merchant/integration` endpoint, React Query hook, env variable, and associated scripts. Frontend now fully functional for merchants. Remaining: minor UX polish and final deployment.

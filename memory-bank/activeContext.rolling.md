@@ -60,6 +60,10 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Updated `transaction-processor` worker to decrypt credentials before PSP calls.
   * Added `ENCRYPTION_KEY` placeholder to `env.example`.
 - 2025-06-26 – Added missing env placeholders for `SUPABASE_SERVICE_ROLE_KEY`, `BULLMQ_PREFIX`, and worker concurrency variables (`MAX_CONCURRENCY_*`) in `env.example` to align with backend code; updated progress.md accordingly.
+- 2025-06-27 – Added Slack integration:
+  * Created helper `src/lib/slack.ts` for sending messages via `SLACK_WEBHOOK_URL`.
+  * Enhanced `worker-health-monitor` & `low-balance-notifier` workers to push critical alerts to Slack in addition to DB `alerts`/WhatsApp flows.
+  * Appended `SLACK_WEBHOOK_URL` placeholder in `env.example`.
 
 ## In Progress
 

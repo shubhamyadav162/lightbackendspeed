@@ -3,6 +3,7 @@
 // and considers a worker stale if its last_ping is older than HEALTH_STALE_THRESHOLD_MS (default 120s).
 
 import { createClient } from "@supabase/supabase-js";
+import { sendSlackMessage } from "../../lib/slack";
 
 const INTERVAL_MS = Number(process.env.HEALTH_MONITOR_INTERVAL_MS) || 60_000;
 const STALE_THRESHOLD_MS = Number(process.env.HEALTH_STALE_THRESHOLD_MS) || 120_000;
@@ -41,6 +42,9 @@ async function checkStaleWorkers() {
         onConflict: "message", // prevents duplicate alerts for same worker
       },
     );
+
+    // NEW: Send Slack notification
+    await sendSlackMessage(`⚠️ *LightSpeedPay*: Worker *${w.worker_name}* heartbeat stale (last ping ${w.last_ping})`);
   }
 }
 

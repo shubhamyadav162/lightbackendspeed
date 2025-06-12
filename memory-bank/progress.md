@@ -289,3 +289,9 @@
 - Added React Query provider and API hooks for backend integration.
 - Next: Build merchant pages (`integration`, `whatsapp` usage), refine UI interactions (modals, toasts), and integrate realtime updates.
 - Added merchant dashboard WhatsApp Usage page (`/dashboard/merchant/whatsapp`) with React Query hook `useMerchantWAUsage`; enhanced `api-gateway` Edge Function to infer `client_id` from JWT for `/merchant/whatsapp/usage` endpoint. (2025-06-24)
+
+- Added Slack alerting integration:
+  * Created `src/lib/slack.ts` helper and placeholder `SLACK_WEBHOOK_URL` in `env.example`.
+  * Updated `worker-health-monitor` to send critical stale worker notifications to Slack.
+  * Updated `low-balance-notifier` to send low balance due alerts to Slack.
+  (2025-06-27)

@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 import { createClient } from "@supabase/supabase-js";
+import { sendSlackMessage } from "../../lib/slack";
 
 // Low Balance Notifier – periodically checks commission_wallets and enqueues WhatsApp notifications
 // if balance_due exceeds warn_threshold and a notification hasn't been sent recently.
@@ -65,6 +66,9 @@ async function scanAndNotify() {
     });
 
     console.log(`Enqueued LOW_BALANCE WA for client ${w.client_id}`);
+
+    // NEW: Slack notify for low balance
+    await sendSlackMessage(`🔔 Wallet balance due for client ${w.client_id} is ${(w.balance_due / 100).toFixed(2)} ₹ (threshold ${(w.warn_threshold / 100).toFixed(2)} ₹)`);
   }
 }
 

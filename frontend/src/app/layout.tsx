@@ -6,6 +6,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { Navbar } from '@/components/ui/navbar';
 import { Footer } from '@/components/ui/footer';
 import { ToasterProvider } from '@/components/providers/toaster-provider';
+import { LoadingIndicatorProvider } from '@/components/providers/loading-indicator-provider';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <QueryProvider>
+            <LoadingIndicatorProvider />
             <div className="flex min-h-screen flex-col">
               <Navbar />
               <main className="flex-1">

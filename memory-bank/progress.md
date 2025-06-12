@@ -317,3 +317,8 @@
 - 2025-07-03: Completed merchant IntegrationCenter page live credential integration & added system-health-report worker with hourly Slack summary. Added `/merchant/integration` endpoint, React Query hook, env variable, and associated scripts. Frontend now fully functional for merchants. Remaining: minor UX polish and final deployment.
 - 2025-07-04 – Implemented global toast notifications with `sonner` provider and enhanced gateway mutations for better UX.
 - 2025-07-04 – Added E2E Playwright test `integration-center.spec.ts` covering merchant Integration Center page.
+
+## 2025-07-05 – Global Loading Indicator
+- Implemented `LoadingIndicatorProvider` using React Query's global `useIsFetching` state to show an animated gradient top-bar while any network request is pending.
+- Integrated the provider into root `layout.tsx` just above `ToasterProvider`.
+- Frontend UX polish item "Loading States" is now complete; remaining frontend work limited to final E2E confirmations and production deployment checklists.

@@ -81,14 +81,16 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Enhanced gateway mutations (create/update/toggle) to show success/error toasts.
 - 2025-07-04 – Added ambient TypeScript type declaration for `sonner` to silence linter.
 - 2025-07-04 – Added Playwright E2E test `integration-center.spec.ts` verifying Integration Center page shows credentials & copy buttons.
+- 2025-07-05 – Implemented global loading indicators:
+  * Added `LoadingIndicatorProvider` using React Query's `useIsFetching` to display a gradient top-bar while any request is in-flight.
+  * Integrated provider into `frontend/src/app/layout.tsx` just above `ToasterProvider`, giving users instant feedback during data fetches.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
 * Added React Query mutations `
 
 ## In Progress (NEXT)
-- Minor UX polish: global toasts & loading indicators across admin/merchant pages.
-- Verify E2E flow for IntegrationCenter; add Playwright spec if gaps remain.
+- Verify E2E flow for IntegrationCenter; ensure Playwright spec covers copy-to-clipboard behaviour.
 - Optional: production deployment & final SLA monitoring checks.
 
 ## Blockers / Considerations

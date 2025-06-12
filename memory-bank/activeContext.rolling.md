@@ -1,4 +1,4 @@
-# Active Context – Rolling Window (last updated 2025-07-05)
+# Active Context – Rolling Window (last updated 2025-07-06)
 
 This file tracks the most recent work focus and decisions so we can edit quickly without touching the 3 800-line legacy `activeContext.md`. Older context remains there for historical reference.
 
@@ -86,6 +86,14 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Integrated provider into `frontend/src/app/layout.tsx` just above `ToasterProvider`, giving users instant feedback during data fetches.
 - 2025-07-05 – Verified Integration Center Playwright E2E passes (copy-to-clipboard and credentials load) after global loading bar integration.
 - 2025-07-05 – Added SLA uptime monitor worker (`src/workers/sla-monitor`) that pings critical endpoints every minute and upserts latency stats into `system_status`; added `worker:sla-monitor` npm script and new env placeholders `SLA_MONITOR_INTERVAL_MS`, `SLA_MONITOR_ENDPOINTS`.
+- 2025-07-05 – Added Supabase migration `20250705_system_status_table.sql` creating `system_status` table with UNIQUE(component) to support SLA monitor upsert + admin RLS and updated_at trigger.
+- 2025-07-05 – Fixed SLA monitor worker to cast numeric HTTP status to string before insert to match varchar column, preventing implicit cast errors.
+- 2025-07-05 – Added `PUBLIC_BASE_URL` placeholder to `env.example` for SLA monitor default URL interpolation.
+- 2025-07-06 – Added Grafana monitoring assets:
+  * Created `monitoring/grafana/system_status_dashboard.json` for uptime & latency.
+  * Created `monitoring/grafana/queue_metrics_dashboard.json` for BullMQ metrics.
+  * Added Prometheus alert rules `monitoring/alertmanager/system_status_alerts.yaml` triggering Slack alerts on non-2xx status.
+  These complete Phase-3 observability item (dashboards & alert thresholds).
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 

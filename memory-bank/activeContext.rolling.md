@@ -74,20 +74,15 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 * Confirmed `QueueMonitor`, `CommissionLedger`, `WhatsAppLogs`, merchant `Integration` & `WhatsAppUsage` pages fully wired to API endpoints – manual test shows live data.
 * Phase-2 checklist items 12-16 & 18 are functionally complete; only visual polish & charts colour tweaks remain under "UI cleanup" workstream.
 
+## Recently Completed (DONE – continued)
+
+- 2025-06-29 – Added Jest unit test `gateway-selector.test.ts` validating RPC payload & gateway selection logic; test suite passes.
+- 2025-06-29 – Updated `queue-metrics-recorder` worker to respect `BULLMQ_PREFIX` env ensuring queue stats align with prefixed queues across all services.
+
 ## In Progress
 
 * UI polish: replace prompt-based gateway modals with headless UI Dialogs, add dark-mode chart colours, import corporate font assets.
 * Playwright E2E: add UI flow tests for gateway creation/edit, queue drain action & WhatsApp log pagination.
 * PSP expansion & alerting improvements continue as per roadmap.
-
-## Upcoming Next Steps
-
-1. Replace expensive Supabase view queries with raw SQL via `pgPool` when available to leverage connection pooling.
-2. Extend Playwright analytics flow to assert cache HIT paths (Redis MONITOR), raw SQL path, and chart render hydration on the front-end.
-3. Evaluate asset optimization warnings in Next.js build and fix missing fonts.
-4. Build alerting mechanism (Edge Function or Worker) that checks `worker_health` for stale heartbeats and inserts rows into `alerts` table and/or sends Slack notifications.
-
-# Misc housekeeping (DONE)
-* ✅ CI now runs `scripts/enforce-codecov.js` to enforce Codecov ≥ 80 % branch protection.
 
 Deploy alerting rule (Edge Function or Worker) that queries `

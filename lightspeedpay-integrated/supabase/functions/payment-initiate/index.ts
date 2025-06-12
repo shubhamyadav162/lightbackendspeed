@@ -73,17 +73,20 @@ serve(async (req) => {
     return new Response("Invalid signature", { status: 401 });
   }
 
-  // 3. Check commission balance vs suspend_threshold (optional – pseudo-logic)
-  /*
-  const { data: wallet } = await supabase
+  // 3. Check commission balance vs suspend_threshold
+  const { data: wallet, error: walletErr } = await supabase
     .from("commission_wallets")
     .select("balance_due")
     .eq("client_id", client.id)
     .single();
+
+  if (walletErr) {
+    console.error("[payment-initiate] wallet fetch error", walletErr);
+  }
+
   if (wallet && wallet.balance_due > (client.suspend_threshold ?? 10000)) {
     return new Response("SUSPENDED_THRESHOLD", { status: 403 });
   }
-  */
 
   // 4. Select gateway via RPC (runs algorithm inside DB & updates current_volume atomically)
   const { data: gateways, error: gwErr } = await supabase.rpc("select_gateway_for_amount", {

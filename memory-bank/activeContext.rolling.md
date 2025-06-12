@@ -38,6 +38,10 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-24 – Fixed Deno Edge Function `payment-initiate` to call `select_gateway_for_amount` RPC directly (removed unsupported Node import) and added detailed error handling.
 - 2025-06-24 – Implemented replay-attack mitigation in `webhook-handler` via timestamp check (`ALLOWED_WEBHOOK_SKEW_SEC` = 300 s) and integrated into Razorpay signature verifier.
 - 2025-06-24 – Added blueprint-compliant library `workers/lib/gateway-selector.ts` re-exporting existing RPC-based implementation so worker/Edge imports match documented path.
+- 2025-06-24 – Added `src/lib/wa-token.ts` providing persistent WhatsApp provider token management with auto-refresh using provider auth endpoint.
+- 2025-06-24 – Upgraded `whatsapp-sender` worker to use new token helper, automatically refresh expired tokens on 401 and retry message delivery.
+- 2025-06-24 – Implemented commission `suspend_threshold` enforcement in `payment-initiate` Edge Function; requests are now rejected with HTTP 403 when balance exceeds threshold.
+- 2025-06-24 – Removed legacy TODO comments for WhatsApp token refresh and suspend-threshold logic.
 
 ## In Progress
 

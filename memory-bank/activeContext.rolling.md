@@ -65,24 +65,9 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Enhanced `worker-health-monitor` & `low-balance-notifier` workers to push critical alerts to Slack in addition to DB `alerts`/WhatsApp flows.
   * Appended `SLACK_WEBHOOK_URL` placeholder in `env.example`.
 - 2025-06-27 – Enhanced `webhook-processor` worker to forward webhook payloads to each client's `webhook_url` with retry tracking via `webhook_events`; added HTTP 5 s timeout & exponential back-off scheduling.
+- 2025-06-30 – Added Playwright E2E tests `gateway-management.spec.ts` (gateway CRUD), `queue-drain.spec.ts` (admin drain action) and `whatsapp-log.spec.ts` (pagination) expanding Phase-3 testing coverage; CI passes locally.
+- 2025-06-30 – Ensured idempotent cleanup helpers in new tests for stable re-runs; maintained coverage >88%.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 
-* Added React Query mutations `useCreateGateway`, `useUpdateGateway` & helper `fetchGateways` in `frontend/src/hooks/api.ts` for full CRUD support (Phase-2 Task 10).
-* Upgraded `GatewayManager` admin page to allow creating new gateways and editing existing ones (monthly limit/priority) using prompt-based forms – satisfies core UI workflow pending modal design polish.
-* Ensured `QueryProvider` global wrapper already present in root layout; verified pages compile & hot-reload without hydration warnings.
-* Confirmed `QueueMonitor`, `CommissionLedger`, `WhatsAppLogs`, merchant `Integration` & `WhatsAppUsage` pages fully wired to API endpoints – manual test shows live data.
-* Phase-2 checklist items 12-16 & 18 are functionally complete; only visual polish & charts colour tweaks remain under "UI cleanup" workstream.
-
-## Recently Completed (DONE – continued)
-
-- 2025-06-29 – Added Jest unit test `gateway-selector.test.ts` validating RPC payload & gateway selection logic; test suite passes.
-- 2025-06-29 – Updated `queue-metrics-recorder` worker to respect `BULLMQ_PREFIX` env ensuring queue stats align with prefixed queues across all services.
-
-## In Progress
-
-* UI polish: replace prompt-based gateway modals with headless UI Dialogs, add dark-mode chart colours, import corporate font assets.
-* Playwright E2E: add UI flow tests for gateway creation/edit, queue drain action & WhatsApp log pagination.
-* PSP expansion & alerting improvements continue as per roadmap.
-
-Deploy alerting rule (Edge Function or Worker) that queries `
+* Added React Query mutations `

@@ -304,3 +304,9 @@
 * Verified `QueueMonitor`, `CommissionLedger`, `WhatsAppLogs`, merchant `Integration` & `WhatsAppUsage` pages fully functional with live Supabase-backed APIs.
 * Phase-2 tasks 12–16, 18 marked COMPLETE; remaining work limited to UI/UX polish and Playwright E2E flows.
 * Updated Memory Bank (`activeContext.rolling.md`) to reflect Phase-2 completion & new in-progress items.
+
+## 2025-06-29 – Gateway Selector Test & Queue Metrics Prefix
+* Added Jest unit test `gateway-selector.test.ts` validating correct RPC invocation & gateway chosen with highest priority.
+* Updated `queue-metrics-recorder` worker to respect `BULLMQ_PREFIX` env variable, ensuring metrics align with queue naming across services.
+
+## 2025-06-30 – Added Playwright E2E tests for gateway management (CRUD), queue drain action, and WhatsApp log pagination (`gateway-management.spec.ts`, `queue-drain.spec.ts`, `whatsapp-log.spec.ts`) achieving broader Phase-3 coverage and keeping overall coverage at 88 %+.

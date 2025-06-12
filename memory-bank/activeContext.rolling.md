@@ -101,6 +101,26 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Added Slack alerts for payout success/failure and new env placeholders `COMMISSION_PAYOUT_INTERVAL_MS`, `MIN_PAYOUT_AMOUNT_PAISE`.
   * Memory Bank updated to reflect new worker, migration and env variables.
 - 2025-07-07 – Updated GitHub Actions workflows (`backend-deployment.yml`, `supabase-migrations.yml`) to reference new project path `lightspeedpay-integrated/**`, ensuring automatic backend deploy & migrations run on push/PR. Set working-directory and cache paths accordingly.
+- 2025-07-08 – Added Supabase migration `20250708_payment_gateways_credentials.sql` introducing missing `provider`, `api_key`, `api_secret` columns to `payment_gateways` (with data backfill & NOT NULL constraint) ensuring alignment with blueprint and preventing runtime errors in workers.
+- 2025-07-08 – Created Node-side AES-256-GCM helper `lightspeedpay-integrated/src/lib/encryption.ts` matching Edge util; fixed worker imports and satisfied Jest `encryption.test.ts`.
+- 2025-07-09 – Completed comprehensive compliance audit against `newfeatureadd.md`; verified all Phase-1 backend tasks (DB schema, Edge Functions, workers, API endpoints, tests) are implemented and Supabase project `trmqbpnnboyoneyfleux` is up-to-date. No further migrations required. Updated Memory Bank & progress.md accordingly.
+- 2025-07-09 – Completed Razorpay Payout integration:
+  * Added helper `src/lib/psp/razorpay.ts` for Razorpay Payouts API (Basic Auth) and new env placeholders `RAZORPAY_PAYOUT_*`.
+  * Enhanced `commission-payout-processor` worker to call real payout API and queue commission payout entries via RPC.
+  * Updated `env.example` with payout credentials placeholders.
+  * Memory Bank updated; Pays out commission balances automatically.
+- 2025-07-10 – Added **archive-transactions** optimisation:
+  * Created Supabase migration `20250710_archive_transactions.sql` adding `archived_transactions` table and `archive_transactions(p_cutoff)` RPC to move historical rows.
+  * Added worker `src/workers/archive-transactions` executed via Railway Cron (daily) using `ARCHIVE_CUTOFF_DAYS` env (default 730 days).
+  * Extended `env.example` with `ARCHIVE_CUTOFF_DAYS` placeholder.
+  This completes Phase-3 performance goal: automated historical data archiving, reducing bloat on `client_transactions` and improving query/index speed.
+- 2025-07-10 – Added index optimisation migration `20250710_add_indexes_optimization.sql` creating strategic indexes on `queue_metrics`, `commission_entries`, and `webhook_events` to speed up dashboard queries.
+- 2025-07-10 – Added materialised view `vw_queue_metrics_hourly` via migration `20250710_queue_metrics_view.sql` for efficient dashboard charting over queue stats.
+- 2025-07-10 – Added `refresh-queue-metrics-view` worker & RPC to refresh materialised view every 5 min; added script `worker:queue-metrics-refresh`.
+- 2025-07-11 – Hardened `archived_transactions` table security:
+  * Added Supabase migration `20250711_rls_archived_transactions.sql` enabling Row Level Security and creating admin- & merchant-scoped policies.
+  * Applied migration via MCP to project `trmqbpnnboyoneyfleux`.
+  This closes the final open security gap identified in archive subsystem.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 

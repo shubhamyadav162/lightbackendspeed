@@ -332,3 +332,23 @@
 - Added Grafana dashboards (`system_status_dashboard.json`, `queue_metrics_dashboard.json`) and Prometheus alert rules (`system_status_alerts.yaml`) to provide live SLA & queue monitoring (2025-07-06).
 - Implemented automated Commission Payout Processor & reporting view (2025-07-07)
 - Updated GitHub Actions workflows: switched backend deployment & Supabase migrations triggers/working-directory to `lightspeedpay-integrated` path for accurate continuous delivery and database migration automation. (2025-07-07)
+- Added Supabase migration `20250708_payment_gateways_credentials.sql` to add `provider`, `api_key`, `api_secret` columns to `payment_gateways` and migrated existing data from legacy `code` column; enforced NOT NULL constraint and unique name index. (2025-07-08)
+- Created Node AES-256-GCM encryption helper `lightspeedpay-integrated/src/lib/encryption.ts` to unify credential encryption across workers; now used by transaction-processor and unit tests pass. (2025-07-08)
+- Completed 2025-07-09 compliance audit: verified full alignment with Phase-1 blueprint (DB schema, migrations, Edge Functions, workers, tests). Confirmed Supabase project `trmqbpnnboyoneyfleux` ACTIVE_HEALTHY and no pending migrations. Memory Bank updated (activeContext.rolling.md). Next: continue Phase-2 UI polishing & Phase-3 performance optimizations.
+
+- Added Razorpay Payout integration:
+  * Created helper `src/lib/psp/razorpay.ts` using Payouts API.
+  * Implemented real payout flow in `commission-payout-processor` worker replacing stub; added env placeholders in `env.example`.
+  * Payment payouts now queued via Razorpay and recorded in Supabase (`commission_entries`) via RPC `process_commission_payout`.
+  * Slack notifications report payout queued status with ID. (2025-07-09)
+
+- 2025-07-10 – Added automated archive system:
+  * New migration `20250710_archive_transactions.sql` introduces `archived_transactions` table and RPC `archive_transactions`.
+  * Created worker `archive-transactions` executed daily to move rows older than `ARCHIVE_CUTOFF_DAYS` (env, default 730) from `client_transactions` into archive table.
+  * Updated `env.example` with new variable. This reduces main table size and speeds up analytics queries.
+- 2025-07-10 – Added migration `20250710_add_indexes_optimization.sql` to add indexes on queue_metrics, commission_entries, and webhook_events for faster analytics.
+- 2025-07-10 – Added materialised view `vw_queue_metrics_hourly` to speed up queue metrics charts.
+- 2025-07-11 – Security hardening of archived data:
+  * Added migration `20250711_rls_archived_transactions.sql` enabling RLS on `archived_transactions` with admin & merchant policies.
+  * Migration applied to Supabase via MCP ensuring archived rows follow least-privilege access controls.
+  Project backend now fully RLS-compliant across active & archival datasets.

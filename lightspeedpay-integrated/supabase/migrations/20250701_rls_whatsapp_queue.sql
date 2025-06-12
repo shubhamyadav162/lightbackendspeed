@@ -10,8 +10,10 @@ ALTER TABLE IF EXISTS public.queue_metrics ENABLE ROW LEVEL SECURITY;
 /* -------------------------------------------------------------------------- */
 /* Admin-only policies                                                         */
 /* -------------------------------------------------------------------------- */
-CREATE POLICY IF NOT EXISTS "Admin only" ON public.whatsapp_notifications
+DROP POLICY IF EXISTS "Admin only" ON public.whatsapp_notifications;
+CREATE POLICY "Admin only" ON public.whatsapp_notifications
   FOR ALL USING ((auth.jwt() ->> 'role') = 'admin');
 
-CREATE POLICY IF NOT EXISTS "Admin only" ON public.queue_metrics
+DROP POLICY IF EXISTS "Admin only" ON public.queue_metrics;
+CREATE POLICY "Admin only" ON public.queue_metrics
   FOR ALL USING ((auth.jwt() ->> 'role') = 'admin'); 

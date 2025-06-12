@@ -100,6 +100,7 @@ This file tracks the most recent work focus and decisions so we can edit quickly
   * Added reporting view `vw_commission_daily` aggregating commission vs payout per day.
   * Added Slack alerts for payout success/failure and new env placeholders `COMMISSION_PAYOUT_INTERVAL_MS`, `MIN_PAYOUT_AMOUNT_PAISE`.
   * Memory Bank updated to reflect new worker, migration and env variables.
+- 2025-07-07 – Updated GitHub Actions workflows (`backend-deployment.yml`, `supabase-migrations.yml`) to reference new project path `lightspeedpay-integrated/**`, ensuring automatic backend deploy & migrations run on push/PR. Set working-directory and cache paths accordingly.
 
 ## Frontend Phase – Recently Completed (2025-06-28)
 

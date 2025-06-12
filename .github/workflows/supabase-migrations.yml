@@ -4,11 +4,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'supabase-mcp/migrations/**'
+      - 'lightspeedpay-integrated/supabase/migrations/**'
   pull_request:
     branches: [main]
     paths:
-      - 'supabase-mcp/migrations/**'
+      - 'lightspeedpay-integrated/supabase/migrations/**'
 
 jobs:
   deploy-migrations:
@@ -32,13 +32,13 @@ jobs:
       - name: Run Migrations (Preview)
         if: github.event_name == 'pull_request'
         run: |
-          cd supabase-mcp
+          cd lightspeedpay-integrated
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PREVIEW }}
           supabase db push
       
       - name: Run Migrations (Production)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          cd supabase-mcp
+          cd lightspeedpay-integrated
           supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }}
           supabase db push 

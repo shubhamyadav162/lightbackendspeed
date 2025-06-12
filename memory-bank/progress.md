@@ -267,3 +267,4 @@
 ## 2025-06-20 – Queue Monitoring & Commission Tests
 - Added worker `queue-metrics-recorder` (Node/BullMQ) that records `waiting/active/completed/failed` counts for each queue into `queue_metrics` table every minute; configurable via `QUEUE_RECORD_INTERVAL_MS` env.
 - Added Jest unit test `commission-calculator.test.ts` ensuring `calculateCommission()` correctly calls Supabase RPC `process_commission` with rounded commission amount.
+- Implemented Razorpay webhook signature verification in `webhook-handler` Edge Function and completed WhatsApp sender worker integration with real HTTP API calls; updated env.example accordingly. (2025-06-23)

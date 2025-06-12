@@ -25,6 +25,10 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-22 – Added helper `createOrder` for Razorpay/PayU stubs.
 - 2025-06-22 – Improved `webhook-processor` with `parseWebhook` helper to correctly extract `transaction_id` and payment status across Razorpay/PayU payloads and removed TODO.
 - 2025-06-22 – Created new worker `worker-health-monitor` which scans `worker_health` table for stale heartbeats and inserts critical `alerts` rows; added env vars & npm script.
+- 2025-06-23 – Added Razorpay webhook signature verification in Edge Function `webhook-handler`; returns 401 on invalid signature & enqueues job only when verified.
+- 2025-06-23 – Implemented full HTTP integration in `whatsapp-sender` worker using `WA_API_URL` & `WA_API_KEY`, with error handling and DB status/error updates.
+- 2025-06-23 – Extended `.env.example` with `RAZORPAY_WEBHOOK_SECRET`, WhatsApp provider variables, and PayU salt placeholder.
+- 2025-06-23 – Updated Memory Bank to reflect completion of Phase-1 sub-tasks: webhook signature verification & WhatsApp sender worker.
 
 ## In Progress
 

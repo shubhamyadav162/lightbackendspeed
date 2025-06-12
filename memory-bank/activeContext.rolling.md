@@ -32,6 +32,9 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-23 – Added commission ledger RPC (`get_commission_ledger`) and compatibility views `wallets` & `wallet_entries` (migration `20250623_commission_rpc_views.sql`).
 - 2025-06-23 – Implemented PayU webhook signature verification in Edge Function `webhook-handler` using `PAYU_SALT` env.
 - 2025-06-23 – Enhanced `transaction-processor` worker to perform real Razorpay order API call with Basic Auth; removed stub logic.
+- 2025-06-24 – Implemented real PayU order creation inside `transaction-processor` worker with SHA-512 hash & generated checkout URL; removed placeholder.
+- 2025-06-24 – Added Jest unit test `gateway-selector.test.ts` ensuring gateway selection logic & error paths.
+- 2025-06-24 – Added Playwright E2E test `payment-flow.spec.ts` exercising initiate → DB insert flow and Supabase verification.
 
 ## In Progress
 
@@ -41,12 +44,9 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - Final UI build cleanup (font assets, "use client" hydration warnings, dark-mode chart colours).
 - 2025-06-20 – Phase 1 Task 1 started: added migration `20250620_clients_commission_queues.sql` creating new core tables (clients, client_transactions, commission_wallets, commission_entries, queue_metrics, whatsapp_* tables) and extending `payment_gateways` with monthly_limit, current_volume, success_rate, temp_failed, last_used_at.
 - 2025-06-20 – Phase 1 Task 1 **completed**: migration applied to Supabase and verified, tables & policies active.
-- Integrate PSP API calls (Razorpay/PayU) inside `transaction-processor` worker & proper webhook verification logic in `webhook-handler` / `webhook-processor`.
-- Implement real PSP API HTTP calls inside `createOrder` helper (requires gateway credentials in DB).
-- Implement signature verification logic inside `webhook-handler` Edge Function per provider.
-- Build Playwright E2E covering payment flow incl. external PSP redirect stub.
-- Implement real PayU payment initiation inside `createOrder` helper once credentials and API spec are finalised.
-- Write payment flow Playwright E2E (`payment-flow.test.ts`) to exercise initiate → checkout stub → webhook → commission path.
+- Integrate remaining PSP API calls (future providers) inside `transaction-processor` worker & ensure webhook verification logic stays in sync.
+- Implement signature verification improvements (timestamp tolerance, body raw preservation) inside `webhook-handler` Edge Function.
+- Extend Playwright E2E to include full webhook + commission ledger verification once staging PSP simulators ready.
 
 ## Upcoming Next Steps
 

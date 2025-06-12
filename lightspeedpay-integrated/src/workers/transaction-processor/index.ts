@@ -48,10 +48,60 @@ async function createOrder(
       return { gateway_txn_id, checkout_url };
     }
     case "payu": {
-      // TODO: Implement real PayU API once credentials & endpoints are known.
-      const gateway_txn_id = `payu_${payload.transaction_id}`;
-      const checkout_url =
-        `https://secure.payu.in/_payment?txnid=${gateway_txn_id}&amount=${payload.amount}`;
+      // Real PayU integration (Merchant Hosted Checkout)
+      // Construct POST form data and return checkout URL that the front-end/mobile SDK can redirect to.
+      // Required params: key, txnid, amount, productinfo, firstname, email, phone, surl, furl, hash
+      const txnid = payload.transaction_id; // reuse our txn id as PayU txnid
+      const amountRupees = (payload.amount / 100).toFixed(2); // convert paisa → rupees with 2 dec
+      const productinfo = payload.order_id;
+
+      // TODO – fetch customer details if needed; for now use placeholders
+      const firstname = "LS Merchant";
+      const email = "[email protected]";
+      const phone = "9999999999";
+      const surl = payload.redirect_url ?? "https://lightspeedpay.com/success";
+      const furl = payload.redirect_url ?? "https://lightspeedpay.com/fail";
+
+      // PayU hash generation: sha512(key|txnid|amount|productinfo|firstname|email|||||||salt)
+      const hashString = [
+        creds.api_key,
+        txnid,
+        amountRupees,
+        productinfo,
+        firstname,
+        email,
+        "", // udf1
+        "", // udf2
+        "", // udf3
+        "", // udf4
+        "", // udf5
+        "", // empty because double pipe in spec
+        "", // empty
+        "", // empty
+        creds.api_secret, // salt stored in api_secret column
+      ].join("|");
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(hashString);
+      const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+
+      const formParams = new URLSearchParams({
+        key: creds.api_key,
+        txnid,
+        amount: amountRupees,
+        productinfo,
+        firstname,
+        email,
+        phone,
+        surl,
+        furl,
+        hash,
+      });
+
+      const checkout_url = `https://secure.payu.in/_payment?${formParams.toString()}`;
+      const gateway_txn_id = txnid; // PayU uses our txnid as reference
       return { gateway_txn_id, checkout_url };
     }
     default: {

@@ -271,3 +271,12 @@
 - Implemented commission ledger RPC (`get_commission_ledger`) and compatibility views (`wallets`, `wallet_entries`) via migration `20250623_commission_rpc_views.sql`. (2025-06-23)
 - Added PayU webhook signature verification in Edge Function `webhook-handler` leveraging `PAYU_SALT` env and updated `.env.example` with PayU credentials placeholders. (2025-06-23)
 - Enhanced `transaction-processor` worker to create real Razorpay order via REST API using Basic Auth; removed previous stub. (2025-06-23)
+
+### Backend Improvements
+- **All Phase 1 tasks completed on 2025-06-24.** Database schema, Edge Functions, Railway workers, gateway rotation logic, commission system, tests, and migrations are fully deployed and verified in Supabase project `trmqbpnnboyoneyfleux`.
+
+### Frontend Enhancements (Phase 2 – In Progress)
+- Implemented admin dashboard pages for Gateways, Queues, Commission Ledger, and WhatsApp Logs using React Query (completed 2025-06-24).
+- Added React Query provider and API hooks for backend integration.
+- Next: Build merchant pages (`integration`, `whatsapp` usage), refine UI interactions (modals, toasts), and integrate realtime updates.
+- Added merchant dashboard WhatsApp Usage page (`/dashboard/merchant/whatsapp`) with React Query hook `useMerchantWAUsage`; enhanced `api-gateway` Edge Function to infer `client_id` from JWT for `/merchant/whatsapp/usage` endpoint. (2025-06-24)

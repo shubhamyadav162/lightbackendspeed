@@ -42,6 +42,15 @@ This file tracks the most recent work focus and decisions so we can edit quickly
 - 2025-06-24 – Upgraded `whatsapp-sender` worker to use new token helper, automatically refresh expired tokens on 401 and retry message delivery.
 - 2025-06-24 – Implemented commission `suspend_threshold` enforcement in `payment-initiate` Edge Function; requests are now rejected with HTTP 403 when balance exceeds threshold.
 - 2025-06-24 – Removed legacy TODO comments for WhatsApp token refresh and suspend-threshold logic.
+- 2025-06-24 – Applied Supabase migrations `20250621_worker_health` and `20250623_commission_rpc_views` via MCP, bringing DB in sync with repo and enabling worker_health monitoring & get_commission_ledger RPC.
+- 2025-06-24 – Added React Query provider & hooks (`frontend/src/hooks/api.ts`) and installed `@tanstack/react-query` dependency.
+- 2025-06-24 – Implemented admin dashboard pages using Next.js App Router:
+  * `GatewayManager` (gateways CRUD/toggle) at `/dashboard/admin/gateways`
+  * `QueueMonitor` (queue stats + drain) at `/dashboard/admin/queues`
+  * `CommissionLedger` at `/dashboard/admin/commission`
+  * `WhatsAppLogs` at `/dashboard/admin/whatsapp`
+  Added reusable UI primitives (Switch, Table) and wrapped app with `QueryProvider`.
+- 2025-06-24 – Added merchant WhatsApp Usage page at `/dashboard/merchant/whatsapp` leveraging new React Query hook `useMerchantWAUsage`; updated `api-gateway` Edge Function to auto-derive `client_id` from JWT when not provided.
 
 ## In Progress
 

@@ -60,6 +60,11 @@ _Last updated: 2025-06-29_
 - **NEW:** Migration `20250723_get_tables_info_rpc.sql` providing utility RPC `get_tables_info()` for tooling ✅
 - **NEW:** Implemented functional **Transaction Monitor** worker that updates stale `PENDING` transactions and wired into scheduler ✅
 
+## Completed (2025-07-07)
+- **NEW:** HTTPS redirect enforcement added to global middleware ✅
+- **NEW:** wallet-balance-monitor worker & BullMQ queue for low balance WhatsApp alerts ✅
+- **NEW:** Scheduler updated with daily 09:00 UTC wallet check cron ✅
+
 ## Ongoing
 - Frontend wiring for Gateway & Queue management UI ⚙️ (React Query hooks added, SSE wired)
 - Real-time monitoring streams (Supabase & SSE) ⚙️ (queue metrics stream live)

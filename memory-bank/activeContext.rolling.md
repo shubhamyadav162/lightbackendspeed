@@ -325,4 +325,22 @@
 3. Add Playwright E2E spec for Audit Logs UI stream & Transaction Monitor worker side-effect.
 4. Update progress.md and production docs after verifying migrations.
 
+## 2025-07-07
+
+### DONE
+- Added HTTPS enforcement via 301 redirect in `backend/src/middleware.ts` (production only).
+- Created **wallet-balance-monitor** worker (`backend/src/workers/wallet-balance-monitor.ts`) to send WhatsApp low-balance alerts when `commission_wallets.balance_due` exceeds `warn_threshold`.
+- Integrated new worker into `backend/src/workers/scheduler.ts` with BullMQ queue `wallet-balance-monitor` and cron schedule daily at 09:00 UTC.
+- Updated scheduler shutdown and event listeners for new worker.
+
+### IN PROGRESS
+- Monitoring initial runs of wallet-balance-monitor worker in Railway logs to ensure notifications enqueue correctly.
+- Preparing Playwright E2E spec for low balance alert flow and verifying WA queue entries.
+
+### NEXT STEPS
+1. Validate worker in staging: seed a wallet above threshold, run job, confirm whatsapp-notifications queue job created.
+2. Write Playwright API test `low-balance-alert.spec.ts` covering worker side-effects.
+3. Add UI badge in WalletManagement component when balance exceeds threshold (frontend task).
+4. Document HTTPS redirect & notification workflow in systemPatterns.md and progress.md.
+
 --- 

@@ -55,6 +55,11 @@ _Last updated: 2025-06-29_
 ## Completed (2025-07-05)
 - **NEW:** Migration `20250722_transaction_stats_rpc.sql` adding RPC `get_transaction_stats()` for overall admin summary stats ✅
 
+## Completed (2025-07-06)
+- **NEW:** Migration `20250723_add_settlement_fields_to_transactions.sql` adding settlement tracking fields to `transactions` ✅
+- **NEW:** Migration `20250723_get_tables_info_rpc.sql` providing utility RPC `get_tables_info()` for tooling ✅
+- **NEW:** Implemented functional **Transaction Monitor** worker that updates stale `PENDING` transactions and wired into scheduler ✅
+
 ## Ongoing
 - Frontend wiring for Gateway & Queue management UI ⚙️ (React Query hooks added, SSE wired)
 - Real-time monitoring streams (Supabase & SSE) ⚙️ (queue metrics stream live)

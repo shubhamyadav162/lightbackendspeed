@@ -307,4 +307,22 @@
 3. Implement Audit Logs viewer React component utilising `subscribeToAuditLogs` SSE and write corresponding Playwright spec.
 4. Update Lighthouse CI thresholds after bundle optimization.
 
+## 2025-07-06
+
+### DONE
+- Added migration `20250723_add_settlement_fields_to_transactions.sql` introducing `settlement_id` & `settlement_date` columns to `transactions` table (aligning with `settlement-processor` worker logic).
+- Added migration `20250723_get_tables_info_rpc.sql` creating utility RPC `get_tables_info()` used by internal Supabase MCP tooling.
+- Implemented full logic for **Transaction Monitor** worker (`backend/src/workers/transaction-monitor.ts`) which scans stale `PENDING` transactions, queries PSP status (stubbed), and updates rows accordingly.
+
+### IN PROGRESS
+- Validation of new migrations on Supabase branch via CI; monitor apply job outputs.
+- Scheduler now triggers `transaction-monitor` every 5 min; observing logs for accurate status updates.
+- Preparing bundle analysis (`npm run analyze`) and Lighthouse CI threshold tuning.
+
+### NEXT STEPS
+1. Commit and push bundle analysis artifact & summarize optimizations.
+2. Implement Audit Logs viewer React component with live SSE (`subscribeToAuditLogs`).
+3. Add Playwright E2E spec for Audit Logs UI stream & Transaction Monitor worker side-effect.
+4. Update progress.md and production docs after verifying migrations.
+
 --- 

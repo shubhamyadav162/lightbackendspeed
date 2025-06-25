@@ -33,7 +33,7 @@ export function middleware(request: NextRequest) {
       const headers = new Headers();
       headers.set('Access-Control-Allow-Origin', origin!);
       headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key, x-api-key');
       headers.set('Access-Control-Allow-Credentials', 'true');
       return new NextResponse(null, { status: 204, headers });
     }

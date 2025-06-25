@@ -83,31 +83,70 @@ export const apiService = {
   // Gateway Management
   async getGateways() {
     try {
+      console.log('🔍 Fetching gateways from:', API_BASE_URL + '/admin/gateways');
       const response = await apiClient.get('/admin/gateways');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching gateways:', error);
-      // Return mock data for development
-      return [
+      console.log('✅ Gateway API Response:', response.data);
+      
+      // Backend returns { gateways: [...] }, so extract the gateways array
+      const gateways = response.data?.gateways || response.data || [];
+      
+      // Ensure each gateway has required properties for frontend
+      const processedGateways = gateways.map((gateway: any) => ({
+        id: gateway.id,
+        name: gateway.name || 'Unknown Gateway',
+        provider: gateway.provider || gateway.code || 'unknown',
+        status: gateway.is_active ? 'active' : 'inactive',
+        priority: gateway.priority || 100,
+        successRate: gateway.success_rate || 100,
+        dailyLimit: gateway.monthly_limit || 1000000,
+        currentUsage: 0, // Default value
+        responseTime: gateway.response_time_ms || 100,
+        fees: gateway.fee_percent || 2.5,
+        region: gateway.region || 'IN',
+      }));
+      
+      console.log('🎯 Processed Gateways:', processedGateways);
+      return processedGateways;
+    } catch (error: any) {
+      console.error('❌ Error fetching gateways:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // Return mock data for development with proper structure
+      const mockGateways = [
         {
           id: '1',
           name: 'Razorpay Gateway',
           provider: 'razorpay',
           status: 'active',
-          success_rate: 99.5,
-          current_volume: 150000,
-          monthly_limit: 1000000,
+          priority: 1,
+          successRate: 99.5,
+          dailyLimit: 1000000,
+          currentUsage: 150000,
+          responseTime: 120,
+          fees: 2.5,
+          region: 'IN',
         },
         {
           id: '2',
           name: 'PayU Gateway',
           provider: 'payu',
           status: 'active',
-          success_rate: 98.8,
-          current_volume: 85000,
-          monthly_limit: 800000,
+          priority: 2,
+          successRate: 98.8,
+          dailyLimit: 800000,
+          currentUsage: 85000,
+          responseTime: 180,
+          fees: 3.0,
+          region: 'IN',
         }
       ];
+      
+      console.log('🔄 Using mock data:', mockGateways);
+      return mockGateways;
     }
   },
 

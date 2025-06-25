@@ -12,7 +12,8 @@ WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+# Using npm install instead of npm ci for better compatibility
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -35,7 +36,8 @@ ENV PORT=3100
 EXPOSE 3100
 
 # Optimized health check - use /health endpoint for Express server
-HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
+# Increased start-period to allow Next.js to fully initialize
+HEALTHCHECK --interval=20s --timeout=10s --start-period=90s --retries=5 \
   CMD curl -f http://localhost:3100/health || exit 1
 
 # 🚀 EXPRESS SERVER COMMAND: Direct Express server startup

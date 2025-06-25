@@ -4,13 +4,13 @@ import { NextRequest } from 'next/server';
 
 // Initialize a singleton service-role client for server-side usage
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 let supabaseService: SupabaseClient | null = null;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   /* istanbul ignore next -- environment warning */
-  console.warn('[supabase/server] Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env variables');
+  console.warn('[supabase/server] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env variables');
 } else {
   supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 }

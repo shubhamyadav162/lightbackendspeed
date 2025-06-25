@@ -2,6 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LRUCache } from 'lru-cache';
 
+// --- CORS Configuration ---
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  process.env.FRONTEND_URL, // Deployed frontend URL from env vars
+  'https://lightspeedpay-dashboard.vercel.app'
+].filter(Boolean) as string[];
+
 // === Basic in-memory rate limiter ===
 const WINDOW_MS = 60 * 1000; // 1 minute window
 const MAX_REQUESTS = 100; // per IP per window
@@ -14,9 +23,31 @@ interface CacheEntry {
 const ipCache = new LRUCache<string, CacheEntry>({ max: 5000 });
 
 export function middleware(request: NextRequest) {
-  // Apply security headers via response wrapper first
-  const response = NextResponse.next();
+  // --- CORS Handling ---
+  const origin = request.headers.get('origin');
+  const isAllowedOrigin = origin ? allowedOrigins.includes(origin) : false;
 
+  // Handle preflight (OPTIONS) requests
+  if (request.method === 'OPTIONS') {
+    if (isAllowedOrigin) {
+      const headers = new Headers();
+      headers.set('Access-Control-Allow-Origin', origin!);
+      headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key');
+      headers.set('Access-Control-Allow-Credentials', 'true');
+      return new NextResponse(null, { status: 204, headers });
+    }
+    return new NextResponse('CORS Preflight Blocked', { status: 403 });
+  }
+
+  // Add CORS headers to the actual response
+  const response = NextResponse.next();
+  if (isAllowedOrigin) {
+    response.headers.set('Access-Control-Allow-Origin', origin!);
+    response.headers.set('Access-Control-Allow-Credentials', 'true');
+  }
+
+  // Apply other security headers
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'same-origin');

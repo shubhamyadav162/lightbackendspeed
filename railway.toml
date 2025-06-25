@@ -16,7 +16,7 @@ NEXTAUTH_URL = "$NEXTAUTH_URL"
 NEXTAUTH_SECRET = "$NEXTAUTH_SECRET"
 
 [deploy]
-startCommand = "node server.js"
+startCommand = "npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 3
 restartPolicyType = "always" 

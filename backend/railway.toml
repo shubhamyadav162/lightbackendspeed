@@ -22,7 +22,7 @@ NEXTAUTH_SECRET = "$NEXTAUTH_SECRET"
 
 [deploy]
 startCommand = "npm start"
-healthcheckPath = "/api/health"
+healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"
 

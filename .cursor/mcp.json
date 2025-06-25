@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "supabase": {
+    "LIGHTSPEED WRAPPER": {
       "command": "cmd",
       "args": [
         "/c",

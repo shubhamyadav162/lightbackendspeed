@@ -1,10 +1,10 @@
-name: LightSpeedPay CI/CD Pipeline
+name: LightSpeedPay CI/CD
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   lint:
@@ -25,15 +25,42 @@ jobs:
           cd supabase-mcp && npm ci
           cd ../frontend && npm ci
       
-      - name: Run ESLint
+      - name: Run linting
         run: |
           cd supabase-mcp && npm run lint
           cd ../frontend && npm run lint
-  
+
   test:
-    name: Run Tests
     runs-on: ubuntu-latest
     needs: lint
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          cd frontend && npm ci
+          cd ../supabase-mcp && npm ci
+      
+      - name: Run tests
+        run: |
+          cd frontend && npm test
+          cd ../supabase-mcp && npm test
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -49,59 +76,64 @@ jobs:
           cd supabase-mcp && npm ci
           cd ../frontend && npm ci
       
-      - name: Run backend tests
-        run: cd supabase-mcp && npm test
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      
-      - name: Run frontend tests
-        run: cd frontend && npm test
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-
-  build:
-    name: Build Application
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-      
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
+      - name: Build backend
+        run: cd supabase-mcp && npm run build
       
       - name: Build frontend
         run: cd frontend && npm run build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+
+  deploy-frontend:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
       
-      - name: Install backend dependencies
-        run: cd supabase-mcp && npm ci
-      
-      - name: Build backend
-        run: cd supabase-mcp && npm run build
-      
-      - name: Upload frontend build artifacts
-        uses: actions/upload-artifact@v3
+      - name: Deploy to Vercel
+        uses: vercel/actions/cli@master
         with:
-          name: frontend-build
-          path: frontend/.next
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./frontend
+          vercel-args: '--prod'
+
+  deploy-backend:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
       
-      - name: Upload backend build artifacts
-        uses: actions/upload-artifact@v3
+      - name: Deploy to Railway
+        uses: bervProject/railway-deploy@main
         with:
-          name: backend-build
-          path: supabase-mcp/dist
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: "lightspeedpay-workers"
+          directory: "./supabase-mcp"
+
+  deploy-supabase:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      
+      - name: Run migrations
+        run: |
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+          supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
   deploy_staging:
     name: Deploy to Staging

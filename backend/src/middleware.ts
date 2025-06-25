@@ -1,6 +1,6 @@
 // @ts-nocheck -- Middleware compiled by Next.js, relying on internal types
 import { NextRequest, NextResponse } from 'next/server';
-import LRUCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 
 // === Basic in-memory rate limiter ===
 const WINDOW_MS = 60 * 1000; // 1 minute window

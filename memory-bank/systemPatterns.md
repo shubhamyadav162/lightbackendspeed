@@ -1,81 +1,60 @@
-# LightSpeedPay - System Patterns
+# LightSpeedPay – System Patterns
 
-## System Architecture
-LightSpeedPay follows a modern microservices-inspired architecture with the following key components:
+_Last updated: 2025-07-08_
 
-1. **API Layer**:
-   - Next.js API routes for frontend-facing endpoints
-   - Middleware for authentication, validation, and rate limiting
-   - Supabase Edge Functions for specialized processing
+## Edge Function Streaming Pattern (SSE)
 
-2. **Database Layer**:
-   - Supabase PostgreSQL for data persistence
-   - Prisma ORM for type-safe database operations
-   - Transaction-based operations for data integrity
+LightSpeedPay uses Supabase Edge Functions to deliver low-latency, cost-effective realtime streams over Server-Sent Events (SSE) instead of opening direct Postgres Realtime subscriptions from the browser.
 
-3. **Background Processing**:
-   - BullMQ workers for asynchronous jobs
-   - Monitoring and health check services
-   - Settlement processing and reconciliation
+Pattern characteristics:
+1. Edge Function acts as SSE gateway (`Deno.serve`) with event types `ready`, `ping` and domain-specific events (`insert`, `update`).
+2. Browser connects via `/functions/v1/<stream>`; React hook manages `EventSource` and parses JSON-encoded payload.
+3. Edge Function keeps lightweight Supabase JS client using `anon` key and creates a channel with `postgres_changes` to listen for INSERT/UPDATE on relevant table.
+4. Keep-alive `ping` sent every 25 s to avoid idle connection drop.
+5. Function is secured by default JWT verification (same as others) – admin dashboard user must be authenticated.
 
-4. **Frontend Applications**:
-   - Next.js for merchant and admin dashboards
-   - React components with Tailwind CSS and Shadcn/UI
-   - Client-side SDK for merchant integration
+Edge functions following this pattern:
+- `queue-stats-stream`
+- `gateway-health-stream`
+- `transaction-stream`
+- `audit-logs-stream`
+- `alerts-stream` (NEW)
+- `worker-health-stream` (NEW)
 
-## Key Technical Decisions
+This pattern avoids Realtime billing spikes because a single backend listener broadcasts to many connected clients without each opening a DB replication slot.
 
-### 1. Gateway Abstraction Layer
-We're implementing a Gateway Abstraction Layer (GAL) that normalizes interactions with different payment gateways through a common interface. This allows us to:
-- Add new gateways without changing core business logic
-- Implement gateway-specific adapters for each provider
-- Normalize responses and error handling
+## Worker Heartbeat & Health Flow
 
-### 2. Transaction State Machine
-Transactions follow a strict state machine pattern:
-- PENDING → SUCCESS/FAILED/CANCELLED
-- Immutable audit trail for all state transitions
-- Automatic retry logic with exponential backoff
+Each worker process sends a heartbeat every 30 s into `worker_health` table (see `worker-health-ping`). The `worker-health-monitor` periodically checks for stale heartbeats and writes critical `alerts` rows and triggers Slack notifications.
 
-### 3. Real-time Monitoring
-Implementing a comprehensive monitoring system:
-- Gateway health checks at regular intervals
-- Success rate and response time tracking
-- Automatic failover based on predefined thresholds
-- Alert generation for system anomalies
+Frontend now consumes `worker-health-stream` for live status indicators, while `alerts-stream` powers the Alert Center and toast notifications.
 
-### 4. Security-First Approach
-Security is implemented at multiple levels:
-- HMAC signatures for API authentication
-- JWT tokens with short expiry for session management
-- AES-256 encryption for sensitive data
-- Rate limiting and input validation
+## Housekeeping Worker Pattern (NEW – 2025-07-09)
+Housekeeping workers perform time-based cleanup by invoking lightweight RPCs that delete historical data.
 
-## Design Patterns
+Characteristics:
+1. RPC encapsulates deletion logic and can be executed in SQL (fast, transactional).
+2. Worker runs via BullMQ or Railway cron at off-peak hours (e.g., 03-04 UTC).
+3. Worker process is stateless; implementation is <50 LOC using Supabase service-role client.
+4. Scheduler may also enqueue cleanup jobs using repeatable cron patterns.
 
-### 1. Repository Pattern
-Used for database access, abstracting the details of data persistence and allowing for easier testing and potential database migrations.
+Implemented workers following this pattern:
+- `metrics-retention-cleaner` – purges old gateway and queue metrics.
+- `alerts-cleaner` – removes resolved alerts >30 days old.
+- `audit-logs-cleaner` (NEW) – deletes processed audit logs older than 90 days.
 
-### 2. Adapter Pattern
-Implemented for payment gateway integrations, providing a consistent interface for different payment providers.
+## System Status Monitoring Pattern (NEW – 2025-07-13)
 
-### 3. Strategy Pattern
-Applied to gateway selection, allowing the system to dynamically choose the optimal gateway based on current conditions.
+Purpose: Provide administrators with a live overview of key service availability (Payment Processing, API, Database, External Gateways) using lightweight upserts and SSE.
 
-### 4. Observer Pattern
-Used with Supabase Realtime for live updates and notifications across the system.
+Components:
+1. **system-status-checker** Railway worker – runs every 10 min, pings internal and external endpoints, and performs an `upsert` into `public.system_status` table with the latest health metrics (`status`, `response_time_ms`).
+2. `public.system_status` table – stores rolling health entries (one per component) with index on `updated_at`; retention RPC `cleanup_old_system_status()` deletes entries older than 30 days (invoked by housekeeping pattern).
+3. **system-status-stream** Edge Function – standard SSE wrapper that broadcasts INSERT and UPDATE events from `system_status` table.
+4. **useSystemStatusStream** React hook – wraps `EventSource`, merges live rows into local state, and offers a declarative interface for components.
+5. **SystemStatus** dashboard widget – merges API polling fallback with SSE stream to display real-time status badges and overall health indicator.
 
-### 5. Circuit Breaker Pattern
-Implemented for gateway health management, automatically disabling failing gateways and re-enabling them after recovery.
-
-## Component Relationships
-
-### Core API Flow
-1. Authentication → Validation → Gateway Selection → Transaction Creation → Checkout Generation
-
-### Background Jobs Flow
-1. Transaction Monitor → Gateway Status Check → Alert Generation
-2. Settlement Calculation → Merchant Wallet Update
-
-### Dashboard Data Flow
-1. Data Fetching → Real-time Updates → Analytics Processing → UI Rendering 
+Key Points:
+- Follows the existing Edge Function Streaming Pattern (see above) for consistency.
+- Upsert strategy keeps only latest row per component, simplifying query logic.
+- Retention handled via housekeeping RPC + daily cron. 

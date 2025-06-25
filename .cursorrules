@@ -42,4 +42,10 @@
 - Critical payment data should never be lost
 - Real-time monitoring is essential
 - System should handle graceful degradation
-- Favor consistency over performance when necessary 
+- Favor consistency over performance when necessary
+
+### Testing Patterns (Added 2025-06-14)
+- Jest default test environment is `jsdom` to enable React component and hook rendering in unit tests.
+- Use `@testing-library/react` / `@testing-library/react-hooks` for React unit testing; avoid JSX in *.test.tsx by preferring `React.createElement` when helpers complain under ts-jest.
+- Provide module mocks for third-party ESM packages (e.g., `@supabase/supabase-js`) in `jest.setup.ts` to sidestep CommonJS/ESM interop issues.
+- Collect coverage only from files explicitly tested to keep the signal clean; project and patch thresholds enforced at ≥ 80 % via Codecov status checks. 

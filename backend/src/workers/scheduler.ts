@@ -14,6 +14,8 @@ const connection = {
 const transactionMonitorQueue = new Queue('transaction-monitor', { connection });
 const settlementQueue = new Queue('settlement', { connection });
 const walletBalanceQueue = new Queue('wallet-balance-monitor', { connection });
+const auditLogsQueue = new Queue('audit-logs-cleaner', { connection });
+const systemStatusQueue = new Queue('system-status-checker', { connection });
 
 // Create workers
 const transactionMonitorWorker = new Worker(
@@ -46,6 +48,30 @@ const walletMonitorWorker = new Worker(
   { connection }
 );
 
+// Worker implementation – lightweight wrapper calling cleanup RPC
+const auditLogsCleanerWorker = new Worker(
+  'audit-logs-cleaner',
+  async () => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseUrl = process.env.SUPABASE_URL || '';
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { error } = await supabase.rpc('cleanup_old_audit_logs');
+    if (error) throw new Error(error.message);
+  },
+  { connection },
+);
+
+// NEW: System Status Checker Worker – pings configured components and upserts status rows
+const systemStatusCheckerWorker = new Worker(
+  'system-status-checker',
+  async () => {
+    const { default: runChecker } = await import('./system-status-checker/index');
+    await runChecker();
+  },
+  { connection },
+);
+
 // Handle worker events
 transactionMonitorWorker.on('completed', (job) => {
   console.log(`Transaction monitor job ${job.id} completed successfully`);
@@ -69,6 +95,22 @@ walletMonitorWorker.on('completed', (job) => {
 
 walletMonitorWorker.on('failed', (job, error) => {
   console.error(`Wallet balance monitor job ${job?.id} failed:`, error);
+});
+
+auditLogsCleanerWorker.on('completed', (job) => {
+  console.log(`Audit logs cleanup job ${job.id} completed`);
+});
+
+auditLogsCleanerWorker.on('failed', (job, error) => {
+  console.error(`Audit logs cleanup job ${job?.id} failed:`, error);
+});
+
+systemStatusCheckerWorker.on('completed', (job) => {
+  console.log(`System status checker job ${job.id} completed`);
+});
+
+systemStatusCheckerWorker.on('failed', (job, error) => {
+  console.error(`System status checker job ${job?.id} failed:`, error);
 });
 
 // Schedule recurring jobs
@@ -106,6 +148,28 @@ async function scheduleJobs() {
     }
   );
   
+  // Clean processed audit logs daily at 04:00 UTC
+  await auditLogsQueue.add(
+    'cleanup-audit-logs',
+    {},
+    {
+      repeat: {
+        pattern: '0 4 * * *'
+      }
+    }
+  );
+  
+  // Ping system status every 10 minutes
+  await systemStatusQueue.add(
+    'check-system-status',
+    {},
+    {
+      repeat: {
+        every: 10 * 60 * 1000 // 10 minutes
+      }
+    }
+  );
+  
   console.log('Scheduled recurring jobs');
 }
 
@@ -116,10 +180,14 @@ async function shutdown() {
   await transactionMonitorWorker.close();
   await settlementWorker.close();
   await walletMonitorWorker.close();
+  await auditLogsCleanerWorker.close();
+  await systemStatusCheckerWorker.close();
   
   await transactionMonitorQueue.close();
   await settlementQueue.close();
   await walletBalanceQueue.close();
+  await auditLogsQueue.close();
+  await systemStatusQueue.close();
   
   console.log('Workers shut down successfully');
   process.exit(0);

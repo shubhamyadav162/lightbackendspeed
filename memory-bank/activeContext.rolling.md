@@ -343,4 +343,129 @@
 3. Add UI badge in WalletManagement component when balance exceeds threshold (frontend task).
 4. Document HTTPS redirect & notification workflow in systemPatterns.md and progress.md.
 
+## 2025-07-08
+
+### DONE
+- Added Supabase Edge Functions `alerts-stream` (real-time alerts SSE) and `worker-health-stream` (worker heartbeat SSE).
+- Created migration `20250724_alerts_cleanup.sql` and Railway worker `alerts-cleaner` for daily purging of resolved alerts.
+
+### IN PROGRESS
+- Frontend implementation of AlertCenter component to consume `alerts-stream` and display system alerts.
+- Frontend wiring of WorkerHealth dashboard widget to `worker-health-stream` SSE.
+
+### NEXT STEPS
+1. Create React hooks (`useAlertsStream`, `useWorkerHealthStream`) for SSE consumption.
+2. Build `AlertCenter` component in admin dashboard, integrate toast notifications for new critical alerts.
+3. Add `WorkerHealthPanel` component reflecting live worker status from stream.
+4. Write Playwright E2E specs `alerts-stream.spec.ts` & `worker-health-ui.spec.ts`.
+5. Document new edge functions & SSE helpers in `systemPatterns.md`.
+
+## 2025-07-09
+
+### DONE
+- Added migration `20250725_audit_logs_retention.sql` introducing RPC `cleanup_old_audit_logs()` and supporting `idx_audit_logs_created_at` index for efficient housekeeping.
+- Created Railway worker **audit-logs-cleaner** (`workers/audit-logs-cleaner/index.ts`) invoking the RPC once daily at 04:00 UTC (cron configured in Railway).
+- Extended `backend/src/workers/scheduler.ts` with `audit-logs-cleaner` queue/worker and cron schedule; added event listeners and graceful shutdown handling.
+
+### IN PROGRESS
+- Monitoring initial audit logs cleanup job on staging; expecting first run next window.
+- Update CI pipeline to include migration application and build for new worker package (scripts auto pick up).
+
+### NEXT STEPS
+1. Verify `cleanup_old_audit_logs` RPC executed successfully on staging after first scheduled run.
+2. Add Playwright API spec `audit-logs-cleaner.spec.ts` mocking older processed entries and validating deletion.
+3. Update systemPatterns.md with new housekeeping worker pattern.
+4. Continue Phase-4 bundle analysis & Lighthouse CI threshold tuning.
+
+## 2025-07-10
+
+### DONE
+- Added migration `20250726_rls_hardening.sql` to enable Row Level Security and admin-only policies on `alerts` and `whatsapp_provider_tokens` tables.
+- Applied migration to Supabase project `trmqbpnnboyoneyfleux` successfully via MCP.
+- Implemented GitHub Action workflow `.github/workflows/rollback.yml` to auto-revert failed Supabase migrations on `main` branch.
+
+### IN PROGRESS
+- Verify frontend AlertCenter component continues to function with new RLS rules (service_role unaffected, but UI fetch uses admin JWT – sanity check pending).
+- Compile list of any remaining tables without RLS and prepare follow-up audit.
+
+### NEXT STEPS
+1. Monitor production logs for RLS denial errors on `alerts` or `whatsapp_provider_tokens` access.
+2. Update Playwright security tests to ensure unauthorized roles cannot read `alerts`.
+3. Continue Phase-4 performance optimization tasks (bundle analysis, Lighthouse budget tuning).
+4. Prepare rollback GitHub Action workflow for automatic revert on failed deploys.
+
+## 2025-07-11
+
+### DONE
+- Added migration `20250727_rls_webhook_commission_entries.sql` to enable RLS + admin-only policies for `webhook_events` and `commission_entries` tables.
+- Added migration `20250727_api_logs_retention.sql` providing RPC `cleanup_old_api_request_logs()` for log retention.
+- Implemented Railway worker `api-request-logs-cleaner` (`backend/src/workers/api-request-logs-cleaner/index.ts`) and wired into `scheduler.ts` with daily cron 03:45 UTC.
+- Extended `scheduler.ts` with queue, worker, event listeners and shutdown logic for new cleaner.
+
+### IN PROGRESS
+- Monitoring first run of `api-request-logs-cleaner` in staging; expect initial cleanup after deployment.
+- Phase-4 performance optimization: bundle analysis artifact generation and Lighthouse budget tuning (pending).
+
+### NEXT STEPS
+1. Generate bundle analysis (`npm run analyze`) and commit artifact & Memory Bank notes.
+2. Tune Lighthouse CI thresholds after bundle optimization.
+3. Complete remaining Playwright E2E specs for audit log viewer, gateway priority UI, and queue actions.
+4. Update systemPatterns.md to include housekeeping worker pattern for future reference.
+
+## 2025-07-12
+
+### DONE
+- Added migration `20250728_system_status_retention.sql` introducing index on `updated_at` and RPC `cleanup_old_system_status()`; applied to Supabase project `trmqbpnnboyoneyfleux`.
+- Created new Railway worker **system-status-checker** (`backend/src/workers/system-status-checker/index.ts`) that pings core endpoints every run and upserts into `system_status`.
+- Added Supabase Edge Function **system-status-stream** (`supabase/functions/system-status-stream`) for SSE broadcasting of `system_status` INSERT/UPDATE events.
+- Extended `backend/src/workers/scheduler.ts` with `system-status-checker` queue/worker, event listeners, graceful shutdown, and repeatable job every 10 min.
+
+### IN PROGRESS
+- Deploying new worker to Railway and verifying first run completes without error. Expect updated rows in `system_status` and stream events.
+- Frontend plan: Create `SystemStatusPanel` component to consume new SSE and display live status badges.
+
+### NEXT STEPS
+1. Monitor staging for `system-status-checker` successes and adjust component list in `SYSTEM_STATUS_COMPONENTS` env.
+2. Build React hook `useSystemStatusStream` and UI panel in admin dashboard.
+3. Add Playwright E2E spec `system-status.spec.ts` covering worker upsert & SSE payload.
+4. Document new pattern in `systemPatterns.md` under *System Status Monitoring* and update progress.md on successful deployment.
+
+## 2025-07-13
+
+### DONE
+- Frontend real-time System Status integration:
+  • Added new SSE helper `subscribeToSystemStatus` in `frontend/src/services/api.ts`.
+  • Created React hook `useSystemStatusStream.ts` to consume `system-status-stream` and maintain latest rows.
+  • Updated `SystemStatus.tsx` component to merge API polling data with live SSE updates for sub-second UI refresh.
+- All code edits compiled without lint errors (tsc pass). No backend changes or migrations required.
+
+### IN PROGRESS
+- Building `SystemStatusPanel` (full-screen dashboard widget) using new hook for live grid + historical chart (component scaffold pending).
+- Creating Playwright E2E spec `system-status.spec.ts` to validate worker upsert event and UI realtime updates (guarded by PLAYWRIGHT_E2E).
+
+### NEXT STEPS
+1. Implement `SystemStatusPanel.tsx` in dashboard layout and lazy-load via React.Suspense.
+2. Add hook unit tests (`useSystemStatusStream.test.ts`) using msw to mock SSE events.
+3. Complete Playwright `system-status.spec.ts` once component ready.
+4. Update documentation in `systemPatterns.md` describing *System Status Monitoring* pattern now that hook/UI live.
+5. Continue Phase-4 bundle analysis & Lighthouse budget tuning after new code included.
+
+## 2025-07-14
+
+### DONE
+- Added migration `20250729_rls_remaining_tables.sql` enabling Row Level Security and `Admin only` policy on the remaining public tables (`merchant_pg_credentials`, `merchant_gateway_preferences`, `webhooks`, `webhook_events`, `system_status`, `users`, `commission_entries`). Migration applied successfully to Supabase project `trmqbpnnboyoneyfleux`.
+- Created **SystemStatusPanel** component + integrated Tailwind UI in `frontend/src/components/dashboard/SystemStatusPanel.tsx`.
+- Added **AuditLogsViewer** component and **useAuditLogs** hook with SSE subscription; sidebar + routing updated.
+- Added API client `getAuditLogs` and SSE helper already existed.
+
+### IN PROGRESS
+- Verifying frontend component access with new RLS policies (service_role clients unaffected; admin JWT fetches expected rows).
+- Monitoring logs for any policy denial errors.
+
+### NEXT STEPS
+1. Update Playwright security tests to confirm unauthorized roles are blocked from new tables.
+2. Continue building `SystemStatusPanel` UI and hook unit tests.
+3. Generate bundle analysis report and tune Lighthouse budgets (Phase-4 performance).
+4. Implement Audit Logs viewer component and associated SSE hook.
+
 --- 

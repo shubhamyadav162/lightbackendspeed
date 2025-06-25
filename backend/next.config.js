@@ -16,7 +16,7 @@ const nextConfig = {
   async headers() {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const allowedOrigins = isDevelopment 
-      ? ['http://localhost:5173', 'http://localhost:3000']
+      ? ['http://localhost:8080', 'http://localhost:5173', 'http://localhost:3000']
       : [
           process.env.FRONTEND_URL || 'https://your-frontend.vercel.app',
           'https://lightspeedpay-dashboard.vercel.app'
@@ -28,7 +28,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.FRONTEND_URL || 'http://localhost:5173',
+            value: process.env.FRONTEND_URL || 'http://localhost:8080',
           },
           {
             key: 'Access-Control-Allow-Methods',

@@ -44,12 +44,12 @@ RUN addgroup -g 1001 -S nodejs && \
 USER nextjs
 
 # Expose port
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3100
+ENV PORT=3100
 
 # Health check with longer timeout for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:3100/api/health || exit 1
 
 # Start with the smart script
 CMD ["/app/start.sh"] 

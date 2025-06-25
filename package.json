@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
-    "start": "next start -p 3100",
+    "start": "next start -p ${PORT:-3100}",
+    "start:railway": "npm run build && npm run start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
     "workers": "ts-node src/workers/scheduler.ts",
+    "workers:railway": "node -r ts-node/register src/workers/scheduler.ts",
     "worker:queue-metrics": "ts-node src/workers/queue-metrics-recorder/index.ts",
     "worker:health-ping": "ts-node src/workers/worker-health-ping/index.ts",
     "worker:health-monitor": "ts-node src/workers/worker-health-monitor/index.ts",
@@ -25,7 +27,9 @@
     "migrate:new": "npx supabase migration new",
     "test:deno": "deno test supabase/functions/failed-transaction-alerts --allow-env",
     "test:e2e": "playwright test || echo \"Playwright tests skipped: environment unsupported\"",
-    "enforce:codecov": "node scripts/enforce-codecov.js"
+    "enforce:codecov": "node scripts/enforce-codecov.js",
+    "railway:deploy": "npm run build && npm run start",
+    "railway:workers": "npm run workers:railway"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
@@ -41,7 +45,9 @@
     "pg": "^8.11.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -54,8 +60,10 @@
     "jest": "^29.7.0",
     "jest-fetch-mock": "^3.0.3",
     "supabase": "^1.64.8",
-    "ts-jest": "^29.1.0",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "ts-jest": "^29.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

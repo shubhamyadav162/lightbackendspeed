@@ -55,8 +55,9 @@ export function middleware(request: NextRequest) {
 }
 
 // Apply middleware only to API routes (both app and pages router)
+// EXCLUDE health endpoint for Railway health checks (internal HTTP requests)
 export const config = {
   matcher: [
-    '/api/:path*',
+    '/api/((?!health).)*',  // Match all /api/* EXCEPT /api/health
   ],
 }; 

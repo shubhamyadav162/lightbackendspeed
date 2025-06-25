@@ -5,9 +5,9 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "npm start",
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 30,
+    "startCommand": "node server-express.js",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 60,
     "restartPolicyType": "always"
   }
 } 

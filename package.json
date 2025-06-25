@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
-    "start": "cd .next/standalone && node server.js",
+    "start": "node server-express.js",
     "start:railway": "npm run build && npm run start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
@@ -38,6 +38,7 @@
     "bullmq": "^5.6.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",
+    "express": "^4.18.2",
     "ioredis": "^5.3.2",
     "jose": "^5.2.3",
     "lru-cache": "^10.2.0",

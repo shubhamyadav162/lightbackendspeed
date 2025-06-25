@@ -1,8 +1,8 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
-# ⚡ DEFINITIVE RAILWAY FIX: 2025-01-25-15:00:00 ⚡
-# THIS COMMIT WILL FORCE RAILWAY TO USE NEW DOCKERFILE
+# ⚡ OPTIMIZED RAILWAY DEPLOYMENT: 2025-01-25-16:00:00 ⚡
+# FASTER STARTUP + PROPER HEALTHCHECK TIMING
 # Install curl for health checks
 RUN apk add --no-cache curl
 
@@ -17,12 +17,8 @@ RUN npm ci --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build Next.js application (this creates .next/standalone)
+# Build Next.js application for Express server
 RUN npm run build
-
-# Copy static files to standalone build
-RUN cp -r public .next/standalone/ 2>/dev/null || true
-RUN cp -r .next/static .next/standalone/.next/ 2>/dev/null || true
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -38,9 +34,10 @@ ENV PORT=3100
 # Expose port
 EXPOSE 3100
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-  CMD curl -f http://localhost:3100/api/health || exit 1
+# Optimized health check - use /health endpoint for Express server
+# Increased start-period to allow Next.js to fully initialize
+HEALTHCHECK --interval=20s --timeout=10s --start-period=90s --retries=5 \
+  CMD curl -f http://localhost:3100/health || exit 1
 
-# ⚡ FINAL COMMAND: Use npm start for standalone mode ⚡
-CMD ["npm", "start"] 
+# 🚀 EXPRESS SERVER COMMAND: Direct Express server startup
+CMD ["node", "server-express.js"] 

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
-// ULTRA SIMPLE HEALTH CHECK FOR RAILWAY DEPLOYMENT
-// No dependencies, no complex logic - just return 200 OK
+// RAILWAY HEALTH CHECK ENDPOINT - DIRECT /health PATH
+// Some platforms expect health endpoint at root /health instead of /api/health
 export async function GET() {
   return NextResponse.json(
     { 

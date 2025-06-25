@@ -1,8 +1,8 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
-# ⚡ DEFINITIVE RAILWAY FIX: 2025-01-25-15:00:00 ⚡
-# THIS COMMIT WILL FORCE RAILWAY TO USE NEW DOCKERFILE
+# ⚡ OPTIMIZED RAILWAY DEPLOYMENT: 2025-01-25-16:00:00 ⚡
+# FASTER STARTUP + PROPER HEALTHCHECK TIMING
 # Install curl for health checks
 RUN apk add --no-cache curl
 
@@ -38,8 +38,8 @@ ENV PORT=3100
 # Expose port
 EXPOSE 3100
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+# Optimized health check - reduced start period, better error handling
+HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3100/api/health || exit 1
 
 # ⚡ FINAL COMMAND: Use npm start for standalone mode ⚡

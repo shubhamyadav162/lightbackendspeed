@@ -12,7 +12,8 @@ WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+# Using npm install instead of npm ci for better compatibility
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .

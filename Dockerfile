@@ -1,6 +1,7 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
+# Cache bust: 2025-01-25-14:45 - Force Railway to rebuild
 # Install curl for health checks
 RUN apk add --no-cache curl
 

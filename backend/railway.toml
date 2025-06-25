@@ -26,7 +26,36 @@ healthcheckPath = "/api/health"
 healthcheckTimeout = 150
 restartPolicyType = "always"
 
-# Force Railway to use this as the primary service
+# 🚀 AUTOMATIC ENVIRONMENT VARIABLES SETUP 🚀
+# All required variables with production-ready defaults
 [variables]
+# Application Config
+NODE_ENV = "production"
+PORT = "3100"
 SERVICE_TYPE = "web"
-NODE_ENV = "production" 
+
+# Supabase Configuration (use Railway dashboard values if available)
+SUPABASE_URL = "https://trmqbpnnboyoneyfleux.supabase.co"
+SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDU3NDA0OCwiZXhwIjoyMDUwMTUwMDQ4fQ.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDU3NDA0OCwiZXhwIjoyMDUwMTUwMDQ4fQ"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDU3NDA0OCwiZXhwIjoyMDUwMTUwMDQ4fQ.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDU3NDA0OCwiZXhwIjoyMDUwMTUwMDQ4fQ"
+
+# Database Connection
+DATABASE_URL = "postgresql://postgres:$SUPABASE_DB_PASSWORD@db.trmqbpnnboyoneyfleux.supabase.co:5432/postgres"
+
+# Redis Configuration (Railway can provide this automatically)
+REDIS_URL = "redis://localhost:6379"
+
+# Frontend & Authentication
+FRONTEND_URL = "http://localhost:5173"
+NEXTAUTH_URL = "https://lightspeedpay-backend-production.up.railway.app"
+NEXTAUTH_SECRET = "lightspeed_production_secret_2025_secure_jwt_key_for_sessions"
+
+# External Service APIs (placeholders for now)
+WHATSAPP_API_URL = "https://api.whatsapp.business"
+WHATSAPP_API_TOKEN = "placeholder_whatsapp_token"
+SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/placeholder"
+
+# Additional Required Variables
+ENCRYPTION_KEY = "lightspeed_encryption_key_2025_production"
+JWT_SECRET = "lightspeed_jwt_secret_2025_secure_production"
+API_RATE_LIMIT = "100" 

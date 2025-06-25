@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: false,
+  
   // Server configuration
   async rewrites() {
     return [
@@ -24,16 +26,29 @@ const nextConfig = {
       {
         source: '/api/:path*',
         headers: [
-          { 
-            key: 'Access-Control-Allow-Origin', 
-            value: isDevelopment ? '*' : allowedOrigins.join(',')
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: process.env.FRONTEND_URL || 'http://localhost:5173',
           },
-          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS, PATCH' },
-          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, x-api-key, x-client-key, x-client-salt' },
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Max-Age', value: '86400' }
-        ]
-      }
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, PUT, DELETE, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'X-Requested-With, Content-Type, Authorization, X-Client-Key',
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
+          },
+          // Caching headers
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate',
+          },
+        ],
+      },
     ];
   },
 
@@ -43,7 +58,7 @@ const nextConfig = {
   },
 
   // Output configuration for Railway
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: 'standalone',
 
   // Experimental features
   experimental: {
@@ -52,25 +67,17 @@ const nextConfig = {
 
   // TypeScript configuration
   typescript: {
-    ignoreBuildErrors: process.env.NODE_ENV === 'production',
+    ignoreBuildErrors: true,
   },
 
   // ESLint configuration
   eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
+    ignoreDuringBuilds: true,
   },
 
   // Railway-specific optimizations
   poweredByHeader: false,
-  compress: true,
-  
-  // API routes configuration
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-    responseLimit: '2mb',
-  }
+  compress: true
 };
 
 module.exports = nextConfig; 

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 import { Queue } from 'bullmq';
-
-const supabase = supabaseService;
 
 /**
  * POST /api/v1/admin/queues/pause
@@ -15,14 +13,14 @@ const supabase = supabaseService;
  * pause/resume queues via BullMQ. Returns accepted status.
  */
 export async function POST(request: NextRequest) {
-  try {
-    const authCtx = await getAuthContext(request);
-    if (!authCtx || authCtx.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const authContext = await getAuthContext(request);
+  if (!authContext || authContext.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    const body = await request.json();
-    const { queueName, action } = body || {};
+  try {
+    const supabase = getSupabaseService();
+    const { queueName, action } = await request.json();
 
     if (!queueName || !['pause', 'resume'].includes(action)) {
       return NextResponse.json({ error: 'queueName and valid action are required' }, { status: 400 });
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest) {
         table_name: 'queue_jobs',
         row_id: null,
         action: action.toUpperCase(),
-        actor_id: authCtx.userId,
+        actor_id: authContext.userId,
         new_data: { queueName },
         created_at: new Date().toISOString(),
       })

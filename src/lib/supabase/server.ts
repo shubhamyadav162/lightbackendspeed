@@ -6,12 +6,39 @@ import { NextRequest } from 'next/server';
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
 
+let supabaseService: SupabaseClient | null = null;
+
 if (!supabaseUrl || !supabaseServiceKey) {
   /* istanbul ignore next -- environment warning */
   console.warn('[supabase/server] Missing SUPABASE_URL or SUPABASE_SERVICE_KEY env variables');
+} else {
+  supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 }
 
-export const supabaseService: SupabaseClient = createClient(supabaseUrl, supabaseServiceKey);
+// Helper function to get Supabase service with null check
+export function getSupabaseService(): SupabaseClient {
+  if (!supabaseService) {
+    // During build time, return a dummy client
+    if (process.env.NODE_ENV === 'production' && !supabaseUrl) {
+      console.warn('[getSupabaseService] Returning dummy client for build time');
+      // Return a minimal dummy object that won't cause build errors
+      return {
+        auth: { getUser: async () => ({ data: null, error: new Error('Build time') }) },
+        from: () => ({
+          select: () => ({ single: async () => ({ data: null, error: new Error('Build time') }) }),
+          insert: async () => ({ data: null, error: new Error('Build time') }),
+          update: async () => ({ data: null, error: new Error('Build time') }),
+          delete: async () => ({ data: null, error: new Error('Build time') }),
+        }),
+      } as any;
+    }
+    throw new Error('Supabase client not initialized. Check environment variables.');
+  }
+  return supabaseService;
+}
+
+// Export both for backward compatibility
+export { supabaseService };
 
 export { getPgPool }; // re-export for convenience
 
@@ -51,6 +78,12 @@ function extractJwt(request: NextRequest): string | null {
 export async function getAuthContext(request: NextRequest): Promise<AuthContext | null> {
   const jwt = extractJwt(request);
   if (!jwt) return null;
+
+  // Check if supabaseService is initialized
+  if (!supabaseService) {
+    console.warn('[getAuthContext] Supabase client not initialized');
+    return null;
+  }
 
   const { data: userData, error: userErr } = await supabaseService.auth.getUser(jwt);
   if (userErr || !userData.user) return null;

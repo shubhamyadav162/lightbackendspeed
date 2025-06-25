@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
-import { getAuthContext } from '@/lib/supabase/server';
-
-// Singleton service-role client
-const supabase = supabaseService;
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/admin/audit-logs
@@ -17,55 +13,39 @@ const supabase = supabaseService;
  * Returns audit log rows ordered by created_at desc.
  */
 export async function GET(request: NextRequest) {
+  const authContext = await getAuthContext(request);
+  if (!authContext || authContext.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const authCtx = await getAuthContext(request);
-    if (!authCtx || authCtx.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const supabase = getSupabaseService();
+    const searchParams = new URL(request.url).searchParams;
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '50');
+    const offset = (page - 1) * pageSize;
 
-    const { searchParams } = new URL(request.url);
-    const limitParam = Number(searchParams.get('limit'));
-    const limit = isNaN(limitParam) ? 50 : Math.min(Math.max(limitParam, 1), 200);
-    const cursor = searchParams.get('cursor');
-    const processedParam = searchParams.get('processed');
-    const processed = processedParam === null ? undefined : processedParam === 'true';
-    const actionParam = searchParams.get('action');
-    const actions = actionParam ? actionParam.split(',').map((a) => a.trim()) : undefined;
-
-    let query = supabase
+    const { data, error, count } = await supabase
       .from('audit_logs')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(limit);
+      .range(offset, offset + pageSize - 1);
 
-    if (cursor) {
-      // Keyset pagination – fetch rows before the cursor created_at timestamp
-      const { data: cursorRow, error: cursorErr } = await supabase
-        .from('audit_logs')
-        .select('created_at')
-        .eq('id', cursor)
-        .single();
-
-      if (cursorErr) {
-        return NextResponse.json({ error: cursorErr.message }, { status: 400 });
-      }
-      if (cursorRow) {
-        query = query.lt('created_at', cursorRow.created_at);
-      }
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    if (processed !== undefined) {
-      query = query.eq('processed', processed);
-    }
-    if (actions && actions.length) {
-      query = query.in('action', actions);
-    }
-
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-
-    return NextResponse.json({ logs: data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return NextResponse.json({
+      data,
+      count,
+      page,
+      pageSize,
+      totalPages: Math.ceil((count || 0) / pageSize)
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

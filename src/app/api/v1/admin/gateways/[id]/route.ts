@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
+import { encrypt } from '@/lib/encryption';
 
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * Helper to extract id param from request URL.
@@ -82,5 +83,35 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ gateway: data });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const authContext = await getAuthContext(request);
+  if (!authContext || authContext.role !== 'admin') {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    const supabase = getSupabaseService();
+    const { data, error } = await supabase
+      .from('payment_gateways')
+      .select('*')
+      .eq('id', params.id)
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 } 

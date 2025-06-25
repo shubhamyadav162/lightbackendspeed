@@ -22,14 +22,21 @@ Before deploying to Railway, ensure you have:
 
 ### Step 2: Configure Build Settings
 
-Railway will auto-detect the Node.js project. Verify these settings:
+Railway will auto-detect the Node.js project using **nixpacks.toml**:
 
 ```bash
-Build Command:    npm run build
-Start Command:    npm run start
-Install Command:  npm install
+Build Command:    Automated via nixpacks.toml
+Start Command:    npm run start  
+Install Command:  npm ci
 Root Directory:   /backend
+Node.js Version:  20.x (specified in .nvmrc)
 ```
+
+**Files that configure Railway build:**
+- ✅ `nixpacks.toml` - Specifies Node.js 20 and build commands
+- ✅ `.nvmrc` - Node.js version specification
+- ✅ `railway.json` - Railway-specific configuration
+- ✅ `Procfile` - Process definitions
 
 ### Step 3: Add Redis Service
 

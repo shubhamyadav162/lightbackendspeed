@@ -1,1 +1,11 @@
- 
+# Railway Cache Buster File
+# Last Updated: 2025-01-25 14:45
+# Force complete rebuild and cache invalidation
+
+REBUILD_TIMESTAMP=2025-01-25-14:45
+CACHE_VERSION=v3
+DOCKERFILE_UPDATED=true
+NIXPACKS_DISABLED=true
+
+# This file forces Railway to completely rebuild the Docker image
+# instead of using cached layers from previous builds. 

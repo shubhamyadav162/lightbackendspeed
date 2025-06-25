@@ -1,7 +1,8 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
-# Cache bust: 2025-01-25-14:45 - Force Railway to rebuild
+# ⚡ DEFINITIVE RAILWAY FIX: 2025-01-25-15:00:00 ⚡
+# THIS COMMIT WILL FORCE RAILWAY TO USE NEW DOCKERFILE
 # Install curl for health checks
 RUN apk add --no-cache curl
 
@@ -41,5 +42,5 @@ EXPOSE 3100
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD curl -f http://localhost:3100/api/health || exit 1
 
-# Start with npm start (which runs standalone server)
+# ⚡ FINAL COMMAND: Use npm start for standalone mode ⚡
 CMD ["npm", "start"] 

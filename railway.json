@@ -2,6 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "dockerfile",
+<<<<<<< HEAD
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
@@ -9,5 +10,21 @@
     "healthcheckPath": "/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "always"
+=======
+    "dockerfilePath": "backend/Dockerfile",
+    "buildContext": "backend"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "always"
+  },
+  "services": {
+    "backend": {
+      "source": "backend",
+      "type": "web"
+    }
+>>>>>>> master
   }
 } 

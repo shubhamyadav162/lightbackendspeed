@@ -1,0 +1,44 @@
+name: Supabase Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lightspeedpay-integrated/supabase/migrations/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lightspeedpay-integrated/supabase/migrations/**'
+
+jobs:
+  deploy-migrations:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+      
+      - name: Login to Supabase
+        run: supabase login --access-token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      
+      - name: Run Migrations (Preview)
+        if: github.event_name == 'pull_request'
+        run: |
+          cd lightspeedpay-integrated
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PREVIEW }}
+          supabase db push
+      
+      - name: Run Migrations (Production)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cd lightspeedpay-integrated
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }}
+          supabase db push 

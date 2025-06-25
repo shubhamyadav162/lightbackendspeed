@@ -1,0 +1,138 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "./Dockerfile"
+
+# Explicit service configuration to prevent worker service confusion
+[service]
+type = "web"
+name = "lightspeedpay-backend"
+
+# Pass environment variables to Docker build
+[build.args]
+SUPABASE_URL = "$SUPABASE_URL"
+SUPABASE_SERVICE_KEY = "$SUPABASE_SERVICE_KEY"
+DATABASE_URL = "$DATABASE_URL"
+REDIS_URL = "$REDIS_URL"
+WHATSAPP_API_URL = "$WHATSAPP_API_URL"
+WHATSAPP_API_TOKEN = "$WHATSAPP_API_TOKEN"
+SLACK_WEBHOOK_URL = "$SLACK_WEBHOOK_URL"
+FRONTEND_URL = "$FRONTEND_URL"
+NEXTAUTH_URL = "$NEXTAUTH_URL"
+NEXTAUTH_SECRET = "$NEXTAUTH_SECRET"
+
+[deploy]
+startCommand = "node server-express.js"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+# 🚀 COMPLETE AUTOMATIC ENVIRONMENT VARIABLES SETUP 🚀
+# All required variables - Railway will automatically load these!
+[variables]
+
+# =============================================================================
+# CORE APPLICATION CONFIGURATION
+# =============================================================================
+NODE_ENV = "production"
+PORT = "3100"
+SERVICE_TYPE = "web"
+
+# =============================================================================
+# SUPABASE CONFIGURATION (REAL CREDENTIALS)
+# =============================================================================
+# Public Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL = "https://trmqbpnnboyoneyfleux.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk"
+
+# Server Supabase Configuration
+SUPABASE_URL = "https://trmqbpnnboyoneyfleux.supabase.co"
+SUPABASE_SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTM3ODkzNCwiZXhwIjoyMDY0OTU0OTM0fQ.70v06Ypqm8iMPOXiBjQiBET40kgw2rvMT18OFr7_xlE"
+SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTM3ODkzNCwiZXhwIjoyMDY0OTU0OTM0fQ.70v06Ypqm8iMPOXiBjQiBET40kgw2rvMT18OFr7_xlE"
+
+# Database Connection Pool (optional but recommended)
+SUPABASE_DB_POOL = ""
+
+# =============================================================================
+# APPLICATION URLS
+# =============================================================================
+NEXT_PUBLIC_BACKEND_URL = "https://web-production-0b337.up.railway.app"
+PUBLIC_BASE_URL = "https://web-production-0b337.up.railway.app"
+FRONTEND_URL = "http://localhost:5173"
+
+# =============================================================================
+# AUTHENTICATION & SECURITY
+# =============================================================================
+NEXTAUTH_URL = "https://web-production-0b337.up.railway.app"
+NEXTAUTH_SECRET = "lightspeed_production_secret_key_railway_deployment_2025"
+ENCRYPTION_KEY = "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+
+# =============================================================================
+# REDIS CONFIGURATION (QUEUE SYSTEM)
+# =============================================================================
+REDIS_URL = "redis://localhost:6379"
+REDIS_TTL_SECS = "60"
+QUEUE_RECORD_INTERVAL_MS = "60000"
+
+# =============================================================================
+# WORKER & PERFORMANCE CONFIGURATION
+# =============================================================================
+WORKER_PING_INTERVAL_MS = "30000"
+HEALTH_MONITOR_INTERVAL_MS = "60000"
+HEALTH_STALE_THRESHOLD_MS = "120000"
+BULLMQ_PREFIX = "lightspeed"
+
+# Worker Concurrency Settings
+MAX_CONCURRENCY_TRANSACTION = "25"
+MAX_CONCURRENCY_WEBHOOK = "50"
+MAX_CONCURRENCY_WHATSAPP = "30"
+
+# =============================================================================
+# PAYMENT GATEWAY CREDENTIALS (PLACEHOLDERS - UPDATE WITH REAL KEYS)
+# =============================================================================
+RAZORPAY_KEY_ID = "rzp_test_placeholder_key_id"
+RAZORPAY_KEY_SECRET = "rzp_test_placeholder_secret"
+RAZORPAY_WEBHOOK_SECRET = "rzp_webhook_placeholder_secret"
+PAYU_KEY_ID = "payu_placeholder_key"
+PAYU_KEY_SECRET = "payu_placeholder_secret"
+ICICI_KEY_ID = "icici_placeholder_key"
+ICICI_KEY_SECRET = "icici_placeholder_secret"
+EASEBUZZ_KEY_ID = "easebuzz_placeholder_key"
+EASEBUZZ_KEY_SECRET = "easebuzz_placeholder_secret"
+
+# =============================================================================
+# WHATSAPP & NOTIFICATION CONFIGURATION
+# =============================================================================
+WA_API_URL = "https://api.whatsapp.business.example.com/v1"
+WA_API_KEY = "wa_placeholder_api_key_update_with_real"
+WA_TEMPLATE_LOW_BALANCE = "low_balance_template"
+WA_TEMPLATE_TXN_UPDATE = "transaction_update_template"
+
+# =============================================================================
+# THIRD-PARTY INTEGRATIONS
+# =============================================================================
+SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/placeholder_update_with_real"
+OTHER_SERVICE_API_KEY = "placeholder_other_service_key"
+
+# =============================================================================
+# MONITORING & ALERTS CONFIGURATION
+# =============================================================================
+LOW_BALANCE_SCAN_INTERVAL_MS = "300000"
+LOW_BALANCE_COOLDOWN_MS = "86400000"
+WEBHOOK_RETRY_INTERVAL_MS = "60000"
+SYSTEM_HEALTH_INTERVAL_MS = "3600000"
+SLA_MONITOR_INTERVAL_MS = "60000"
+SLA_MONITOR_ENDPOINTS = ""
+
+# =============================================================================
+# COMMISSION & SETTLEMENT CONFIGURATION
+# =============================================================================
+COMMISSION_PAYOUT_INTERVAL_MS = "86400000"
+MIN_PAYOUT_AMOUNT_PAISE = "100000"
+ARCHIVE_CUTOFF_DAYS = "730"
+
+# =============================================================================
+# RAZORPAY PAYOUT CONFIGURATION (IF NEEDED)
+# =============================================================================
+RAZORPAY_PAYOUT_KEY_ID = "rzp_payout_placeholder_key"
+RAZORPAY_PAYOUT_KEY_SECRET = "rzp_payout_secret_placeholder"
+RAZORPAY_PAYOUT_ACCOUNT_NUMBER = "1234567890" 

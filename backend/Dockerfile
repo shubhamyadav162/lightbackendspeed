@@ -13,14 +13,26 @@ RUN npm ci --legacy-peer-deps
 # Copy all source code
 COPY . .
 
-# Create startup script as root
+# Create smart startup script
 RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "Building application with build-time env..."' >> /app/start.sh && \
-    echo 'if [ -f .env.build ]; then' >> /app/start.sh && \
-    echo '  export $(cat .env.build | grep -v "#" | xargs)' >> /app/start.sh && \
+    echo 'echo "🚀 Starting LightSpeedPay Backend..."' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Load production environment if available' >> /app/start.sh && \
+    echo 'if [ -f .env.production ]; then' >> /app/start.sh && \
+    echo '  echo "📋 Loading production environment variables..."' >> /app/start.sh && \
+    echo '  export $(cat .env.production | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
     echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Load build environment for build process' >> /app/start.sh && \
+    echo 'if [ -f .env.build ]; then' >> /app/start.sh && \
+    echo '  echo "🔨 Loading build-time environment..."' >> /app/start.sh && \
+    echo '  export $(cat .env.build | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'echo "🔨 Building Next.js application..."' >> /app/start.sh && \
     echo 'npm run build' >> /app/start.sh && \
-    echo 'echo "Starting server with runtime env..."' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo 'echo "🌟 Starting production server..."' >> /app/start.sh && \
     echo 'npm start' >> /app/start.sh && \
     chmod +x /app/start.sh
 
@@ -35,9 +47,9 @@ USER nextjs
 EXPOSE 3000
 ENV PORT=3000
 
-# Health check with longer timeout
+# Health check with longer timeout for Railway
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Start with the script
+# Start with the smart script
 CMD ["/app/start.sh"] 

@@ -2,6 +2,11 @@
 builder = "dockerfile"
 dockerfilePath = "./Dockerfile"
 
+# Explicit service configuration to prevent worker service confusion
+[service]
+type = "web"
+name = "lightspeedpay-backend"
+
 # Pass environment variables to Docker build
 [build.args]
 SUPABASE_URL = "$SUPABASE_URL"
@@ -16,7 +21,12 @@ NEXTAUTH_URL = "$NEXTAUTH_URL"
 NEXTAUTH_SECRET = "$NEXTAUTH_SECRET"
 
 [deploy]
-startCommand = "node server.js"
+startCommand = "npm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 3
-restartPolicyType = "always" 
+healthcheckTimeout = 30
+restartPolicyType = "always"
+
+# Force Railway to use this as the primary service
+[variables]
+SERVICE_TYPE = "web"
+NODE_ENV = "production" 

@@ -9,29 +9,5 @@
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "always"
-  },
-  "services": [
-    {
-      "name": "backend",
-      "source": {
-        "type": "image",
-        "image": "lightspeedpay-backend"
-      }
-    },
-    {
-      "name": "redis",
-      "source": {
-        "type": "image", 
-        "image": "redis:7-alpine"
-      }
-    }
-  ],
-  "environments": {
-    "production": {
-      "variables": {
-        "NODE_ENV": "production",
-        "PORT": "3000"
-      }
-    }
   }
 } 

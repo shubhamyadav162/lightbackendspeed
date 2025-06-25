@@ -1,55 +1,44 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
-# Install dependencies
+# Install curl for health checks
 RUN apk add --no-cache curl
 
 WORKDIR /app
 
-# Copy package files and install ALL dependencies (including dev for build)
+# Copy package files first (for better caching)
 COPY package.json package-lock.json .npmrc ./
+
+# Install dependencies
 RUN npm ci --legacy-peer-deps
 
-# Copy all source code
+# Copy source code
 COPY . .
 
-# Create smart startup script
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "🚀 Starting LightSpeedPay Backend..."' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Load production environment if available' >> /app/start.sh && \
-    echo 'if [ -f .env.production ]; then' >> /app/start.sh && \
-    echo '  echo "📋 Loading production environment variables..."' >> /app/start.sh && \
-    echo '  export $(cat .env.production | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo '# Load build environment for build process' >> /app/start.sh && \
-    echo 'if [ -f .env.build ]; then' >> /app/start.sh && \
-    echo '  echo "🔨 Loading build-time environment..."' >> /app/start.sh && \
-    echo '  export $(cat .env.build | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🔨 Building Next.js application..."' >> /app/start.sh && \
-    echo 'npm run build' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🌟 Starting production server..."' >> /app/start.sh && \
-    echo 'npm start' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Build Next.js application (this creates .next/standalone)
+RUN npm run build
 
-# Create non-root user and change ownership
+# Copy static files to standalone build
+RUN cp -r public .next/standalone/ 2>/dev/null || true
+RUN cp -r .next/static .next/standalone/.next/ 2>/dev/null || true
+
+# Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 && \
     chown -R nextjs:nodejs /app
 
 USER nextjs
 
+# Set environment
+ENV NODE_ENV=production
+ENV PORT=3100
+
 # Expose port
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3100
 
-# Health check with longer timeout for Railway
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:3100/api/health || exit 1
 
-# Start with the smart script
-CMD ["/app/start.sh"] 
+# Start with npm start (which runs standalone server)
+CMD ["npm", "start"] 

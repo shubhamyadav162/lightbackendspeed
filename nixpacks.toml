@@ -4,11 +4,18 @@ NODE_ENV = "production"
 [phases.setup]
 nixPkgs = ["nodejs_20"]
 
+[phases.install]
+cmds = ["npm ci"]
+
 [phases.build]
-cmds = ["npm ci", "npm run build"]
+cmds = ["npm run build"]
 
 [phases.start]
 cmd = "npm run start"
 
 [staticAssets]
-"public" = "./" 
+"public" = "./"
+
+# Force cache invalidation
+[buildCache]
+clearCache = true 

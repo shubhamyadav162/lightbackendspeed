@@ -77,15 +77,7 @@ const nextConfig = {
 
   // Railway-specific optimizations
   poweredByHeader: false,
-  compress: true,
-  
-  // API routes configuration
-  api: {
-    bodyParser: {
-      sizeLimit: '1mb',
-    },
-    responseLimit: '2mb',
-  }
+  compress: true
 };
 
 module.exports = nextConfig; 

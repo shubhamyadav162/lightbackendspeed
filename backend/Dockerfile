@@ -13,27 +13,30 @@ RUN npm ci --legacy-peer-deps
 # Copy all source code
 COPY . .
 
-# Create smart startup script
+# Build the Next.js application
+RUN npm run build
+
+# Copy static files for standalone build
+RUN cp -r public .next/standalone/public 2>/dev/null || true
+RUN cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
+
+# Create smart startup script for Next.js standalone
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "🚀 Starting LightSpeedPay Backend..."' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
+    echo '# Set default port if not provided' >> /app/start.sh && \
+    echo 'export PORT=${PORT:-3100}' >> /app/start.sh && \
+    echo 'export NODE_ENV=production' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
     echo '# Load production environment if available' >> /app/start.sh && \
-    echo 'if [ -f .env.production ]; then' >> /app/start.sh && \
+    echo 'if [ -f /app/.env.production ]; then' >> /app/start.sh && \
     echo '  echo "📋 Loading production environment variables..."' >> /app/start.sh && \
-    echo '  export $(cat .env.production | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
+    echo '  export $(cat /app/.env.production | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
     echo 'fi' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
-    echo '# Load build environment for build process' >> /app/start.sh && \
-    echo 'if [ -f .env.build ]; then' >> /app/start.sh && \
-    echo '  echo "🔨 Loading build-time environment..."' >> /app/start.sh && \
-    echo '  export $(cat .env.build | grep -v "^#" | grep -v "^$" | xargs)' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🔨 Building Next.js application..."' >> /app/start.sh && \
-    echo 'npm run build' >> /app/start.sh && \
-    echo '' >> /app/start.sh && \
-    echo 'echo "🌟 Starting production server..."' >> /app/start.sh && \
-    echo 'npm start' >> /app/start.sh && \
+    echo 'echo "🌟 Starting Next.js standalone server on port $PORT..."' >> /app/start.sh && \
+    echo 'cd /app/.next/standalone' >> /app/start.sh && \
+    echo 'exec node server.js' >> /app/start.sh && \
     chmod +x /app/start.sh
 
 # Create non-root user and change ownership

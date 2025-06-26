@@ -11,8 +11,11 @@ let supabaseService: SupabaseClient | null = null;
 if (!supabaseUrl || !supabaseServiceKey) {
   /* istanbul ignore next -- environment warning */
   console.warn('[supabase/server] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env variables');
+  console.warn('[supabase/server] SUPABASE_URL present:', !!supabaseUrl);
+  console.warn('[supabase/server] SUPABASE_SERVICE_ROLE_KEY present:', !!supabaseServiceKey);
 } else {
   supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+  console.log('[supabase/server] Supabase client initialized successfully');
 }
 
 // Helper function to get Supabase service with null check

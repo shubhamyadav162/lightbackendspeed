@@ -65,8 +65,8 @@ export const AuditLogsViewer: React.FC = () => {
     return true;
   });
 
-  const uniqueActions = [...new Set(logs.map((log: AuditLog) => log.action))];
-  const uniqueTables = [...new Set(logs.map((log: AuditLog) => log.table_name))];
+  const uniqueActions = [...new Set(logs.map((log: AuditLog) => log.action))].filter(Boolean) as string[];
+  const uniqueTables = [...new Set(logs.map((log: AuditLog) => log.table_name))].filter(Boolean) as string[];
 
   const getActionColor = (action: string) => {
     switch (action.toUpperCase()) {

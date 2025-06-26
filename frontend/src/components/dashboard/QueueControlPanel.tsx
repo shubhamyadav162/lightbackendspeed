@@ -18,7 +18,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useQueueStats } from '@/hooks/useApi';
+import { 
+  useQueueStats, 
+  useRetryQueueJobs, 
+  usePauseQueue, 
+  useCleanQueues 
+} from '@/hooks/useApi';
 import { toast } from 'sonner';
 import { 
   Pause, 
@@ -31,7 +36,6 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
-import { apiService } from '@/services/api';
 
 interface QueueStats {
   name: string;
@@ -51,7 +55,11 @@ interface QueueAction {
 export const QueueControlPanel: React.FC = () => {
   const { data: queueStats = [], refetch } = useQueueStats();
   const [selectedAction, setSelectedAction] = useState<QueueAction | null>(null);
-  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+  
+  // Use optimistic mutation hooks
+  const retryJobs = useRetryQueueJobs();
+  const pauseQueue = usePauseQueue();
+  const cleanQueue = useCleanQueues();
 
   const queueDisplayNames: { [key: string]: string } = {
     'transaction-processing': 'Transaction Processing',
@@ -62,43 +70,28 @@ export const QueueControlPanel: React.FC = () => {
   };
 
   const handlePauseResume = async (queueName: string, pause: boolean) => {
-    setIsLoading({ ...isLoading, [`${queueName}-pause`]: true });
     try {
-      await apiService.pauseQueue({ queue: queueName, pause });
-      toast.success(`Queue ${pause ? 'paused' : 'resumed'} सफलतापूर्वक`);
-      refetch();
+      await pauseQueue.mutateAsync({ queue: queueName, pause });
     } catch (error) {
-      toast.error(`Queue ${pause ? 'pause' : 'resume'} करने में विफल`);
-    } finally {
-      setIsLoading({ ...isLoading, [`${queueName}-pause`]: false });
+      // Error handling is done in the hook
     }
   };
 
   const handleRetryFailed = async (queueName: string) => {
-    setIsLoading({ ...isLoading, [`${queueName}-retry`]: true });
     try {
-      await apiService.retryQueueJobs({ queue: queueName });
-      toast.success('Failed jobs retry के लिए queue किए गए');
-      refetch();
-    } catch (error) {
-      toast.error('Failed jobs retry करने में विफल');
-    } finally {
-      setIsLoading({ ...isLoading, [`${queueName}-retry`]: false });
+      await retryJobs.mutateAsync({ queue: queueName });
       setSelectedAction(null);
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
   const handleCleanCompleted = async (queueName: string) => {
-    setIsLoading({ ...isLoading, [`${queueName}-clean`]: true });
     try {
-      await apiService.cleanQueues({ queue: queueName });
-      toast.success('Completed jobs साफ किए गए');
-      refetch();
-    } catch (error) {
-      toast.error('Jobs साफ करने में विफल');
-    } finally {
-      setIsLoading({ ...isLoading, [`${queueName}-clean`]: false });
+      await cleanQueue.mutateAsync({ queue: queueName });
       setSelectedAction(null);
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
@@ -114,6 +107,19 @@ export const QueueControlPanel: React.FC = () => {
     if (queue.failed > 10) return <XCircle className="h-5 w-5" />;
     if (queue.failed > 0) return <AlertCircle className="h-5 w-5" />;
     return <CheckCircle className="h-5 w-5" />;
+  };
+
+  const isQueueActionLoading = (queueName: string, action: string) => {
+    switch (action) {
+      case 'pause':
+        return pauseQueue.isPending;
+      case 'retry':
+        return retryJobs.isPending;
+      case 'clean':
+        return cleanQueue.isPending;
+      default:
+        return false;
+    }
   };
 
   return (
@@ -155,30 +161,27 @@ export const QueueControlPanel: React.FC = () => {
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => handlePauseResume(queue.name, !queue.paused)}
-                      disabled={isLoading[`${queue.name}-pause`]}
+                      disabled={isQueueActionLoading(queue.name, 'pause')}
                     >
-                      {queue.paused ? (
-                        <>
-                          <Play className="h-4 w-4 mr-2" />
-                          Resume Queue
-                        </>
+                      {isQueueActionLoading(queue.name, 'pause') ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : queue.paused ? (
+                        <Play className="h-4 w-4 mr-2" />
                       ) : (
-                        <>
-                          <Pause className="h-4 w-4 mr-2" />
-                          Pause Queue
-                        </>
+                        <Pause className="h-4 w-4 mr-2" />
                       )}
+                      {queue.paused ? 'Resume Queue' : 'Pause Queue'}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setSelectedAction({ queue: queue.name, action: 'retry' })}
-                      disabled={queue.failed === 0 || isLoading[`${queue.name}-retry`]}
+                      disabled={queue.failed === 0 || isQueueActionLoading(queue.name, 'retry')}
                     >
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Retry Failed ({queue.failed})
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setSelectedAction({ queue: queue.name, action: 'clean' })}
-                      disabled={queue.completed === 0 || isLoading[`${queue.name}-clean`]}
+                      disabled={queue.completed === 0 || isQueueActionLoading(queue.name, 'clean')}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Clean Completed ({queue.completed})
@@ -232,9 +235,9 @@ export const QueueControlPanel: React.FC = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedAction && handleRetryFailed(selectedAction.queue)}
-              disabled={selectedAction && isLoading[`${selectedAction.queue}-retry`]}
+              disabled={retryJobs.isPending}
             >
-              {selectedAction && isLoading[`${selectedAction.queue}-retry`] ? (
+              {retryJobs.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Retrying...
@@ -263,10 +266,10 @@ export const QueueControlPanel: React.FC = () => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selectedAction && handleCleanCompleted(selectedAction.queue)}
-              disabled={selectedAction && isLoading[`${selectedAction.queue}-clean`]}
+              disabled={cleanQueue.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {selectedAction && isLoading[`${selectedAction.queue}-clean`] ? (
+              {cleanQueue.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Cleaning...

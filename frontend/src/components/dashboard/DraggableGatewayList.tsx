@@ -23,9 +23,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
-import { GripVertical, Settings, TestTube, AlertCircle, CheckCircle } from 'lucide-react';
+import { GripVertical, Settings, TestTube, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiService } from '@/services/api';
+import { useBulkUpdateGatewayPriority } from '@/hooks/useApi';
 
 interface Gateway {
   id: string;
@@ -189,7 +189,9 @@ export const DraggableGatewayList: React.FC<DraggableGatewayListProps> = ({
 }) => {
   const [items, setItems] = useState(gateways);
   const [hasChanges, setHasChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  
+  // Use optimistic bulk update hook
+  const bulkUpdatePriority = useBulkUpdateGatewayPriority();
 
   React.useEffect(() => {
     setItems(gateways);
@@ -226,24 +228,20 @@ export const DraggableGatewayList: React.FC<DraggableGatewayListProps> = ({
   };
 
   const handleSavePriorityOrder = async () => {
-    setIsSaving(true);
     try {
       const priorities = items.map((item, index) => ({
         id: item.id,
         priority: index + 1
       }));
       
-      await apiService.bulkUpdateGatewayPriority({ priorities });
-      toast.success('Gateway priorities सफलतापूर्वक अपडेट की गईं');
+      await bulkUpdatePriority.mutateAsync({ priorities });
       setHasChanges(false);
       
       if (onPriorityChange) {
         onPriorityChange(items);
       }
     } catch (error) {
-      toast.error('Priority अपडेट करने में विफल');
-    } finally {
-      setIsSaving(false);
+      // Error handling is done in the hook
     }
   };
 
@@ -287,17 +285,18 @@ export const DraggableGatewayList: React.FC<DraggableGatewayListProps> = ({
                   setItems(gateways);
                   setHasChanges(false);
                 }}
+                disabled={bulkUpdatePriority.isPending}
               >
                 Cancel
               </Button>
               <Button
                 size="sm"
                 onClick={handleSavePriorityOrder}
-                disabled={isSaving}
+                disabled={bulkUpdatePriority.isPending}
               >
-                {isSaving ? (
+                {bulkUpdatePriority.isPending ? (
                   <>
-                    <CheckCircle className="h-4 w-4 mr-1 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                     Saving...
                   </>
                 ) : (

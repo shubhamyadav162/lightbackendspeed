@@ -4,12 +4,29 @@ import axios from 'axios';
 // Environment configuration
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3100/api/v1';
+
+// API Base URL with fallbacks
+const getApiBaseUrl = () => {
+  const configUrl = import.meta.env.VITE_API_BASE_URL;
+  if (configUrl) return configUrl;
+  
+  // Fallbacks based on environment
+  if (import.meta.env.DEV) {
+    // Development fallbacks
+    return 'http://localhost:3100/api/v1';
+  }
+  
+  // Production fallback
+  return 'https://web-production-0b337.up.railway.app/api/v1';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 console.log('API Configuration:', {
   SUPABASE_URL: SUPABASE_URL ? '✓ Set' : '✗ Missing',
   SUPABASE_ANON_KEY: SUPABASE_ANON_KEY ? '✓ Set' : '✗ Missing',
   API_BASE_URL,
+  NODE_ENV: import.meta.env.MODE
 });
 
 // Initialize Supabase client
@@ -18,10 +35,13 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Initialize Axios client for API calls
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Increased timeout
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
+  // Add withCredentials for CORS
+  withCredentials: false, // Set to false for Railway CORS
 });
 
 // Add request interceptor for authentication
@@ -65,14 +85,22 @@ apiClient.interceptors.response.use(
 // Connection test method
 export const testBackendConnection = async () => {
   try {
+    console.log('🔗 Testing backend connection to:', API_BASE_URL + '/system/status');
     const response = await apiClient.get('/system/status');
     console.log('✅ Backend connection successful:', response.data);
     return { success: true, data: response.data };
-  } catch (error) {
-    console.log('❌ Backend connection failed, using fallback mode');
+  } catch (error: any) {
+    console.warn('⚠️ Backend connection failed:', {
+      message: error.message,
+      status: error.response?.status,
+      code: error.code
+    });
+    
+    // Always return success: false instead of throwing
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Connection failed',
+      error: error.message || 'Connection failed',
+      code: error.code || 'NETWORK_ERROR',
       fallback: true 
     };
   }
@@ -340,6 +368,14 @@ export const apiService = {
       console.error('Error fetching audit logs:', error);
       return { data: [], nextCursor: null };
     }
+  },
+
+  async updateClient(id: string, updates: any) {
+    return this.request(`/api/v1/admin/clients/${id}`, 'PUT', updates);
+  },
+
+  async createClient(clientData: any) {
+    return this.request('/api/v1/admin/clients', 'POST', clientData);
   },
 };
 

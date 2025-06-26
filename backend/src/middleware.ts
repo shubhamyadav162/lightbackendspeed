@@ -7,13 +7,17 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:8080',
+  'https://web-production-0b337.up.railway.app', // Add Railway backend URL
+  'https://lightspeedpay-dashboard.vercel.app',
+  'https://lightspeedpay-frontend.vercel.app',
   process.env.FRONTEND_URL, // Deployed frontend URL from env vars
-  'https://lightspeedpay-dashboard.vercel.app'
+  // Development और testing के लिए wildcard support
+  ...(process.env.NODE_ENV === 'development' ? ['http://localhost:3001', 'http://127.0.0.1:5173'] : [])
 ].filter(Boolean) as string[];
 
 // === Basic in-memory rate limiter ===
 const WINDOW_MS = 60 * 1000; // 1 minute window
-const MAX_REQUESTS = 100; // per IP per window
+const MAX_REQUESTS = 200; // Increased limit for development
 
 interface CacheEntry {
   count: number;
@@ -26,25 +30,34 @@ export function middleware(request: NextRequest) {
   // --- CORS Handling ---
   const origin = request.headers.get('origin');
   const isAllowedOrigin = origin ? allowedOrigins.includes(origin) : false;
+  
+  // Development mode में सभी localhost origins को allow करें
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
+  const shouldAllowOrigin = isAllowedOrigin || (isDevelopment && isLocalhost);
 
   // Handle preflight (OPTIONS) requests
   if (request.method === 'OPTIONS') {
-    if (isAllowedOrigin) {
+    if (shouldAllowOrigin) {
       const headers = new Headers();
       headers.set('Access-Control-Allow-Origin', origin!);
-      headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key, x-api-key');
+      headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key, x-api-key, Accept, Origin, X-Requested-With');
       headers.set('Access-Control-Allow-Credentials', 'true');
-      return new NextResponse(null, { status: 204, headers });
+      headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+      return new NextResponse(null, { status: 200, headers });
     }
+    console.warn(`CORS Preflight Blocked for origin: ${origin}`);
     return new NextResponse('CORS Preflight Blocked', { status: 403 });
   }
 
   // Add CORS headers to the actual response
   const response = NextResponse.next();
-  if (isAllowedOrigin) {
+  if (shouldAllowOrigin) {
     response.headers.set('Access-Control-Allow-Origin', origin!);
     response.headers.set('Access-Control-Allow-Credentials', 'true');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Client-Key, x-api-key, Accept, Origin, X-Requested-With');
   }
 
   // Apply other security headers

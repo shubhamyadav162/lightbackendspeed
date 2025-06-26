@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SystemStatus } from './SystemStatus';
 import { TransactionMetrics } from './TransactionMetrics';

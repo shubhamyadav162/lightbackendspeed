@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Activity, AlertTriangle, CheckCircle, Clock, Zap, TrendingUp, TrendingDown } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { apiService, subscribeToTransactionStream, subscribeToQueueMetrics } from '@/services/api';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { QueueControlPanel } from './QueueControlPanel';
 
 interface Transaction {
   id: string;
@@ -365,6 +367,17 @@ export const RealTimeMonitoring = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Processing Now - Add Queue Control Panel */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Processing Now</CardTitle>
+          <CardDescription>Active jobs across all queues</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <QueueControlPanel />
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { Component, ReactNode } from 'react';
+import { ErrorBoundaryFallback } from '@/components/ui/ErrorDisplay';
 
 interface Props {
   children: ReactNode;
@@ -20,22 +21,27 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    console.error('Uncaught error:', error, errorInfo);
+    console.error('Error caught by GlobalErrorBoundary:', error, errorInfo);
+    
+    // You can log the error to an error reporting service here
+    // For example: Sentry, LogRocket, etc.
+    if (process.env.NODE_ENV === 'production') {
+      // Log to error tracking service
+      // logErrorToService(error, errorInfo);
+    }
   }
 
+  resetError = () => {
+    this.setState({ hasError: false, error: undefined });
+  };
+
   render() {
-    if (this.state.hasError) {
+    if (this.state.hasError && this.state.error) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
-          <h1 className="text-2xl font-bold mb-2">Something went wrong.</h1>
-          <p className="text-gray-600 mb-4">{this.state.error?.message}</p>
-          <button
-            className="px-4 py-2 rounded bg-blue-600 text-white"
-            onClick={() => window.location.reload()}
-          >
-            Refresh Page
-          </button>
-        </div>
+        <ErrorBoundaryFallback 
+          error={this.state.error} 
+          resetError={this.resetError}
+        />
       );
     }
 

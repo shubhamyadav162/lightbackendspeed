@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Bell, Search, User, Settings } from 'lucide-react';
 import { NotificationPanel } from './NotificationPanel';

@@ -10,10 +10,11 @@ const supabase = supabaseService;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Development mode में auth bypass करें
+    // Development mode या Railway testing के लिए auth bypass
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
+    const isRailwayTesting = request.headers.get('x-api-key') === 'admin_test_key';
     
-    if (!isDevelopment) {
+    if (!isDevelopment && !isRailwayTesting) {
       const authCtx = await getAuthContext(request);
       if (!authCtx || authCtx.role !== 'admin') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

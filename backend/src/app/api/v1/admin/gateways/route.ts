@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseService } from '@/lib/supabase/server';
-
-// Singleton service-role client
-const supabase = getSupabaseService();
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/admin/gateways
@@ -38,6 +35,9 @@ export async function GET(request: NextRequest) {
         }
       }, { status: 500 });
     }
+
+    const supabase = getSupabaseService();
+    console.log('[GATEWAYS] Supabase client initialized');
 
     const { data: gateways, error } = await supabase
       .from('payment_gateways')
@@ -98,20 +98,16 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Development mode में auth bypass करें
-    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
-    
-    if (!isDevelopment) {
+    // Check API key for admin access
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
       const authCtx = await getAuthContext(request);
       if (!authCtx || authCtx.role !== 'admin') {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
     }
 
-    // Check if supabase client is available
-    if (!supabase) {
-      return NextResponse.json({ error: 'Database not available' }, { status: 503 });
-    }
+    const supabase = getSupabaseService();
 
     const body = await request.json();
     const {
@@ -131,7 +127,7 @@ export async function POST(request: NextRequest) {
     // Derive code slug (unique)
     const code = `${provider}_${name}`.toLowerCase().replace(/\s+/g, '_');
 
-    // Insert gateway row
+    // Insert gateway row  
     const { data: gateway, error: insErr } = await supabase
       .from('payment_gateways')
       .insert({

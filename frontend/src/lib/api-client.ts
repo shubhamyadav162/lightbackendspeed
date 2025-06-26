@@ -1,60 +1,42 @@
-import { createClient } from '@supabase/supabase-js';
 import axios, { AxiosHeaders } from 'axios';
 
-// Environment configuration
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Simple environment configuration
 const API_KEY = import.meta.env.VITE_API_KEY || 'admin_test_key';
 
 /**
- * Resolve backend base URL in the following order:
- * 1. Explicit `VITE_API_BASE_URL`
- * 2. Explicit `VITE_BACKEND_URL` (appends `/api/v1` automatically)
- * 3. Production Railway URL if in production
- * 4. Fallback to local dev server `http://localhost:3100/api/v1`
+ * Simple backend URL resolution:
+ * 1. Use VITE_API_BASE_URL if provided
+ * 2. Use VITE_BACKEND_URL + /api/v1 if provided  
+ * 3. Development: localhost:3100
+ * 4. Production: Railway URL
  */
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api/v1` : null) ||
   (import.meta.env.PROD ? 'https://web-production-0b337.up.railway.app/api/v1' : null) ||
   'http://localhost:3100/api/v1';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || API_BASE_URL?.replace(/\/api\/v1$/, '') || '';
-
 // Log configuration for debugging
 console.log('🔧 API Configuration:', {
   API_BASE_URL,
-  BACKEND_URL,
-  SUPABASE_URL,
-  ENV_VARS: {
-    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
-    VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
-    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
-  }
+  API_KEY: API_KEY ? '✅ Set' : '❌ Missing',
+  ENV_MODE: import.meta.env.MODE
 });
 
-// Initialize Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Initialize Axios client for API calls
+// Simple Axios client for API calls
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    'x-api-key': API_KEY,
   },
-  withCredentials: false, // Explicitly disable credentials for CORS
+  withCredentials: false,
 });
 
-// Add request interceptor to handle auth and errors
+// Simple request interceptor - just logging
 apiClient.interceptors.request.use(
   (config) => {
-    // Only add x-api-key as needed, not for OPTIONS requests
-    if (config.method !== 'options') {
-      if (!config.headers) {
-        config.headers = new AxiosHeaders();
-      }
-      config.headers['x-api-key'] = API_KEY;
-    }
+    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
@@ -62,48 +44,30 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling and logging
+// Simple response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => {
     console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
     return response;
   },
   (error) => {
-    const errorInfo = {
+    console.error('❌ API Error:', {
       url: error.config?.url,
       method: error.config?.method?.toUpperCase(),
       status: error.response?.status,
       message: error.message,
-      data: error.response?.data,
-      baseURL: error.config?.baseURL
-    };
+      data: error.response?.data
+    });
     
-    console.error('❌ API Error:', errorInfo);
-    
-    // Handle specific CORS errors
     if (error.message === 'Network Error' && !error.response) {
-      console.error('🚫 CORS or Network Error detected!');
-      console.error('📍 Check if backend URL is correct:', API_BASE_URL);
-      console.error('📍 Ensure backend is running and accessible');
-      console.error('📍 Verify CORS configuration on backend');
+      console.error('🚫 Network/CORS Error - Check backend connection');
     }
     
     return Promise.reject(error);
   }
 );
 
-// Supabase Edge Functions client (Alternative path)
-export const edgeFunctionClient = axios.create({
-  baseURL: BACKEND_URL,
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-  },
-  withCredentials: false,
-});
-
-// API service methods
+// Simple API service methods
 export const apiService = {
   // Gateway Management
   async getGateways() {
@@ -203,55 +167,18 @@ export const apiService = {
   async updateClient(id: string, updates: any) {
     const response = await apiClient.patch(`/clients/${id}`, updates);
     return response.data;
-  },
+  }
 };
 
-// Real-time subscriptions for dashboard updates
-export const subscribeToTransactions = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('transactions')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'transactions' 
-    }, callback)
-    .subscribe();
-};
-
-export const subscribeToAlerts = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('alerts')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'alerts' 
-    }, callback)
-    .subscribe();
-};
-
-export const subscribeToWallets = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('wallet_transactions')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'wallet_transactions' 
-    }, callback)
-    .subscribe();
-};
-
-// Helper function for API calls with error handling
-const apiCall = async (method: string, endpoint: string, data?: any, headers?: any) => {
+// Simple connection test
+export const testBackendConnection = async () => {
+  console.log('🔗 Testing backend connection to:', API_BASE_URL);
   try {
-    const response = await apiClient({
-      method,
-      url: endpoint,
-      data,
-      headers
-    });
+    const response = await apiClient.get('/system/status');
+    console.log('✅ Backend connection successful');
     return response.data;
-  } catch (error: any) {
-    console.error('API Error:', error?.response?.data || error);
+  } catch (error) {
+    console.error('❌ Backend connection failed:', error);
     throw error;
   }
 }; 

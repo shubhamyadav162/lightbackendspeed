@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import axios, { InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
 
 // Extend Axios config to include metadata
@@ -7,15 +6,13 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
   retryCount?: number;
 }
 
-// Environment configuration with enhanced validation
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Simple environment configuration
 const API_KEY = import.meta.env.VITE_API_KEY || 'admin_test_key';
 const DEBUG_LOGS = import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true';
 const REQUEST_TIMEOUT = parseInt(import.meta.env.VITE_REQUEST_TIMEOUT || '15000');
 const RETRY_ATTEMPTS = parseInt(import.meta.env.VITE_RETRY_ATTEMPTS || '3');
 
-// API Base URL with fallbacks and validation
+// Simple API Base URL resolution
 const getApiBaseUrl = () => {
   const configUrl = import.meta.env.VITE_API_BASE_URL;
   if (configUrl) {
@@ -37,10 +34,8 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
-// Enhanced configuration logging
+// Simple configuration logging
 console.log('🔧 API Configuration:', {
-  SUPABASE_URL: SUPABASE_URL ? `✅ ${SUPABASE_URL.substring(0, 30)}...` : '❌ Missing',
-  SUPABASE_ANON_KEY: SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing',
   API_BASE_URL,
   API_KEY: API_KEY ? '✅ Set' : '❌ Missing',
   MODE: import.meta.env.MODE,
@@ -49,15 +44,7 @@ console.log('🔧 API Configuration:', {
   RETRY_ATTEMPTS
 });
 
-// Validate required environment variables
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('❌ Critical: Missing Supabase configuration');
-}
-
-// Initialize Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Initialize Axios client with enhanced configuration
+// Simple Axios client
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: REQUEST_TIMEOUT,
@@ -67,10 +54,10 @@ export const apiClient = axios.create({
     'x-api-key': API_KEY,
     'User-Agent': 'LightSpeedPay-Frontend/1.0',
   },
-  withCredentials: false, // For Railway CORS
+  withCredentials: false,
 });
 
-// Request interceptor to add headers
+// Simple request interceptor
 apiClient.interceptors.request.use(async (config) => {
   const extendedConfig = config as ExtendedAxiosRequestConfig;
   
@@ -79,36 +66,16 @@ apiClient.interceptors.request.use(async (config) => {
     extendedConfig.headers = new AxiosHeaders();
   }
   
-  // Always add API key for backend authentication
+  // Always add API key
   extendedConfig.headers['x-api-key'] = API_KEY;
   
   // Add timestamp for request tracking
   extendedConfig.metadata = { startTime: Date.now() };
   
-  // For admin endpoints, try to get Supabase session token
-  if (extendedConfig.url?.includes('/admin/')) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        extendedConfig.headers.Authorization = `Bearer ${session.access_token}`;
-        DEBUG_LOGS && console.log('🔐 Added Supabase token for admin endpoint');
-      } else {
-        // If no session, try localStorage token as fallback
-        const token = localStorage.getItem('access_token');
-        if (token) {
-          extendedConfig.headers.Authorization = `Bearer ${token}`;
-        }
-      }
-    } catch (error) {
-      console.warn('⚠️ Failed to get Supabase session:', error);
-    }
-  }
-  
-  // Enhanced logging
+  // Simple logging
   DEBUG_LOGS && console.log(`🚀 API Request: ${extendedConfig.method?.toUpperCase()} ${extendedConfig.url}`, {
     headers: {
       'x-api-key': extendedConfig.headers['x-api-key'] ? '✅ Set' : '❌ Missing',
-      'Authorization': extendedConfig.headers.Authorization ? '✅ Set' : '❌ Missing',
       'Content-Type': extendedConfig.headers['Content-Type']
     },
     baseURL: extendedConfig.baseURL
@@ -154,26 +121,26 @@ apiClient.interceptors.response.use(
       console.error(`⏱️ Timeout Error: Request took longer than ${REQUEST_TIMEOUT}ms`);
     }
     
-         // Implement retry logic for specific errors
-     if (retryCount < RETRY_ATTEMPTS && 
-         (error.code === 'ERR_NETWORK' || 
-          error.code === 'ECONNABORTED' || 
-          (error.response?.status >= 500))) {
-       
-       extendedConfig.retryCount = retryCount + 1;
-       const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
-       
-       console.log(`🔄 Retrying request (${retryCount + 1}/${RETRY_ATTEMPTS}) after ${delay}ms`);
-       
-       await new Promise(resolve => setTimeout(resolve, delay));
-       return apiClient(extendedConfig);
-     }
+    // Implement retry logic for specific errors
+    if (retryCount < RETRY_ATTEMPTS && 
+        (error.code === 'ERR_NETWORK' || 
+         error.code === 'ECONNABORTED' || 
+         (error.response?.status >= 500))) {
+      
+      extendedConfig.retryCount = retryCount + 1;
+      const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+      
+      console.log(`🔄 Retrying request (${retryCount + 1}/${RETRY_ATTEMPTS}) after ${delay}ms`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return apiClient(extendedConfig);
+    }
     
     return Promise.reject(error);
   }
 );
 
-// Enhanced connection test with comprehensive diagnostics
+// Enhanced connection test
 export const testBackendConnection = async () => {
   console.log('🔗 Testing backend connection...');
   console.log('📍 Connection Details:', {
@@ -198,104 +165,29 @@ export const testBackendConnection = async () => {
     }
     
     const startTime = Date.now();
-    console.log('🎯 Testing URL:', diagnostics.url);
-    
-    const response = await apiClient.get('/system/status', {
-      timeout: 10000,
-      headers: {
-        'x-api-key': API_KEY,
-        'Cache-Control': 'no-cache',
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
+    const response = await apiClient.get('/system/status');
     const duration = Date.now() - startTime;
     
-    console.log('✅ Backend connection successful!');
-    console.log('📊 Response Details:', {
+    console.log('✅ Backend connection successful', {
       status: response.status,
-      statusText: response.statusText,
       duration: `${duration}ms`,
-      dataKeys: Object.keys(response.data || {}),
-      headers: {
-        'content-type': response.headers['content-type'],
-        'access-control-allow-origin': response.headers['access-control-allow-origin']
-      }
+      data: response.data
     });
     
-    return { 
-      success: true, 
+    return {
+      success: true,
+      status: response.status,
+      duration,
       data: response.data,
-      status: response.status,
-      duration,
-      diagnostics,
-      message: 'Backend connection successful'
+      diagnostics
     };
-    
   } catch (error: any) {
-    const duration = Date.now() - Date.now();
-    
-    console.warn('⚠️ Backend connection failed');
-    console.error('❌ Full Error Details:', {
-      message: error.message,
+    console.error('❌ Backend connection failed:', error);
+    return {
+      success: false,
+      error: error.message,
       status: error.response?.status,
-      statusText: error.response?.statusText,
-      code: error.code,
-      duration: `${duration}ms`,
-      url: error.config?.url,
-      headers: error.config?.headers,
-      responseData: error.response?.data,
-      stack: error.stack?.split('\n').slice(0, 3) // First 3 lines of stack
-    });
-    
-    // Enhanced troubleshooting guidance
-    let troubleshooting = [];
-    
-    if (error.code === 'ERR_NETWORK') {
-      troubleshooting = [
-        '• Backend server may not be running on Railway',
-        '• Check Railway deployment logs for startup errors',
-        '• Verify CORS configuration allows frontend origin',
-        '• Confirm Railway app is not paused/sleeping',
-        `• Test direct access: ${API_BASE_URL.replace('/api/v1', '')}/health`
-      ];
-    } else if (error.response?.status === 401) {
-      troubleshooting = [
-        '• API key mismatch between frontend and backend',
-        `• Frontend API key: ${API_KEY}`,
-        '• Check Railway environment variables',
-        '• Verify x-api-key header is being sent'
-      ];
-    } else if (error.response?.status === 404) {
-      troubleshooting = [
-        '• API endpoint may not exist',
-        '• Check backend routing configuration',
-        '• Verify API version in URL path'
-      ];
-    } else if (error.code === 'ECONNABORTED') {
-      troubleshooting = [
-        `• Request timeout after ${REQUEST_TIMEOUT}ms`,
-        '• Backend may be slow to respond',
-        '• Consider increasing timeout value',
-        '• Check Railway logs for performance issues'
-      ];
-    }
-    
-    if (troubleshooting.length > 0) {
-      console.error('🔧 Troubleshooting Steps:');
-      troubleshooting.forEach(step => console.error(step));
-    }
-    
-    return { 
-      success: false, 
-      error: error.message || 'Connection failed',
-      code: error.code || 'UNKNOWN_ERROR',
-      status: error.response?.status || 'NO_RESPONSE',
-      diagnostics,
-      troubleshooting,
-      duration,
-      fallback: true 
+      diagnostics
     };
   }
 };
@@ -581,27 +473,55 @@ export const apiService = {
   },
 };
 
-// Real-time subscriptions for dashboard updates
+// Simple real-time subscriptions using SSE (no authentication required)
 export const subscribeToTransactions = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('transactions')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'transactions' 
-    }, callback)
-    .subscribe();
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const url = `${baseUrl}/functions/v1/transaction-stream`;
+  
+  console.log('🔗 Connecting to Transaction Stream SSE:', url);
+  const es = new EventSource(url);
+
+  es.onmessage = (event) => {
+    try {
+      const parsed = JSON.parse(event.data);
+      if (parsed.type === 'transaction') {
+        callback(parsed.data);
+      }
+    } catch (err) {
+      console.error('Failed to parse Transaction Stream SSE payload', err);
+    }
+  };
+
+  es.onerror = (error) => {
+    console.error('Transaction Stream SSE Error:', error);
+  };
+
+  return () => es.close();
 };
 
 export const subscribeToAlerts = (callback: (payload: any) => void) => {
-  return supabase
-    .channel('alerts')
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'alerts' 
-    }, callback)
-    .subscribe();
+  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const url = `${baseUrl}/functions/v1/alerts-stream`;
+  
+  console.log('🔗 Connecting to Alerts Stream SSE:', url);
+  const es = new EventSource(url);
+
+  es.onmessage = (event) => {
+    try {
+      const parsed = JSON.parse(event.data);
+      if (parsed.type === 'alert') {
+        callback(parsed.data);
+      }
+    } catch (err) {
+      console.error('Failed to parse Alerts Stream SSE payload', err);
+    }
+  };
+
+  es.onerror = (error) => {
+    console.error('Alerts Stream SSE Error:', error);
+  };
+
+  return () => es.close();
 };
 
 // SSE Subscription helpers

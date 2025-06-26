@@ -101,10 +101,11 @@ export async function POST(request: NextRequest) {
     // Check API key for admin access
     const apiKey = request.headers.get('x-api-key');
     if (apiKey !== 'admin_test_key') {
-      const authCtx = await getAuthContext(request);
-      if (!authCtx || authCtx.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+      // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     }
 
     const supabase = getSupabaseService();

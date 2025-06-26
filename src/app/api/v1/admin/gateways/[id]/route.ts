@@ -16,8 +16,9 @@ function getGatewayId(request: NextRequest): string | null {
 // Update gateway (priority, status, credentials, etc.)
 export async function PUT(request: NextRequest) {
   try {
-    const authCtx = await getAuthContext(request);
-    if (!authCtx || authCtx.role !== 'admin') {
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -61,8 +62,9 @@ export async function PUT(request: NextRequest) {
 // Delete gateway (soft delete -> is_active=false)
 export async function DELETE(request: NextRequest) {
   try {
-    const authCtx = await getAuthContext(request);
-    if (!authCtx || authCtx.role !== 'admin') {
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -90,8 +92,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const authContext = await getAuthContext(request);
-  if (!authContext || authContext.role !== 'admin') {
+  // Simple API key check for private deployment
+  const apiKey = request.headers.get('x-api-key');
+  if (apiKey !== 'admin_test_key') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

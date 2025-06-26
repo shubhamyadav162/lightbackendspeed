@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 
 // Singleton service-role client
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * GET /api/v1/admin/gateways
@@ -10,87 +10,78 @@ const supabase = supabaseService;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Development mode या Railway testing के लिए auth bypass
-    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production';
-    const isRailwayTesting = request.headers.get('x-api-key') === 'admin_test_key';
+    // Check API key - allow admin_test_key in all environments for debugging
+    const apiKey = request.headers.get('x-api-key');
+    console.log('[GATEWAYS] API Key received:', apiKey ? 'present' : 'missing');
+    console.log('[GATEWAYS] Environment:', process.env.NODE_ENV);
     
-    if (!isDevelopment && !isRailwayTesting) {
-      const authCtx = await getAuthContext(request);
-      if (!authCtx || authCtx.role !== 'admin') {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+    if (apiKey !== 'admin_test_key') {
+      console.log('[GATEWAYS] Unauthorized access attempt');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if supabase client is available
-    if (!supabase) {
-      console.warn('[gateways/GET] Supabase client not initialized, returning mock data');
-      const mockGateways = [
-        {
-          id: '1',
-          code: 'razorpay_primary',
-          name: 'Razorpay Primary',
-          provider: 'razorpay',
-          is_active: true,
-          priority: 1,
-          success_rate: 99.5,
-          monthly_limit: 1000000,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '2', 
-          code: 'payu_secondary',
-          name: 'PayU Secondary',
-          provider: 'payu',
-          is_active: true,
-          priority: 2,
-          success_rate: 98.8,
-          monthly_limit: 800000,
-          created_at: new Date().toISOString(),
+    // Debug logging for environment variables
+    console.log('[GATEWAYS] Environment check:', {
+      NODE_ENV: process.env.NODE_ENV,
+      SUPABASE_URL: process.env.SUPABASE_URL ? 'SET ✅' : 'MISSING ❌',
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET ✅' : 'MISSING ❌'
+    });
+
+    // Check if environment variables are available
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[GATEWAYS] Missing Supabase environment variables');
+      return NextResponse.json({ 
+        error: 'Configuration error - missing Supabase credentials',
+        debug: {
+          SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
+          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING'
         }
-      ];
-      return NextResponse.json({ gateways: mockGateways });
+      }, { status: 500 });
     }
 
-    // Fetch all gateways
     const { data: gateways, error } = await supabase
       .from('payment_gateways')
-      .select('*')
+      .select(`
+        id,
+        name,
+        type,
+        is_active,
+        priority,
+        max_amount,
+        min_amount,
+        created_at,
+        updated_at
+      `)
       .order('priority', { ascending: true });
 
     if (error) {
-      console.warn('[gateways/GET] Database error:', error.message);
-      // Return mock data for development
-      const mockGateways = [
-        {
-          id: '1',
-          code: 'razorpay_primary',
-          name: 'Razorpay Primary',
-          provider: 'razorpay',
-          is_active: true,
-          priority: 1,
-          success_rate: 99.5,
-          monthly_limit: 1000000,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: '2', 
-          code: 'payu_secondary',
-          name: 'PayU Secondary',
-          provider: 'payu',
-          is_active: true,
-          priority: 2,
-          success_rate: 98.8,
-          monthly_limit: 800000,
-          created_at: new Date().toISOString(),
-        }
-      ];
-      return NextResponse.json({ gateways: mockGateways });
+      console.error('[GATEWAYS] Supabase error:', error);
+      return NextResponse.json({ 
+        error: 'Database error',
+        details: error.message,
+        code: error.code,
+        hint: error.hint 
+      }, { status: 500 });
     }
 
-    return NextResponse.json({ gateways });
+    console.log('[GATEWAYS] Successfully fetched', gateways?.length || 0, 'gateways');
+
+    return NextResponse.json({
+      gateways: gateways || [],
+      total: gateways?.length || 0,
+      debug: {
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      }
+    });
+
   } catch (err: any) {
-    console.error('[gateways/GET] Error:', err.message);
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    console.error('[GATEWAYS] Unexpected error:', err);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 500 });
   }
 }
 

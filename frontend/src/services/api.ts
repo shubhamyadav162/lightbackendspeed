@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import axios, { InternalAxiosRequestConfig } from 'axios';
+import axios, { InternalAxiosRequestConfig, AxiosHeaders } from 'axios';
 
 // Extend Axios config to include metadata
 interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
@@ -70,22 +70,38 @@ export const apiClient = axios.create({
   withCredentials: false, // For Railway CORS
 });
 
-// Enhanced request interceptor
-apiClient.interceptors.request.use((config) => {
+// Request interceptor to add headers
+apiClient.interceptors.request.use(async (config) => {
   const extendedConfig = config as ExtendedAxiosRequestConfig;
   
-  // Ensure API key is always present
-  if (!extendedConfig.headers['x-api-key']) {
-    extendedConfig.headers['x-api-key'] = API_KEY;
+  // Set default headers
+  if (!extendedConfig.headers) {
+    extendedConfig.headers = new AxiosHeaders();
   }
+  
+  // Always add API key for backend authentication
+  extendedConfig.headers['x-api-key'] = API_KEY;
   
   // Add timestamp for request tracking
   extendedConfig.metadata = { startTime: Date.now() };
   
-  // Try to get token from localStorage or Supabase session
-  const token = localStorage.getItem('access_token') || SUPABASE_ANON_KEY;
-  if (token && token !== SUPABASE_ANON_KEY) {
-    extendedConfig.headers.Authorization = `Bearer ${token}`;
+  // For admin endpoints, try to get Supabase session token
+  if (extendedConfig.url?.includes('/admin/')) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        extendedConfig.headers.Authorization = `Bearer ${session.access_token}`;
+        DEBUG_LOGS && console.log('🔐 Added Supabase token for admin endpoint');
+      } else {
+        // If no session, try localStorage token as fallback
+        const token = localStorage.getItem('access_token');
+        if (token) {
+          extendedConfig.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Failed to get Supabase session:', error);
+    }
   }
   
   // Enhanced logging

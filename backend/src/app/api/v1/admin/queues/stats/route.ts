@@ -9,18 +9,14 @@ const supabase = supabaseService;
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check API key first (for testing/development)
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey === 'admin_test_key') {
-      // Allow access with admin_test_key for testing
-      console.log('[QUEUE STATS] Access granted via API key');
-    } else {
-      // Otherwise check Supabase JWT authentication
-      // Simple API key check for private deployment
+    // Simple API key check for private deployment
     const apiKey = request.headers.get('x-api-key');
     if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 });
     }
 
     const { data, error } = await supabase

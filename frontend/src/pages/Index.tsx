@@ -6,6 +6,7 @@ import { GatewayManagement } from '../components/dashboard/GatewayManagement';
 import { WalletManagement } from '../components/dashboard/WalletManagement';
 import { RealTimeMonitoring } from '../components/dashboard/RealTimeMonitoring';
 import { ClientManagement } from '../components/dashboard/ClientManagement';
+import { ClientDetailPage } from '../components/dashboard/ClientDetailPage';
 import { ReportsAnalytics } from '../components/dashboard/ReportsAnalytics';
 import { AlertCenterScreen } from '../components/dashboard/AlertCenterScreen';
 import { DeveloperTools } from '../components/dashboard/DeveloperTools';
@@ -14,6 +15,14 @@ import { AuditLogsViewer } from '../components/dashboard/AuditLogsViewer';
 
 const Index = () => {
   const [activeScreen, setActiveScreen] = useState('dashboard');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  // Reset client selection when changing screens
+  React.useEffect(() => {
+    if (activeScreen !== 'clients') {
+      setSelectedClientId(null);
+    }
+  }, [activeScreen]);
 
   const renderScreen = () => {
     switch (activeScreen) {
@@ -26,7 +35,12 @@ const Index = () => {
       case 'monitoring':
         return <RealTimeMonitoring />;
       case 'clients':
-        return <ClientManagement />;
+        return selectedClientId ? 
+          <ClientDetailPage 
+            clientId={selectedClientId} 
+            onBack={() => setSelectedClientId(null)} 
+          /> : 
+          <ClientManagement onClientSelect={setSelectedClientId} />;
       case 'reports':
         return <ReportsAnalytics />;
       case 'alerts':

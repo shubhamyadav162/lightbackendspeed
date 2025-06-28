@@ -7,8 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Eye, Settings, MessageSquare, Key, Search } from 'lucide-react';
+import { Eye, Settings, MessageSquare, Key, Search, IndianRupee, AlertTriangle, Send } from 'lucide-react';
 import { Client, ClientStatus, NotificationType } from '@/types/client';
+import { toast } from 'sonner';
 
 interface ClientTableProps {
   filteredClients: Client[];
@@ -19,6 +20,8 @@ interface ClientTableProps {
   toggleNotification: (clientId: string, type: NotificationType) => void;
   updateClientStatus: (clientId: string, status: ClientStatus) => void;
   regenerateApiKey: (clientId: string) => void;
+  onClientClick?: (clientId: string) => void;
+  sendWhatsApp?: (clientId: string, type: string) => void;
 }
 
 export const ClientTable: React.FC<ClientTableProps> = ({
@@ -29,7 +32,9 @@ export const ClientTable: React.FC<ClientTableProps> = ({
   setFilterStatus,
   toggleNotification,
   updateClientStatus,
-  regenerateApiKey
+  regenerateApiKey,
+  onClientClick,
+  sendWhatsApp
 }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -37,6 +42,23 @@ export const ClientTable: React.FC<ClientTableProps> = ({
       case 'inactive': return 'bg-gray-100 text-gray-800';
       case 'suspended': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `₹${(amount / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  };
+
+  const isLowBalance = (client: Client) => {
+    return (client.balance_due || 0) >= (client.warn_threshold || 10000);
+  };
+
+  const handleSendWhatsApp = async (clientId: string, type: string) => {
+    try {
+      await sendWhatsApp?.(clientId, type);
+      toast.success('WhatsApp message sent successfully!');
+    } catch (error) {
+      toast.error('Failed to send WhatsApp message');
     }
   };
 
@@ -77,17 +99,23 @@ export const ClientTable: React.FC<ClientTableProps> = ({
               <TableHead>Contact</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Volume</TableHead>
-              <TableHead>Notifications</TableHead>
-              <TableHead>Last Activity</TableHead>
+              <TableHead>Commission</TableHead>
+              <TableHead>Balance Due</TableHead>
+              <TableHead>Integration</TableHead>
+              <TableHead>WhatsApp</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredClients.map((client) => (
-              <TableRow key={client.id}>
+              <TableRow 
+                key={client.id} 
+                className="cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => onClientClick?.(client.id)}
+              >
                 <TableCell>
                   <div>
-                    <p className="font-medium">{client.name}</p>
+                    <p className="font-medium text-blue-600 hover:text-blue-800">{client.name}</p>
                     <p className="text-sm text-gray-600">{client.company}</p>
                   </div>
                 </TableCell>
@@ -118,7 +146,7 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium">${client.totalVolume.toLocaleString()}</p>
+                    <p className="font-medium">₹{(client.totalVolume / 100000).toFixed(1)}L</p>
                     <p className="text-sm text-gray-600">
                       {client.totalTransactions} transactions
                     </p>
@@ -129,45 +157,126 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                       ></div>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      ${client.currentMonthVolume.toLocaleString()} / ${client.monthlyLimit.toLocaleString()}
+                      ₹{(client.currentMonthVolume / 100000).toFixed(1)}L / ₹{(client.monthlyLimit / 100000).toFixed(1)}L
                     </p>
                   </div>
                 </TableCell>
+                
+                {/* Commission Column */}
                 <TableCell>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1">
+                      <IndianRupee className="w-3 h-3 text-green-600" />
+                      <span className="font-medium text-green-600">{client.fee_percent || 3.5}%</span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Earned: {formatCurrency(client.commission_earned || 0)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Rate: {formatCurrency((client.totalVolume || 0) * (client.fee_percent || 3.5) / 100)} total
+                    </p>
+                  </div>
+                </TableCell>
+
+                {/* Balance Due Column */}
+                <TableCell>
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-1">
+                      {isLowBalance(client) && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                      <span className={`font-medium ${isLowBalance(client) ? 'text-red-600' : 'text-orange-600'}`}>
+                        {formatCurrency(client.balance_due || 0)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Threshold: {formatCurrency(client.warn_threshold || 10000)}
+                    </p>
+                    {isLowBalance(client) && (
+                      <Badge variant="destructive" className="text-xs">
+                        Action Required
+                      </Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="space-y-1">
                     <div className="flex items-center space-x-2">
-                      <MessageSquare className="w-3 h-3" />
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        Key-Salt Wrapper
+                      </Badge>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-gray-600">20+ Gateways</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-xs text-blue-600">4 Active</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="link" 
+                      className="p-0 h-auto text-xs text-blue-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClientClick?.(client.id);
+                      }}
+                    >
+                      View Credentials →
+                    </Button>
+                  </div>
+                </TableCell>
+                {/* WhatsApp Column */}
+                <TableCell>
+                  <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center space-x-1">
                       <Switch 
                         checked={client.whatsappNotifications}
                         onCheckedChange={() => toggleNotification(client.id, 'whatsapp')}
+                        size="sm"
                       />
-                      <span className="text-xs">WhatsApp</span>
+                      <span className="text-xs">Auto</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="w-3 h-3 text-center">@</span>
-                      <Switch 
-                        checked={client.emailNotifications}
-                        onCheckedChange={() => toggleNotification(client.id, 'email')}
-                      />
-                      <span className="text-xs">Email</span>
+                    <div className="flex space-x-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => handleSendWhatsApp(client.id, 'LOW_BALANCE')}
+                        disabled={!isLowBalance(client)}
+                      >
+                        <Send className="w-3 h-3 mr-1" />
+                        Alert
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline" 
+                        className="h-6 px-2 text-xs"
+                        onClick={() => handleSendWhatsApp(client.id, 'PAYMENT_REMINDER')}
+                      >
+                        <MessageSquare className="w-3 h-3 mr-1" />
+                        Remind
+                      </Button>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-600">{client.lastActivity}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-1">
-                    <Button size="sm" variant="outline">
+                  <div className="flex space-x-1" onClick={(e) => e.stopPropagation()}>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onClientClick?.(client.id)}
+                      title="View Details"
+                    >
                       <Eye className="w-3 h-3" />
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" title="Settings">
                       <Settings className="w-3 h-3" />
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={() => regenerateApiKey(client.id)}
+                      title="Regenerate API Key"
                     >
                       <Key className="w-3 h-3" />
                     </Button>

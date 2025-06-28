@@ -79,26 +79,46 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose,
   if (newCredentials) {
     return (
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Client Credentials Generated</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <Check className="w-5 h-5 text-green-600" />
+              <span>LightSpeedPay Key-Salt Wrapper Generated!</span>
+            </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-medium text-green-800 mb-2">
+                ✅ <strong>Success!</strong> Client को अब 20+ payment gateways तक access मिल गया है एक ही set of credentials से!
+              </p>
+            </div>
+
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-medium text-blue-800 mb-2">🔧 Key-Salt Wrapper System</h4>
+              <p className="text-sm text-blue-700">
+                ये credentials <strong>Razorpay, PayU, Cashfree, PhonePe, Paytm</strong> और 15+ अन्य gateways को automatically route करते हैं।
+                Client को सिर्फ ये तीन चीजें चाहिए integration के लिए।
+              </p>
+            </div>
+
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm font-medium text-yellow-800 mb-2">
-                ⚠️ Important: इन credentials को तुरंत copy करें। ये दोबारा नहीं दिखाए जाएंगे।
+                ⚠️ <strong>Important:</strong> इन credentials को तुरंत copy करें। Security के लिए ये दोबारा plain text में नहीं दिखाए जाएंगे।
               </p>
             </div>
 
             <div className="space-y-3">
               <div>
-                <Label>Client Key</Label>
+                <Label className="flex items-center space-x-2">
+                  <span>Client Key</span>
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Required for Auth</span>
+                </Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     value={newCredentials.client_key}
                     readOnly
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-gray-50"
                   />
                   <Button
                     size="sm"
@@ -108,15 +128,19 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose,
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-gray-600 mt-1">Use in X-Client-Key header</p>
               </div>
 
               <div>
-                <Label>Client Salt</Label>
+                <Label className="flex items-center space-x-2">
+                  <span>Client Salt</span>
+                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">HMAC Signing</span>
+                </Label>
                 <div className="flex gap-2 mt-1">
                   <Input
                     value={newCredentials.client_salt}
                     readOnly
-                    className="font-mono text-sm"
+                    className="font-mono text-sm bg-gray-50"
                   />
                   <Button
                     size="sm"
@@ -126,14 +150,38 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose,
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
+                <p className="text-xs text-gray-600 mt-1">Use for request signatures</p>
+              </div>
+
+              <div>
+                <Label className="flex items-center space-x-2">
+                  <span>Webhook Endpoint</span>
+                  <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">Auto-Generated</span>
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={`https://api.lightspeedpay.com/webhook/${newCredentials.client_key}`}
+                    readOnly
+                    className="font-mono text-sm bg-gray-50"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyToClipboard(`https://api.lightspeedpay.com/webhook/${newCredentials.client_key}`, 'Webhook URL')}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-600 mt-1">Receives payment status updates</p>
               </div>
             </div>
 
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                Client को ये credentials और webhook URL share करें:
+            <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-800 mb-2">🚀 Integration Ready!</h4>
+              <p className="text-sm text-blue-700">
+                Client अब इन 3 credentials के साथ <strong>20+ payment gateways</strong> access कर सकता है।
+                Automatic routing, failover, और load balancing included!
               </p>
-              <p className="text-sm font-mono mt-1">{formData.webhook_url}</p>
             </div>
           </div>
 

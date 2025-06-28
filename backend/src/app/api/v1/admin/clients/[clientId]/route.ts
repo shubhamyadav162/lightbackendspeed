@@ -108,64 +108,33 @@ export async function GET(
     const commissionEarned = commissionEntries?.reduce((sum, entry) => 
       entry.type === 'COMMISSION' ? sum + entry.amount : sum, 0) || 0;
 
-    // Mock gateway data (in real implementation, this would come from actual gateway assignments)
-    const mockGateways = [
-      {
-        id: 'gw1',
-        name: 'Razorpay_Primary',
-        provider: 'razorpay',
-        priority: 1,
-        status: 'active',
-        success_rate: 98.5,
-        monthly_volume: Math.floor(Math.random() * 200000),
-        limit: 500000,
-        response_time: 245
-      },
-      {
-        id: 'gw2',
-        name: 'PayU_Secondary',
-        provider: 'payu',
-        priority: 2,
-        status: 'active',
-        success_rate: 97.2,
-        monthly_volume: Math.floor(Math.random() * 150000),
-        limit: 400000,
-        response_time: 312
-      },
-      {
-        id: 'gw3',
-        name: 'Cashfree_Backup',
-        provider: 'cashfree',
-        priority: 3,
-        status: 'active',
-        success_rate: 96.8,
-        monthly_volume: Math.floor(Math.random() * 100000),
-        limit: 300000,
-        response_time: 287
-      },
-      {
-        id: 'gw4',
-        name: 'PhonePe_Express',
-        provider: 'phonepe',
-        priority: 4,
-        status: 'inactive',
-        success_rate: 95.1,
-        monthly_volume: 0,
-        limit: 200000,
-        response_time: 356
-      },
-      {
-        id: 'gw5',
-        name: 'Paytm_Special',
-        provider: 'paytm',
-        priority: 5,
-        status: 'active',
-        success_rate: 94.7,
-        monthly_volume: Math.floor(Math.random() * 80000),
-        limit: 250000,
-        response_time: 398
-      }
-    ];
+    // Fetch gateway data from database
+    const gatewaysResult = await supabaseService
+      .from('client_gateways')
+      .select(`
+        *,
+        payment_gateways (
+          id,
+          name,
+          provider,
+          status,
+          success_rate,
+          avg_response_time
+        )
+      `)
+      .eq('client_id', clientId);
+
+    const gateways = gatewaysResult.data?.map(cg => ({
+      id: cg.id,
+      name: cg.payment_gateways?.name || 'Unknown Gateway',
+      provider: cg.payment_gateways?.provider || 'unknown',
+      priority: cg.priority || 0,
+      status: cg.payment_gateways?.status || 'inactive',
+      success_rate: cg.payment_gateways?.success_rate || 0,
+      monthly_volume: 0, // This would come from actual transaction data
+      limit: cg.monthly_limit || 0,
+      response_time: cg.payment_gateways?.avg_response_time || 0
+    })) || [];
 
     // Transform and return comprehensive client data
     const clientDetails = {
@@ -202,7 +171,7 @@ export async function GET(
       },
 
       // Gateway Allocation
-      gateways: mockGateways,
+              gateways: gateways,
 
       // Recent Transactions
       recent_transactions: transactions?.map(txn => ({

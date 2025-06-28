@@ -227,40 +227,6 @@ export const apiService = {
       return processedGateways;
     } catch (error: any) {
       console.error('❌ Error fetching gateways:', error);
-      
-      // Only use mock data in development or if explicitly enabled
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        console.log('🔄 Using mock data for development');
-        return [
-          {
-            id: '1',
-            name: 'Razorpay Gateway',
-            provider: 'razorpay',
-            status: 'active',
-            priority: 1,
-            successRate: 99.5,
-            dailyLimit: 1000000,
-            currentUsage: 150000,
-            responseTime: 120,
-            fees: 2.5,
-            region: 'IN',
-          },
-          {
-            id: '2',
-            name: 'PayU Gateway',
-            provider: 'payu',
-            status: 'active',
-            priority: 2,
-            successRate: 98.8,
-            dailyLimit: 800000,
-            currentUsage: 85000,
-            responseTime: 180,
-            fees: 3.0,
-            region: 'IN',
-          }
-        ];
-      }
-      
       throw error; // Re-throw error for proper handling by React Query
     }
   },
@@ -358,24 +324,6 @@ export const apiService = {
       const response = await apiClient.get('/transactions', { params });
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return [
-          {
-            id: '1',
-            amount: 10000,
-            status: 'success',
-            gateway: 'razorpay',
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: '2',
-            amount: 5000,
-            status: 'pending',
-            gateway: 'payu',
-            created_at: new Date().toISOString(),
-          }
-        ];
-      }
       throw error;
     }
   },
@@ -386,14 +334,6 @@ export const apiService = {
       const response = await apiClient.get('/system/status');
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return {
-          payment_processing: { status: 'operational', uptime: '99.9%' },
-          api_services: { status: 'operational', uptime: '99.8%' },
-          database: { status: 'operational', uptime: '99.5%' },
-          external_gateways: { status: 'operational', uptime: '99.7%' },
-        };
-      }
       throw error;
     }
   },
@@ -404,13 +344,6 @@ export const apiService = {
       const response = await apiClient.get('/admin/queues');
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return [
-          { queue_name: 'transaction-processing', waiting: 5, active: 2, completed: 1250, failed: 3 },
-          { queue_name: 'webhook-processing', waiting: 2, active: 1, completed: 800, failed: 1 },
-          { queue_name: 'whatsapp-notifications', waiting: 0, active: 0, completed: 150, failed: 0 }
-        ];
-      }
       throw error;
     }
   },
@@ -421,9 +354,6 @@ export const apiService = {
       const response = await apiClient.get('/alerts');
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return [];
-      }
       throw error;
     }
   },
@@ -434,15 +364,6 @@ export const apiService = {
       const response = await apiClient.get('/analytics', { params });
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return {
-          today_volume: 89247000,
-          volume_change: '+8.4%',
-          success_rate_change: '-0.2%',
-          failed_change: '+15%',
-          transaction_change: '+12%',
-        };
-      }
       throw error;
     }
   },
@@ -481,15 +402,6 @@ export const apiService = {
       }
     } catch (error) {
       console.error('Error fetching queue stats:', error);
-      
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return [
-          { name: 'transaction-processing', waiting: 5, active: 2, completed: 1250, failed: 3 },
-          { name: 'webhook-processing', waiting: 2, active: 1, completed: 800, failed: 1 },
-          { name: 'whatsapp-notifications', waiting: 0, active: 0, completed: 150, failed: 0 }
-        ];
-      }
-      
       // Return empty array on error to prevent crashes
       return [];
     }
@@ -553,9 +465,6 @@ export const apiService = {
       const response = await apiClient.get('/wallets');
       return response.data;
     } catch (error) {
-      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
-        return [];
-      }
       throw error;
     }
   },

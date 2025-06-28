@@ -1,35 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
-  ArrowLeft, 
-  Copy, 
-  DollarSign, 
-  CreditCard, 
-  Wallet, 
-  MessageSquare, 
-  TrendingUp, 
-  AlertTriangle,
-  Settings,
-  Plus,
-  Eye,
-  RefreshCw,
-  Bell,
-  Activity,
-  BarChart3,
-  Key,
-  Shield
+  Card, CardContent, CardHeader, CardTitle,
+  Button, Badge, Input, Label, 
+  Tabs, TabsContent, TabsList, TabsTrigger,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Progress, Switch, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
+} from '../ui';
+import { 
+  ArrowLeft, Eye, Settings, Key, Shield, MessageSquare, Copy, RefreshCw,
+  DollarSign, TrendingUp, CreditCard, Wallet, Plus, Activity, BarChart3
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 import { CommissionManager } from './CommissionManager';
 
 interface ClientDetailPageProps {
@@ -59,13 +41,12 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
           const data = await response.json();
           setClientData(data.client);
         } else {
-          // Fallback to mock data if API fails
-          setClientData(mockClientData);
+          console.error('Failed to fetch client data:', response.statusText);
+          toast.error('Failed to load client data');
         }
       } catch (error) {
         console.error('Failed to fetch client data:', error);
-        // Fallback to mock data
-        setClientData(mockClientData);
+        toast.error('Failed to load client data');
       } finally {
         setApiLoading(false);
       }
@@ -73,68 +54,6 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
 
     fetchClientData();
   }, [clientId]);
-
-  // Mock data - Fallback when API is not available
-  const mockClientData = {
-    id: clientId,
-    name: 'Sam Johnson',
-    company: 'TechStart Solutions',
-    email: 'sam@techstart.io',
-    phone: '+1-555-0456',
-    status: 'active',
-    client_key: 'sk_live_abc123def456ghi789',
-    client_salt: 'salt_xyz_secure_789',
-    webhook_url: `https://api.lightspeedpay.com/webhook/${clientId}`,
-    created_at: '2024-01-15',
-    last_activity: '2024-06-10 14:30',
-    
-    // Revenue & Commission Data
-    revenue: {
-      total_volume: 2450000, // ₹24.5L
-      total_transactions: 8947,
-      commission_earned: 85750, // ₹85,750
-      commission_rate: 3.5, // 3.5%
-      monthly_volume: 450000,
-      monthly_transactions: 1247
-    },
-    
-    // Wallet Data
-    wallet: {
-      balance_due: 12500, // ₹12,500 commission owed
-      warn_threshold: 10000,
-      last_payout: '2024-05-25',
-      last_payout_amount: 45000,
-      auto_payout_enabled: true
-    },
-
-    // Commission Data
-    commission: {
-      fee_percent: 4.0, // 4% commission rate
-      balance_due: 1250000, // ₹12,500 actual (stored in paisa)
-      warn_threshold: 1000000, // ₹10,000 threshold (stored in paisa)
-      commission_earned: 8575000, // ₹85,750 total earned
-      last_payout: '2024-05-25',
-      last_payout_amount: 4500000, // ₹45,000 last payout
-      total_volume: 2450000 // Total transaction volume
-    },
-    
-    // Gateway Allocation
-    gateways: [
-      { id: 'gw1', name: 'Razorpay_Primary', provider: 'razorpay', priority: 1, status: 'active', success_rate: 98.5, monthly_volume: 150000, limit: 500000 },
-      { id: 'gw2', name: 'PayU_Secondary', provider: 'payu', priority: 2, status: 'active', success_rate: 97.2, monthly_volume: 120000, limit: 400000 },
-      { id: 'gw3', name: 'Cashfree_Backup', provider: 'cashfree', priority: 3, status: 'active', success_rate: 96.8, monthly_volume: 80000, limit: 300000 },
-      { id: 'gw4', name: 'PhonePe_Express', provider: 'phonepe', priority: 4, status: 'inactive', success_rate: 95.1, monthly_volume: 0, limit: 200000 },
-      { id: 'gw5', name: 'Paytm_Special', provider: 'paytm', priority: 5, status: 'active', success_rate: 94.7, monthly_volume: 70000, limit: 250000 }
-    ],
-    
-    // Recent Transactions
-    recent_transactions: [
-      { id: 'txn1', amount: 15000, status: 'success', gateway: 'Razorpay_Primary', created_at: '2024-06-10 14:25' },
-      { id: 'txn2', amount: 8500, status: 'success', gateway: 'PayU_Secondary', created_at: '2024-06-10 13:45' },
-      { id: 'txn3', amount: 22000, status: 'failed', gateway: 'Cashfree_Backup', created_at: '2024-06-10 12:30' },
-      { id: 'txn4', amount: 5500, status: 'success', gateway: 'Razorpay_Primary', created_at: '2024-06-10 11:15' }
-    ]
-  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -173,12 +92,34 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
     }
   };
 
-  const regenerateCredentials = () => {
+  const regenerateCredentials = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch(`/api/v1/admin/clients/${clientId}/credentials/regenerate`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': 'admin_test_key',
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setClientData(prev => ({
+          ...prev,
+          client_key: data.client_key,
+          client_salt: data.client_salt
+        }));
+        toast.success('New credentials generated successfully!');
+      } else {
+        toast.error('Failed to regenerate credentials');
+      }
+    } catch (error) {
+      console.error('Error regenerating credentials:', error);
+      toast.error('Failed to regenerate credentials');
+    } finally {
       setIsLoading(false);
-      toast.success('New credentials generated successfully!');
-    }, 1500);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -205,6 +146,24 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
     );
   }
 
+  // Show error state if no client data
+  if (!clientData) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Client Not Found</h2>
+            <p className="text-gray-600 mb-4">The requested client could not be found.</p>
+            <Button onClick={() => onBack ? onBack() : navigate(-1)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Clients
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
@@ -215,8 +174,8 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
             Back to Clients
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{clientData.name}</h1>
-            <p className="text-gray-600">{clientData.company}</p>
+            <h1 className="text-3xl font-bold text-gray-900">{clientData.name || clientData.company_name}</h1>
+            <p className="text-gray-600">{clientData.company || clientData.company_name}</p>
           </div>
           <Badge className={getStatusColor(clientData.status)}>
             {clientData.status}
@@ -230,7 +189,9 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-bold text-blue-600">₹{(clientData.revenue.total_volume / 100000).toFixed(1)}L</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    ₹{((clientData.revenue?.total_volume || 0) / 100000).toFixed(1)}L
+                  </p>
                 </div>
                 <DollarSign className="w-8 h-8 text-blue-600" />
               </div>
@@ -242,7 +203,9 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Commission Earned</p>
-                  <p className="text-2xl font-bold text-green-600">₹{clientData.revenue.commission_earned.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    ₹{(clientData.revenue?.commission_earned || 0).toLocaleString()}
+                  </p>
                 </div>
                 <TrendingUp className="w-8 h-8 text-green-600" />
               </div>
@@ -254,7 +217,9 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Active Gateways</p>
-                  <p className="text-2xl font-bold text-purple-600">{clientData.gateways.filter(g => g.status === 'active').length}</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {(clientData.gateways || []).filter(g => g.status === 'active').length}
+                  </p>
                 </div>
                 <CreditCard className="w-8 h-8 text-purple-600" />
               </div>
@@ -266,7 +231,9 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Balance Due</p>
-                  <p className="text-2xl font-bold text-orange-600">₹{clientData.wallet.balance_due.toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-orange-600">
+                    ₹{((clientData.commission?.balance_due || 0) / 100).toLocaleString()}
+                  </p>
                 </div>
                 <Wallet className="w-8 h-8 text-orange-600" />
               </div>
@@ -279,7 +246,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="gateways">Gateways ({clientData.gateways.length})</TabsTrigger>
+          <TabsTrigger value="gateways">Gateways ({(clientData.gateways || []).length})</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
@@ -301,39 +268,39 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-gray-600">Name</Label>
-                    <p className="font-medium">{clientData.name}</p>
+                    <p className="font-medium">{clientData.name || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-gray-600">Company</Label>
-                    <p className="font-medium">{clientData.company}</p>
+                    <p className="font-medium">{clientData.company_name || clientData.company || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-gray-600">Email</Label>
-                    <p className="font-medium">{clientData.email}</p>
+                    <p className="font-medium">{clientData.email || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-gray-600">Phone</Label>
-                    <p className="font-medium">{clientData.phone}</p>
+                    <p className="font-medium">{clientData.phone || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-gray-600">Created</Label>
-                    <p className="font-medium">{clientData.created_at}</p>
+                    <p className="font-medium">{clientData.created_at || 'N/A'}</p>
                   </div>
                   <div>
                     <Label className="text-sm text-gray-600">Last Activity</Label>
-                    <p className="font-medium">{clientData.last_activity}</p>
+                    <p className="font-medium">{clientData.last_activity || 'N/A'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* API Credentials - Enhanced Key-Salt Wrapper Display */}
+            {/* API Credentials */}
             <Card className="border-2 border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Settings className="w-5 h-5 text-blue-600" />
-                    <span>LightSpeedPay Key-Salt Wrapper</span>
+                    <span>API Credentials</span>
                     <Badge className="bg-blue-600 text-white">Single Integration</Badge>
                   </div>
                   <Button size="sm" onClick={regenerateCredentials} disabled={isLoading} className="bg-blue-600 hover:bg-blue-700">
@@ -341,127 +308,49 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
                     Regenerate All
                   </Button>
                 </CardTitle>
-                <p className="text-sm text-blue-700">
-                  These credentials provide access to <strong>20+ payment gateways</strong> through a single integration
-                </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="p-4 bg-white rounded-lg border">
-                    <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
-                      <Key className="w-4 h-4 text-blue-600" />
-                      <span>Client Key</span>
-                      <Badge variant="outline" className="text-xs">Required for Authentication</Badge>
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Input value={clientData.client_key} readOnly className="font-mono text-sm bg-gray-50" />
-                      <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.client_key, 'Client Key')}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Include this in X-Client-Key header</p>
-                  </div>
-
-                  <div className="p-4 bg-white rounded-lg border">
-                    <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
-                      <Shield className="w-4 h-4 text-green-600" />
-                      <span>Client Salt</span>
-                      <Badge variant="outline" className="text-xs">Required for HMAC</Badge>
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Input value={clientData.client_salt} readOnly className="font-mono text-sm bg-gray-50" />
-                      <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.client_salt, 'Client Salt')}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Use for signing requests with HMAC-SHA256</p>
-                  </div>
-
-                  <div className="p-4 bg-white rounded-lg border">
-                    <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
-                      <MessageSquare className="w-4 h-4 text-purple-600" />
-                      <span>Webhook Endpoint</span>
-                      <Badge variant="outline" className="text-xs">Auto-Generated</Badge>
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Input value={clientData.webhook_url} readOnly className="font-mono text-sm bg-gray-50" />
-                      <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.webhook_url, 'Webhook URL')}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Receives payment status updates from all gateways</p>
+                <div className="p-4 bg-white rounded-lg border">
+                  <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
+                    <Key className="w-4 h-4 text-blue-600" />
+                    <span>Client Key</span>
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Input value={clientData.client_key || ''} readOnly className="font-mono text-sm bg-gray-50" />
+                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.client_key || '', 'Client Key')}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
-                {/* Gateway Routing Info */}
-                <div className="mt-4 p-4 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm text-blue-800">Gateway Routing System</h4>
-                    <Badge className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">Active</Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-blue-700"><strong>Available Gateways:</strong> 20+</p>
-                      <p className="text-blue-600">Razorpay, PayU, Cashfree, PhonePe, Paytm</p>
-                    </div>
-                    <div>
-                      <p className="text-purple-700"><strong>Active Gateways:</strong> {clientData.gateways.filter(g => g.status === 'active').length}</p>
-                      <p className="text-purple-600">Automatic failover & load balancing</p>
-                    </div>
+                <div className="p-4 bg-white rounded-lg border">
+                  <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span>Client Salt</span>
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Input value={clientData.client_salt || ''} readOnly className="font-mono text-sm bg-gray-50" />
+                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.client_salt || '', 'Client Salt')}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
-                {/* Quick Integration Guide */}
-                <div className="mt-4 p-4 bg-gray-900 rounded-lg">
-                  <h4 className="font-medium text-sm mb-2 text-white">Quick Integration</h4>
-                  <pre className="text-xs text-green-400 overflow-x-auto">
-{`// Payment Initiation
-curl -X POST https://api.lightspeedpay.com/payment/initiate \\
-  -H "X-Client-Key: ${clientData.client_key}" \\
-  -H "X-Client-Salt: ${clientData.client_salt}" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "amount": 10000,
-    "order_id": "ORDER_123",
-    "customer_phone": "+91xxxxxxxxxx"
-  }'
-
-// Response: Checkout URL + Transaction ID
-// Webhook: ${clientData.webhook_url}`}
-                  </pre>
+                <div className="p-4 bg-white rounded-lg border">
+                  <Label className="text-sm font-medium flex items-center space-x-2 mb-2">
+                    <MessageSquare className="w-4 h-4 text-purple-600" />
+                    <span>Webhook URL</span>
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Input value={clientData.webhook_url || ''} readOnly className="font-mono text-sm bg-gray-50" />
+                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(clientData.webhook_url || '', 'Webhook URL')}>
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
-
-          {/* Revenue Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="w-5 h-5" />
-                <span>Revenue Analytics</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">Total Volume</p>
-                  <p className="text-3xl font-bold">₹{(clientData.revenue.total_volume / 100000).toFixed(1)}L</p>
-                  <p className="text-sm text-green-600">+{clientData.revenue.total_transactions} transactions</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">Commission Rate</p>
-                  <p className="text-3xl font-bold">{clientData.revenue.commission_rate}%</p>
-                  <p className="text-sm text-gray-600">Earned: ₹{clientData.revenue.commission_earned.toLocaleString()}</p>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-600">This Month</p>
-                  <p className="text-3xl font-bold">₹{(clientData.revenue.monthly_volume / 100000).toFixed(1)}L</p>
-                  <p className="text-sm text-blue-600">{clientData.revenue.monthly_transactions} transactions</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Gateways Tab */}
@@ -471,7 +360,7 @@ curl -X POST https://api.lightspeedpay.com/payment/initiate \\
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <CreditCard className="w-5 h-5" />
-                  <span>Payment Gateways ({clientData.gateways.length})</span>
+                  <span>Payment Gateways ({(clientData.gateways || []).length})</span>
                 </div>
                 <Button size="sm">
                   <Plus className="w-4 h-4 mr-2" />
@@ -480,53 +369,57 @@ curl -X POST https://api.lightspeedpay.com/payment/initiate \\
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Priority</TableHead>
-                    <TableHead>Gateway</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Success Rate</TableHead>
-                    <TableHead>Monthly Usage</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientData.gateways.map((gateway) => (
-                    <TableRow key={gateway.id}>
-                      <TableCell>
-                        <Badge variant="outline">#{gateway.priority}</Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{gateway.name}</TableCell>
-                      <TableCell>{gateway.provider}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(gateway.status)}>
-                          {gateway.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{gateway.success_rate}%</TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <p>₹{gateway.monthly_volume.toLocaleString()}</p>
-                          <Progress value={(gateway.monthly_volume / gateway.limit) * 100} className="h-2" />
-                          <p className="text-xs text-gray-600">
-                            {((gateway.monthly_volume / gateway.limit) * 100).toFixed(1)}% of limit
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1">
-                          <Button size="sm" variant="outline">
-                            <Settings className="w-3 h-3" />
-                          </Button>
-                          <Switch checked={gateway.status === 'active'} />
-                        </div>
-                      </TableCell>
+              {(clientData.gateways || []).length === 0 ? (
+                <div className="text-center py-8">
+                  <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No gateways configured for this client</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Gateway</TableHead>
+                      <TableHead>Provider</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Success Rate</TableHead>
+                      <TableHead>Monthly Usage</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(clientData.gateways || []).map((gateway) => (
+                      <TableRow key={gateway.id}>
+                        <TableCell>
+                          <Badge variant="outline">#{gateway.priority}</Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">{gateway.name}</TableCell>
+                        <TableCell>{gateway.provider}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(gateway.status)}>
+                            {gateway.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{gateway.success_rate}%</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <p>₹{gateway.monthly_volume?.toLocaleString() || '0'}</p>
+                            <Progress value={(gateway.monthly_volume || 0) / (gateway.limit || 1) * 100} className="h-2" />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Button size="sm" variant="outline">
+                              <Settings className="w-3 h-3" />
+                            </Button>
+                            <Switch checked={gateway.status === 'active'} />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -541,43 +434,46 @@ curl -X POST https://api.lightspeedpay.com/payment/initiate \\
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Gateway</TableHead>
-                    <TableHead>Created</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientData.recent_transactions.map((txn) => (
-                    <TableRow key={txn.id}>
-                      <TableCell className="font-mono text-sm">{txn.id}</TableCell>
-                      <TableCell>₹{txn.amount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(txn.status)}>
-                          {txn.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{txn.gateway}</TableCell>
-                      <TableCell>{txn.created_at}</TableCell>
+              {(clientData.recent_transactions || []).length === 0 ? (
+                <div className="text-center py-8">
+                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No recent transactions found</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Transaction ID</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Gateway</TableHead>
+                      <TableHead>Created</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(clientData.recent_transactions || []).map((txn) => (
+                      <TableRow key={txn.id}>
+                        <TableCell className="font-mono">{txn.id}</TableCell>
+                        <TableCell>₹{txn.amount?.toLocaleString() || '0'}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(txn.status)}>
+                            {txn.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{txn.gateway}</TableCell>
+                        <TableCell>{txn.created_at}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Wallet Tab */}
         <TabsContent value="wallet" className="space-y-6">
-          <CommissionManager
-            clientId={clientId}
-            commissionData={clientData.commission}
-            onSendWhatsApp={sendWhatsAppNotification}
-          />
+          <CommissionManager clientId={clientId} />
         </TabsContent>
 
         {/* Notifications Tab */}
@@ -585,49 +481,26 @@ curl -X POST https://api.lightspeedpay.com/payment/initiate \\
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Bell className="w-5 h-5" />
-                <span>Notification Settings</span>
+                <MessageSquare className="w-5 h-5" />
+                <span>WhatsApp Notifications</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">WhatsApp Notifications</p>
-                    <p className="text-sm text-gray-600">Send balance alerts and updates via WhatsApp</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-gray-600">Send transaction summaries via email</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Low Balance Alerts</p>
-                    <p className="text-sm text-gray-600">Alert when commission balance exceeds threshold</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <p className="font-medium mb-4">Test Notifications</p>
-                <div className="space-y-2">
-                  <Button variant="outline" onClick={() => sendWhatsAppNotification('CUSTOM', 'This is a test notification.')} disabled={isLoading}>
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Send Test WhatsApp
-                  </Button>
-                  <Button variant="outline" className="ml-2">
-                    <Bell className="w-4 h-4 mr-2" />
-                    Send Test Email
-                  </Button>
-                </div>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => sendWhatsAppNotification('LOW_BALANCE')} 
+                  disabled={isLoading}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Send Low Balance Alert
+                </Button>
+                <Button 
+                  onClick={() => sendWhatsAppNotification('PAYMENT_REMINDER')} 
+                  disabled={isLoading}
+                  variant="outline"
+                >
+                  Send Payment Reminder
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -642,35 +515,33 @@ curl -X POST https://api.lightspeedpay.com/payment/initiate \\
                 <span>Client Settings</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="commission-rate">Commission Rate (%)</Label>
-                    <Input id="commission-rate" defaultValue={clientData.revenue.commission_rate} />
+                    <Label className="text-sm font-medium">Commission Rate</Label>
+                    <p className="text-sm text-gray-600">Current rate: {clientData.commission?.fee_percent || 0}%</p>
                   </div>
-                  <div>
-                    <Label htmlFor="warning-threshold">Warning Threshold (₹)</Label>
-                    <Input id="warning-threshold" defaultValue={clientData.wallet.warn_threshold} />
-                  </div>
+                  <Button variant="outline" size="sm">Edit</Button>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="webhook-url">Webhook URL</Label>
-                    <Input id="webhook-url" defaultValue={clientData.webhook_url} />
+                    <Label className="text-sm font-medium">Auto Payout</Label>
+                    <p className="text-sm text-gray-600">Automatic commission payouts</p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch defaultChecked={clientData.status === 'active'} />
-                    <Label>Client Active</Label>
-                  </div>
+                  <Switch checked={clientData.commission?.auto_payout_enabled || false} />
                 </div>
-              </div>
-              
-              <div className="flex space-x-4 pt-4 border-t">
-                <Button>Save Changes</Button>
-                <Button variant="outline">Reset</Button>
-                <Button variant="destructive" className="ml-auto">Suspend Client</Button>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <p className="text-sm text-gray-600">Client account status</p>
+                  </div>
+                  <Badge className={getStatusColor(clientData.status)}>
+                    {clientData.status}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>

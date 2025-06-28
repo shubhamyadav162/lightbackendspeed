@@ -8,7 +8,7 @@ test.skip(!shouldRun, 'E2E tests are skipped by default – set PLAYWRIGHT_E2E=1
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3100';
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 const TEST_ADMIN_EMAIL = 'e2e_admin@example.com';

@@ -105,3 +105,24 @@ API documentation available at:
 
 **Frontend Repository**: Separate React dashboard available
 **Production Ready**: ✅ 100% Backend Complete
+
+This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+_Triggering redeploy to load environment variables._
+## Getting Started
+
+First, run the development server:
+
+```bash
+# Install dependencies
+npm install
+
+# Start API server
+npm run dev
+
+# Start workers
+npm run workers
+
+# Run tests
+npm test
+```

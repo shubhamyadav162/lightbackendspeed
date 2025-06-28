@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client (service role) with build-time safety
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 // Create client only if environment variables are available
 let supabase: any = null;

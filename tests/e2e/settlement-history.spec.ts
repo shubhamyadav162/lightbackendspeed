@@ -10,7 +10,7 @@ test.skip(!shouldRun, 'E2E tests are skipped by default – set PLAYWRIGHT_E2E=1
 // Environment variables
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3100';
 const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl || !supabaseServiceKey) {
   // eslint-disable-next-line no-console

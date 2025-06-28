@@ -9,9 +9,14 @@ const supabase = supabaseService;
  */
 export async function GET(request: NextRequest) {
   try {
-    const authCtx = await getAuthContext(request);
-    if (!authCtx || authCtx.role !== 'admin') {
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 });
     }
 
     const { data: metrics, error } = await supabase

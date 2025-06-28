@@ -22,6 +22,9 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
     provider: '',
     api_key: '',
     api_secret: '',
+    client_id: '',
+    api_id: '',
+    api_endpoint_url: '',
     priority: 1,
     monthly_limit: 1000000,
     is_active: true
@@ -33,7 +36,24 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
     e.preventDefault();
     
     try {
-      await createGateway.mutateAsync(formData);
+      const payload = {
+        name: formData.name,
+        provider: formData.provider,
+        priority: formData.priority,
+        monthly_limit: formData.monthly_limit,
+        is_active: formData.is_active,
+        ...(formData.provider === 'custom' ? {
+          client_id: formData.client_id,
+          api_id: formData.api_id,
+          api_secret: formData.api_secret,
+          api_endpoint_url: formData.api_endpoint_url,
+        } : {
+          api_key: formData.api_key,
+          api_secret: formData.api_secret,
+        })
+      };
+
+      await createGateway.mutateAsync(payload);
       toast.success('Gateway सफलतापूर्वक जोड़ा गया');
       onClose();
       setFormData({
@@ -41,6 +61,9 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
         provider: '',
         api_key: '',
         api_secret: '',
+        client_id: '',
+        api_id: '',
+        api_endpoint_url: '',
         priority: 1,
         monthly_limit: 1000000,
         is_active: true
@@ -58,6 +81,8 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
     }));
   };
 
+  const isCustomProvider = formData.provider === 'custom';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -70,7 +95,7 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
             <Label htmlFor="name">Gateway Name</Label>
             <Input
               id="name"
-              placeholder="उदाहरण: Razorpay - Primary"
+              placeholder="उदाहरण: NextGen Techno Ventures"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               required
@@ -92,33 +117,94 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
                 <SelectItem value="payu">PayU</SelectItem>
                 <SelectItem value="phonepe">PhonePe</SelectItem>
                 <SelectItem value="paytm">Paytm</SelectItem>
+                <SelectItem value="custom">Custom Provider</SelectItem>
               </SelectContent>
             </Select>
+            {isCustomProvider && (
+              <p className="text-xs text-blue-600">
+                ✨ Custom provider selected - आप अपने specific credentials format का use कर सकते हैं
+              </p>
+            )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="api_key">API Key</Label>
-            <Input
-              id="api_key"
-              type="password"
-              placeholder="आपकी API key दर्ज करें"
-              value={formData.api_key}
-              onChange={(e) => handleInputChange('api_key', e.target.value)}
-              required
-            />
-          </div>
+          {isCustomProvider ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="client_id">Client ID</Label>
+                <Input
+                  id="client_id"
+                  placeholder="उदाहरण: 682aefe4e352d264171612c0"
+                  value={formData.client_id}
+                  onChange={(e) => handleInputChange('client_id', e.target.value)}
+                  required
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="api_secret">API Secret</Label>
-            <Input
-              id="api_secret"
-              type="password"
-              placeholder="आपकी API secret दर्ज करें"
-              value={formData.api_secret}
-              onChange={(e) => handleInputChange('api_secret', e.target.value)}
-              required
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="api_id">API ID</Label>
+                <Input
+                  id="api_id"
+                  placeholder="उदाहरण: FRQT0XKLHY"
+                  value={formData.api_id}
+                  onChange={(e) => handleInputChange('api_id', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api_secret">API Secret</Label>
+                <Input
+                  id="api_secret"
+                  type="password"
+                  placeholder="उदाहरण: S84LOJ3U0N"
+                  value={formData.api_secret}
+                  onChange={(e) => handleInputChange('api_secret', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api_endpoint_url">API Endpoint URL</Label>
+                <Input
+                  id="api_endpoint_url"
+                  type="url"
+                  placeholder="उदाहरण: https://api.nextgen-techno.com/v1/payments"
+                  value={formData.api_endpoint_url}
+                  onChange={(e) => handleInputChange('api_endpoint_url', e.target.value)}
+                  required
+                />
+                <p className="text-xs text-blue-600">
+                  🌐 Payment initiation के लिए actual API endpoint URL दर्ज करें
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="api_key">API Key</Label>
+                <Input
+                  id="api_key"
+                  type="password"
+                  placeholder="उदाहरण: rzp_test_... या rzp_live_..."
+                  value={formData.api_key}
+                  onChange={(e) => handleInputChange('api_key', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="api_secret">API Secret</Label>
+                <Input
+                  id="api_secret"
+                  type="password"
+                  placeholder="आपकी API secret दर्ज करें"
+                  value={formData.api_secret}
+                  onChange={(e) => handleInputChange('api_secret', e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="priority">Priority: {formData.priority}</Label>

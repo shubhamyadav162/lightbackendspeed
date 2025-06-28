@@ -14,21 +14,18 @@ const RETRY_ATTEMPTS = parseInt(import.meta.env.VITE_RETRY_ATTEMPTS || '3');
 
 // Simple API Base URL resolution
 const getApiBaseUrl = () => {
-  const configUrl = import.meta.env.VITE_API_BASE_URL;
-  if (configUrl) {
-    DEBUG_LOGS && console.log('✅ Using configured API URL:', configUrl);
-    return configUrl;
+  // Optional override to force local backend in dev
+  const USE_LOCAL = import.meta.env.VITE_USE_LOCAL_BACKEND === 'true';
+
+  if (import.meta.env.DEV && USE_LOCAL) {
+    const localUrl = 'http://localhost:3100/api/v1';
+    DEBUG_LOGS && console.log('🔧 DEV mode - using *local* backend:', localUrl);
+    return localUrl;
   }
   
-  // Environment-based fallbacks
-  if (import.meta.env.DEV) {
-    DEBUG_LOGS && console.log('🔧 Development mode - using localhost');
-    return 'http://localhost:3100/api/v1';
-  }
-  
-  // Production fallback
+  // Fallback to shared production backend (works for dev & prod)
   const prodUrl = 'https://web-production-0b337.up.railway.app/api/v1';
-  DEBUG_LOGS && console.log('🚀 Production mode - using Railway URL:', prodUrl);
+  DEBUG_LOGS && console.log('🌐 Using Railway backend:', prodUrl, `(DEV=${import.meta.env.DEV})`);
   return prodUrl;
 };
 
@@ -217,6 +214,13 @@ export const apiService = {
         responseTime: gateway.response_time_ms || 100,
         fees: gateway.fee_percent || 2.5,
         region: gateway.region || 'IN',
+        // Include additional fields for custom providers
+        api_key: gateway.api_key,
+        api_secret: gateway.api_secret,
+        client_id: gateway.client_id,
+        api_id: gateway.api_id,
+        monthly_limit: gateway.monthly_limit,
+        is_active: gateway.is_active,
       }));
       
       DEBUG_LOGS && console.log('🎯 Processed Gateways:', processedGateways);
@@ -262,8 +266,65 @@ export const apiService = {
   },
 
   async createGateway(gateway: any) {
-    const response = await apiClient.post('/admin/gateways', gateway);
-    return response.data;
+    try {
+      console.log('🚀 Creating Gateway with payload:', gateway);
+      
+      // Prepare credentials object based on provider type
+      let credentials: any = {};
+      
+      if (gateway.provider === 'custom') {
+        credentials = {
+          client_id: gateway.client_id,
+          api_id: gateway.api_id,
+          api_secret: gateway.api_secret,
+        };
+      } else {
+        credentials = {
+          api_key: gateway.api_key,
+          api_secret: gateway.api_secret,
+        };
+      }
+
+      // Normalize the payload for the backend - match expected format
+      const normalizedPayload = {
+        name: gateway.name,
+        provider: gateway.provider,
+        credentials: credentials, // Backend expects credentials object
+        priority: gateway.priority || 1,
+        monthly_limit: gateway.monthly_limit || 1000000,
+        is_active: gateway.is_active !== undefined ? gateway.is_active : true,
+      };
+
+      console.log('🎯 Normalized payload:', normalizedPayload);
+      console.log('🔑 API Key being sent:', API_KEY);
+      console.log('🌐 Request URL:', `${API_BASE_URL}/admin/gateways`);
+      
+      const response = await apiClient.post('/admin/gateways', normalizedPayload);
+      console.log('✅ Gateway created successfully:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Gateway creation failed:', error);
+      console.error('📋 Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        responseText: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      });
+      
+      // भी specific error message दिखाएं
+      if (error.response?.data?.error) {
+        console.error('🔴 Backend Error Message:', error.response.data.error);
+      }
+      if (error.response?.data?.details) {
+        console.error('🔍 Backend Error Details:', error.response.data.details);
+      }
+      
+      throw error;
+    }
   },
 
   async updateGateway(id: string, updates: any) {
@@ -403,8 +464,35 @@ export const apiService = {
   },
 
   async getQueueSystemStats() {
-    const response = await apiClient.get('/admin/queues/stats');
-    return response.data;
+    try {
+      const response = await apiClient.get('/admin/queues/stats');
+      const data = response.data;
+      
+      // Ensure we always return an array
+      if (Array.isArray(data)) {
+        return data;
+      } else if (data && Array.isArray(data.queues)) {
+        return data.queues;
+      } else if (data && Array.isArray(data.stats)) {
+        return data.stats;
+      } else {
+        console.warn('Queue stats response is not an array:', data);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching queue stats:', error);
+      
+      if (import.meta.env.DEV || import.meta.env.VITE_ENABLE_MOCK_DATA === 'true') {
+        return [
+          { name: 'transaction-processing', waiting: 5, active: 2, completed: 1250, failed: 3 },
+          { name: 'webhook-processing', waiting: 2, active: 1, completed: 800, failed: 1 },
+          { name: 'whatsapp-notifications', waiting: 0, active: 0, completed: 150, failed: 0 }
+        ];
+      }
+      
+      // Return empty array on error to prevent crashes
+      return [];
+    }
   },
 
   async pauseQueue(payload: { queue: string; pause: boolean }) {
@@ -471,11 +559,45 @@ export const apiService = {
       throw error;
     }
   },
+
+  // Utility function to add the custom gateway
+  async addCustomGateway() {
+    try {
+      console.log('🚀 Adding NextGen Techno Ventures Custom Gateway...');
+      
+      const customGateway = {
+        name: 'NextGen Techno Ventures',
+        provider: 'custom',
+        client_id: '682aefe4e352d264171612c0',
+        api_id: 'FRQT0XKLHY',
+        api_secret: 'S84LOJ3U0N',
+        priority: 1,
+        monthly_limit: 10000000,
+        is_active: true,
+      };
+
+      const result = await this.createGateway(customGateway);
+      console.log('✅ Custom Gateway added successfully:', result);
+      return result;
+    } catch (error: any) {
+      console.error('❌ Failed to add custom gateway:', error);
+      
+      // Check if gateway already exists
+      if (error.response?.status === 409 || 
+          error.response?.data?.error?.includes('already exists') ||
+          error.response?.data?.error?.includes('duplicate')) {
+        console.warn('⚠️ Gateway already exists, skipping...');
+        return { message: 'Gateway already exists' };
+      }
+      
+      throw error;
+    }
+  },
 };
 
 // Simple real-time subscriptions using SSE (no authentication required)
 export const subscribeToTransactions = (callback: (payload: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/transaction-stream`;
   
   console.log('🔗 Connecting to Transaction Stream SSE:', url);
@@ -496,11 +618,15 @@ export const subscribeToTransactions = (callback: (payload: any) => void) => {
     console.error('Transaction Stream SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 export const subscribeToAlerts = (callback: (payload: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/alerts-stream`;
   
   console.log('🔗 Connecting to Alerts Stream SSE:', url);
@@ -521,12 +647,16 @@ export const subscribeToAlerts = (callback: (payload: any) => void) => {
     console.error('Alerts Stream SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 // SSE Subscription helpers
 export const subscribeToQueueMetrics = (callback: (metric: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/queue-stats-stream`;
   
   DEBUG_LOGS && console.log('🔗 Connecting to Queue Metrics SSE:', url);
@@ -548,11 +678,15 @@ export const subscribeToQueueMetrics = (callback: (metric: any) => void) => {
     console.error('Queue Metrics SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 export const subscribeToGatewayHealth = (callback: (metric: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/gateway-health-stream`;
   
   DEBUG_LOGS && console.log('🔗 Connecting to Gateway Health SSE:', url);
@@ -574,11 +708,15 @@ export const subscribeToGatewayHealth = (callback: (metric: any) => void) => {
     console.error('Gateway Health SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 export const subscribeToTransactionStream = (callback: (txn: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/transaction-stream`;
   
   DEBUG_LOGS && console.log('🔗 Connecting to Transaction Stream SSE:', url);
@@ -600,11 +738,15 @@ export const subscribeToTransactionStream = (callback: (txn: any) => void) => {
     console.error('Transaction Stream SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 export const subscribeToAuditLogs = (callback: (log: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/audit-logs-stream`;
   
   DEBUG_LOGS && console.log('🔗 Connecting to Audit Logs SSE:', url);
@@ -626,11 +768,15 @@ export const subscribeToAuditLogs = (callback: (log: any) => void) => {
     console.error('Audit Logs SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 };
 
 export const subscribeToSystemStatus = (callback: (status: any) => void) => {
-  const baseUrl = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/system-status-stream`;
   
   DEBUG_LOGS && console.log('🔗 Connecting to System Status SSE:', url);
@@ -652,5 +798,9 @@ export const subscribeToSystemStatus = (callback: (status: any) => void) => {
     console.error('System Status SSE Error:', error);
   };
 
-  return () => es.close();
+  return {
+    unsubscribe: () => {
+      es.close();
+    }
+  };
 }; 

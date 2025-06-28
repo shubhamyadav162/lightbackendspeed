@@ -35,6 +35,7 @@ interface Gateway {
   priority: number;
   successRate: number;
   dailyLimit: number;
+  monthly_limit?: number;
   currentUsage: number;
   responseTime: number;
   fees: number;
@@ -137,19 +138,19 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Response Time</p>
-                <p className="font-medium">{gateway.responseTime}ms</p>
+                <p className="font-medium">{gateway.responseTime || 0}ms</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Fees</p>
-                <p className="font-medium">{gateway.fees}%</p>
+                <p className="font-medium">{gateway.fees || 2.5}%</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Daily Limit</p>
-                <p className="font-medium">₹{gateway.dailyLimit.toLocaleString()}</p>
+                <p className="font-medium">₹{(gateway.dailyLimit || gateway.monthly_limit || 0).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Usage</p>
-                <p className="font-medium">₹{gateway.currentUsage.toLocaleString()}</p>
+                <p className="font-medium">₹{(gateway.currentUsage || 0).toLocaleString()}</p>
               </div>
             </div>
 

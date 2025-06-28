@@ -33,11 +33,30 @@ export async function PUT(request: NextRequest) {
       'credentials',
       'success_rate',
       'name',
+      'api_endpoint_url',
     ];
     const updateData: Record<string, any> = {};
     for (const key of allowed) {
       if (body[key] !== undefined) updateData[key] = body[key];
     }
+    
+    // Handle api_endpoint_url specially - store it in credentials JSON
+    if (body.api_endpoint_url !== undefined) {
+      // Get current gateway to merge with existing credentials
+      const { data: currentGateway } = await supabase
+        .from('payment_gateways')
+        .select('credentials')
+        .eq('id', id)
+        .single();
+      
+      const existingCredentials = currentGateway?.credentials || {};
+      updateData.credentials = {
+        ...existingCredentials,
+        api_endpoint_url: body.api_endpoint_url
+      };
+      delete updateData.api_endpoint_url; // Remove from direct column update
+    }
+    
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
     }

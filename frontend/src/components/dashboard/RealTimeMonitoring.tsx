@@ -61,7 +61,7 @@ export const RealTimeMonitoring = () => {
     const statInterval = setInterval(fetchQueueStats, 10000); // Refresh every 10s
 
     // 1. Subscribe to transactions via SSE (Edge Function)
-    const stopTxnSse = subscribeToTransactionStream((txn: any) => {
+    const txnSubscription = subscribeToTransactionStream((txn: any) => {
       if (!isMounted) return;
       const newTransaction: Transaction = {
         id: txn.id || `txn_${Date.now()}`,
@@ -76,7 +76,7 @@ export const RealTimeMonitoring = () => {
     });
 
     // 2. Subscribe to queue metrics SSE
-    const stopQueueSse = subscribeToQueueMetrics((metric) => {
+    const queueSubscription = subscribeToQueueMetrics((metric) => {
       if (!isMounted) return;
       const now = new Date(metric.recorded_at || Date.now());
       const systemMetric: SystemMetric = {
@@ -92,8 +92,23 @@ export const RealTimeMonitoring = () => {
     return () => {
       isMounted = false;
       clearInterval(statInterval);
-      stopTxnSse();
-      stopQueueSse();
+      
+      // Safe cleanup of subscriptions
+      try {
+        if (txnSubscription && typeof txnSubscription.unsubscribe === 'function') {
+          txnSubscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up transaction subscription:', error);
+      }
+      
+      try {
+        if (queueSubscription && typeof queueSubscription.unsubscribe === 'function') {
+          queueSubscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up queue subscription:', error);
+      }
     };
   }, []);
 

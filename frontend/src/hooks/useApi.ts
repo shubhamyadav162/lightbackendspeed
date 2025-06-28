@@ -306,7 +306,13 @@ export const useTransactions = (params?: any) => {
     });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up transaction subscription:', error);
+      }
     };
   }, [queryClient]);
 
@@ -428,7 +434,13 @@ export const useAlerts = () => {
     });
 
     return () => {
-      subscription.unsubscribe();
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up alerts subscription:', error);
+      }
     };
   }, [queryClient]);
 
@@ -528,11 +540,18 @@ export const useAuditLogs = (params?: any) => {
   });
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuditLogs(() => {
+    const subscription = subscribeToAuditLogs(() => {
       queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
     });
+    
     return () => {
-      unsubscribe?.();
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up audit logs subscription:', error);
+      }
     };
   }, [queryClient]);
 

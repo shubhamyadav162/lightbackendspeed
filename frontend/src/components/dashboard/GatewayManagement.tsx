@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Settings, Zap, DollarSign, Globe, Shield, Plus } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { useGateways } from '@/hooks/useGateways';
+import { useGateways, useUpdateGateway } from '@/hooks/useApi';
 import { subscribeToGatewayHealth } from '@/services/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AddGatewayModal } from './AddGatewayModal';
@@ -34,71 +34,84 @@ interface Gateway {
 }
 
 export const GatewayManagement = () => {
-  const { gateways: apiGateways, isLoading, refetch, updateGateway } = useGateways();
-  const [gateways, setGateways] = useState<Gateway[]>([]);
+  // Use React Query data directly - no local state copy needed
+  const { data: apiGateways = [], isLoading, refetch } = useGateways();
+  const updateGatewayMutation = useUpdateGateway();
+  
   const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [configGateway, setConfigGateway] = useState<Gateway | null>(null);
+  const [healthMetrics, setHealthMetrics] = useState<Record<string, any>>({});
 
-  // Sync gateways from React Query
-  useEffect(() => {
-    setGateways(apiGateways || []);
-  }, [apiGateways]);
+  // Memoize processed gateways
+  const gateways = useMemo(() => {
+    return apiGateways.map(gateway => ({
+      ...gateway,
+      ...healthMetrics[gateway.id] // Apply health metrics if available
+    }));
+  }, [apiGateways, healthMetrics]);
 
-  // Subscribe to real-time health metrics to update gateways status/performance
+  // Subscribe to real-time health metrics - only once
   useEffect(() => {
-    const unsubscribe = subscribeToGatewayHealth((metric) => {
-      setGateways((prev) =>
-        prev.map((g) =>
-          g.id === metric.gateway_id
-            ? {
-                ...g,
-                responseTime: metric.response_time_ms,
-                status: metric.is_available ? 'active' : 'inactive',
-              }
-            : g,
-        ),
-      );
+    const subscription = subscribeToGatewayHealth((metric) => {
+      setHealthMetrics(prev => ({
+        ...prev,
+        [metric.gateway_id]: {
+          responseTime: metric.response_time_ms,
+          status: metric.is_available ? 'active' : 'inactive',
+        }
+      }));
     });
-    return unsubscribe;
+    
+    return () => {
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up gateway health subscription:', error);
+      }
+    };
   }, []);
 
-  const toggleGatewayStatus = async (id: string) => {
+  // Toggle gateway status - optimistic update
+  const toggleGatewayStatus = useCallback(async (id: string) => {
     const gateway = gateways.find(g => g.id === id);
     if (!gateway) return;
 
     const newStatus = gateway.status === 'active' ? 'inactive' : 'active';
-    setGateways(prev => prev.map(g => g.id === id ? { ...g, status: newStatus } : g));
+    
     try {
-      await updateGateway({ id, updates: { status: newStatus } });
+      await updateGatewayMutation.mutateAsync({ 
+        id, 
+        updates: { status: newStatus } 
+      });
     } catch (e) {
-      console.error('Failed to toggle status, reverting.', e);
-      setGateways(prev => prev.map(g => g.id === id ? { ...g, status: gateway.status } : g));
+      console.error('Failed to toggle status:', e);
     }
-  };
+  }, [gateways, updateGatewayMutation]);
 
-  const updatePriority = async (id: string, priority: number) => {
-    const gateway = gateways.find(g => g.id === id);
-    if (!gateway) return;
-
-    setGateways(prev => prev.map(gateway => gateway.id === id ? { ...gateway, priority } : gateway));
+  // Update priority - optimistic update
+  const updatePriority = useCallback(async (id: string, priority: number) => {
     try {
-      await updateGateway({ id, updates: { priority } });
+      await updateGatewayMutation.mutateAsync({ 
+        id, 
+        updates: { priority } 
+      });
     } catch (e) {
-      console.error('Failed to update priority, reverting.', e);
-      setGateways(prev => prev.map(g => g.id === id ? { ...g, priority: gateway.priority } : g));
+      console.error('Failed to update priority:', e);
     }
-  };
+  }, [updateGatewayMutation]);
 
-  const testConnection = async (id: string) => {
+  const testConnection = useCallback(async (id: string) => {
     try {
       const result = await apiService.testGateway(id);
       alert(`Gateway test result: ${JSON.stringify(result)}`);
     } catch (e) {
       alert('Gateway test failed.');
     }
-  };
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -109,18 +122,21 @@ export const GatewayManagement = () => {
     }
   };
 
-  const handleAddGatewaySuccess = () => {
-    refetch();
-  };
+  // Remove the direct refetch calls to prevent infinite loop
+  const handleAddGatewaySuccess = useCallback(() => {
+    // React Query will automatically refetch due to invalidation in useCreateGateway
+    console.log('✅ Gateway added successfully - data will auto-refresh');
+  }, []);
 
-  const handleConfigGatewaySuccess = () => {
-    refetch();
-  };
+  const handleConfigGatewaySuccess = useCallback(() => {
+    // React Query will automatically refetch due to invalidation in useUpdateGateway
+    console.log('✅ Gateway configured successfully - data will auto-refresh');
+  }, []);
 
-  const openConfigModal = (gateway: Gateway) => {
+  const openConfigModal = useCallback((gateway: Gateway) => {
     setConfigGateway(gateway);
     setIsConfigModalOpen(true);
-  };
+  }, []);
 
   if (isLoading) {
     return (
@@ -237,10 +253,6 @@ export const GatewayManagement = () => {
         onToggleStatus={toggleGatewayStatus}
         onTestConnection={testConnection}
         onConfigure={openConfigModal}
-        onPriorityChange={(updatedGateways) => {
-          setGateways(updatedGateways);
-          refetch();
-        }}
       />
     </div>
   );

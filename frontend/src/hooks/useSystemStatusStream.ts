@@ -13,16 +13,23 @@ export const useSystemStatusStream = () => {
   const [latestRows, setLatestRows] = useState<SystemStatusRow[]>([]);
 
   useEffect(() => {
-    const unsubscribe = subscribeToSystemStatus((row: SystemStatusRow) => {
+    const subscription = subscribeToSystemStatus((row: SystemStatusRow) => {
       setLatestRows((prev) => {
         // Replace existing component row with newer updated_at
         const filtered = prev.filter((r) => r.component !== row.component);
         return [...filtered, row];
       });
     });
+    
     return () => {
-      // Close SSE connection
-      unsubscribe?.();
+      // Close SSE connection safely
+      try {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      } catch (error) {
+        console.warn('Error cleaning up system status subscription:', error);
+      }
     };
   }, []);
 

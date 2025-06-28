@@ -8,23 +8,46 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: React.ErrorInfo;
+  retryCount: number;
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
+  private maxRetries = 3;
+  
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { 
+      hasError: false, 
+      retryCount: 0 
+    };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, retryCount: 0 };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     console.error('Error caught by GlobalErrorBoundary:', error, errorInfo);
     
+    this.setState({
+      errorInfo
+    });
+
+    // Check if this is a subscription error that we can ignore
+    if (error.message?.includes('subscription.unsubscribe is not a function') ||
+        error.message?.includes('reduce is not a function')) {
+      console.warn('Known subscription error caught, attempting auto-recovery');
+      
+      // Auto-retry for known recoverable errors
+      setTimeout(() => {
+        if (this.state.retryCount < this.maxRetries) {
+          this.resetError();
+        }
+      }, 1000);
+    }
+    
     // You can log the error to an error reporting service here
-    // For example: Sentry, LogRocket, etc.
     if (process.env.NODE_ENV === 'production') {
       // Log to error tracking service
       // logErrorToService(error, errorInfo);
@@ -32,7 +55,12 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   resetError = () => {
-    this.setState({ hasError: false, error: undefined });
+    this.setState({ 
+      hasError: false, 
+      error: undefined, 
+      errorInfo: undefined,
+      retryCount: this.state.retryCount + 1
+    });
   };
 
   render() {
@@ -41,6 +69,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         <ErrorBoundaryFallback 
           error={this.state.error} 
           resetError={this.resetError}
+          retryCount={this.state.retryCount}
+          maxRetries={this.maxRetries}
         />
       );
     }

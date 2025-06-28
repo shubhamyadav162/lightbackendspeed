@@ -468,4 +468,59 @@
 3. Generate bundle analysis report and tune Lighthouse budgets (Phase-4 performance).
 4. Implement Audit Logs viewer component and associated SSE hook.
 
+## 2025-01-20 (Latest Update)
+
+### 🎯 **API Endpoint URL Configuration Feature - COMPLETED!**
+
+#### **🚀 DONE TODAY**
+- **✅ Database Migration**: Added migration `20250730_add_api_endpoint_url.sql` to add `api_endpoint_url TEXT` column to `payment_gateways` table
+- **✅ Backend API Updates**: 
+  - Updated gateway creation API (`POST /admin/gateways`) to handle `api_endpoint_url` parameter
+  - Updated gateway update API (`PUT /admin/gateways/:id`) to store `api_endpoint_url` in credentials JSON
+  - Enhanced GET API to extract `api_endpoint_url` from credentials for frontend consumption
+- **✅ Frontend UI Enhancement**:
+  - Added `api_endpoint_url` field to both `AddGatewayModal.tsx` and `GatewayConfigurationModal.tsx`
+  - Field only shows for custom providers with proper validation (type="url", required)
+  - Added helpful Hindi text: "🌐 Payment initiation के लिए actual API endpoint URL दर्ज करें"
+- **✅ TypeScript Types**: Updated interfaces and generated new Supabase types
+- **✅ Build & Testing**: All TypeScript compilation and build tests pass successfully
+
+#### **💡 Implementation Details**
+```sql
+-- Database column added
+ALTER TABLE payment_gateways ADD COLUMN api_endpoint_url TEXT;
+
+-- Backend stores in credentials JSON for custom providers
+credentials: {
+  ...existingCredentials,
+  api_endpoint_url: "https://api.nextgen-techno.com/v1/payments"
+}
+
+-- Frontend shows field only for custom providers
+{isCustomProvider && (
+  <Input
+    type="url"
+    placeholder="उदाहरण: https://api.nextgen-techno.com/v1/payments"
+    required
+  />
+)}
+```
+
+#### **🎯 Feature Ready for Testing**
+NextGen Techno Ventures के credentials के साथ अब आप:
+1. **Custom Provider** select करें
+2. **Client ID**: `682aefe4e352d264171612c0`
+3. **API ID**: `FRQT0XKLHY`  
+4. **API Secret**: `S84LOJ3U0N`
+5. **API Endpoint URL**: NextGen का actual endpoint URL (जो उनकी documentation में दिया गया है)
+
+#### **✨ User Experience**
+- API endpoint URL field सिर्फ custom providers के लिए show होता है
+- Proper URL validation with browser's built-in `type="url"`
+- Helpful placeholder text with actual example
+- Consistent with existing UI patterns and Hindi localization
+
+### **🔥 Ready for Production Use!**
+इस feature के साथ अब आप किसी भी custom payment gateway को proper API endpoint के साथ configure कर सकते हैं।
+
 --- 

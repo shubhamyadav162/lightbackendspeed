@@ -44,11 +44,10 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         name,
-        type,
+        code,
+        credentials,
         is_active,
         priority,
-        max_amount,
-        min_amount,
         created_at,
         updated_at
       `)
@@ -66,9 +65,25 @@ export async function GET(request: NextRequest) {
 
     console.log('[GATEWAYS] Successfully fetched', gateways?.length || 0, 'gateways');
 
+    // Process gateways to extract provider info from credentials JSON
+    const processedGateways = (gateways || []).map(gateway => ({
+      id: gateway.id,
+      name: gateway.name,
+      code: gateway.code,
+      provider: gateway.credentials?.provider || gateway.code, // Extract provider from credentials
+      is_active: gateway.is_active,
+      priority: gateway.priority,
+      monthly_limit: gateway.credentials?.monthly_limit || 1000000,
+      success_rate: gateway.credentials?.success_rate || 100,
+      api_endpoint_url: gateway.credentials?.api_endpoint_url,
+      credentials: gateway.credentials,
+      created_at: gateway.created_at,
+      updated_at: gateway.updated_at,
+    }));
+
     return NextResponse.json({
-      gateways: gateways || [],
-      total: gateways?.length || 0,
+      gateways: processedGateways,
+      total: processedGateways.length,
       debug: {
         environment: process.env.NODE_ENV,
         timestamp: new Date().toISOString()
@@ -101,20 +116,21 @@ export async function POST(request: NextRequest) {
     // Check API key for admin access
     const apiKey = request.headers.get('x-api-key');
     if (apiKey !== 'admin_test_key') {
-      // Simple API key check for private deployment
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== 'admin_test_key') {
+      console.log('[GATEWAYS POST] Unauthorized access attempt');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    }
 
+    console.log('[GATEWAYS POST] Creating new gateway...');
     const supabase = getSupabaseService();
 
     const body = await request.json();
+    console.log('[GATEWAYS POST] Request body:', body);
+
     const {
       name,
       provider,
       credentials,
+      api_endpoint_url,
       monthly_limit = 1_000_000,
       priority = 100,
       is_active = true,
@@ -122,33 +138,59 @@ export async function POST(request: NextRequest) {
     } = body || {};
 
     if (!name || !provider || !credentials) {
-      return NextResponse.json({ error: 'name, provider, credentials required' }, { status: 400 });
+      console.log('[GATEWAYS POST] Missing required fields:', { name, provider, credentials });
+      return NextResponse.json({ 
+        error: 'name, provider, credentials required',
+        received: { name, provider, credentials: credentials ? 'present' : 'missing' }
+      }, { status: 400 });
     }
 
-    // Derive code slug (unique)
-    const code = `${provider}_${name}`.toLowerCase().replace(/\s+/g, '_');
+    // Derive code slug (unique) from provider + name
+    const code = `${provider}_${name}`.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
 
-    // Insert gateway row  
+    console.log('[GATEWAYS POST] Creating gateway with:', { code, name, provider, priority, is_active });
+
+    // Enhance credentials object to include provider info and gateway details
+    const enhancedCredentials = {
+      ...credentials,
+      provider: provider,
+      monthly_limit: monthly_limit,
+      success_rate: success_rate,
+      ...(api_endpoint_url && { api_endpoint_url: api_endpoint_url }),
+    };
+
+    const insertPayload = {
+      code,
+      name,
+      credentials: enhancedCredentials, // Store all additional info in credentials JSON
+      priority,
+      is_active,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log('[GATEWAYS POST] Final insert payload:', insertPayload);
+
+    // Insert gateway row using existing schema columns only
     const { data: gateway, error: insErr } = await supabase
       .from('payment_gateways')
-      .insert({
-        code,
-        name,
-        provider,
-        credentials,
-        monthly_limit,
-        priority,
-        is_active,
-        success_rate,
-        created_at: new Date().toISOString(),
-      })
+      .insert(insertPayload)
       .select('*')
       .single();
 
-    if (insErr) throw new Error(insErr.message);
+    if (insErr) {
+      console.error('[GATEWAYS POST] Database error:', insErr);
+      throw new Error(insErr.message);
+    }
 
+    console.log('[GATEWAYS POST] Gateway created successfully:', gateway);
     return NextResponse.json({ gateway });
+    
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    console.error('[GATEWAYS POST] Error:', err);
+    return NextResponse.json({ 
+      error: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    }, { status: 400 });
   }
 } 

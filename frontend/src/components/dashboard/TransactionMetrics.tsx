@@ -80,7 +80,7 @@ export const TransactionMetrics = () => {
 
   // Calculate processing queue count
   const getProcessingCount = () => {
-    if (!queueStats) return 0;
+    if (!queueStats || !Array.isArray(queueStats)) return 0;
     return queueStats.reduce((total: number, queue: any) => total + (queue.active || 0), 0);
   };
 

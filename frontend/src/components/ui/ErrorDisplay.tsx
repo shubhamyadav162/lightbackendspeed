@@ -93,12 +93,21 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
 interface ErrorBoundaryFallbackProps {
   error: Error;
   resetError: () => void;
+  retryCount?: number;
+  maxRetries?: number;
 }
 
 export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({ 
   error, 
-  resetError 
+  resetError,
+  retryCount = 0,
+  maxRetries = 3
 }) => {
+  const isSubscriptionError = error.message?.includes('subscription.unsubscribe') || 
+                             error.message?.includes('reduce is not a function');
+  
+  const isRetryable = retryCount < maxRetries;
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="max-w-lg w-full">
@@ -110,7 +119,10 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
             <div className="flex items-center space-x-2">
               <AlertCircle className="h-5 w-5 text-destructive" />
               <p className="text-sm">
-                Application में एक unexpected error आई है।
+                {isSubscriptionError 
+                  ? 'Real-time connection में समस्या है।'
+                  : 'Application में एक unexpected error आई है।'
+                }
               </p>
             </div>
             
@@ -118,16 +130,30 @@ export const ErrorBoundaryFallback: React.FC<ErrorBoundaryFallbackProps> = ({
               <p className="font-mono">{error.message}</p>
             </div>
 
+            {retryCount > 0 && (
+              <div className="text-sm text-yellow-600 bg-yellow-50 p-2 rounded">
+                Retry attempt: {retryCount}/{maxRetries}
+              </div>
+            )}
+
             <div className="flex gap-2">
-              <Button onClick={resetError} variant="default">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Application Restart करें
-              </Button>
+              {isRetryable && (
+                <Button onClick={resetError} variant="default">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  {isSubscriptionError ? 'Reconnect करें' : 'Application Restart करें'}
+                </Button>
+              )}
               <Button 
                 onClick={() => window.location.href = '/'} 
                 variant="outline"
               >
                 Home पर जाएं
+              </Button>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+              >
+                Page Reload करें
               </Button>
             </div>
 

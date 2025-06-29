@@ -54,6 +54,12 @@ export async function handleCors(
     console.log('[CORS] Allowing localhost origin in development mode');
   }
   
+  // Allow file:// protocol for direct HTML testing
+  if (!origin || origin === 'null') {
+    isAllowed = true;
+    console.log('[CORS] Allowing null/file origin for direct HTML testing');
+  }
+  
   // For easier debugging
   console.log(`[CORS] Origin ${origin} is ${isAllowed ? 'allowed' : 'not allowed'}`);
   console.log(`[CORS] Allowed origins: ${allowedOrigins.join(', ')}`);

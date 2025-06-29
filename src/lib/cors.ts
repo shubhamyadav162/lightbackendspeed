@@ -14,8 +14,9 @@ allowedOrigins.push('https://web-production-0b337.up.railway.app');
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 function setCorsHeaders(response: NextResponse, origin: string) {
-  // Use exact origin for CORS if it's allowed, otherwise use first allowed origin
-  response.headers.set('Access-Control-Allow-Origin', origin);
+  // Handle file:// protocol or null origin
+  const corsOrigin = (!origin || origin === 'null' || origin === 'file://') ? '*' : origin;
+  response.headers.set('Access-Control-Allow-Origin', corsOrigin);
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
   
@@ -54,10 +55,10 @@ export async function handleCors(
     console.log('[CORS] Allowing localhost origin in development mode');
   }
   
-  // Allow file:// protocol for direct HTML testing
-  if (!origin || origin === 'null') {
+  // Allow requests from file:// protocol (for local HTML file testing)
+  if (!origin || origin === 'null' || origin === 'file://') {
     isAllowed = true;
-    console.log('[CORS] Allowing null/file origin for direct HTML testing');
+    console.log('[CORS] Allowing file:// protocol request for local testing');
   }
   
   // For easier debugging

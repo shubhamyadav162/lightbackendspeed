@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * POST /api/v1/admin/rotation/control
  * Control rotation operations: reset, change mode, manual advance
@@ -16,6 +11,12 @@ export async function POST(request: NextRequest) {
     if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Create Supabase client at runtime
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     const body = await request.json();
     const { action, client_id, params } = body;
@@ -28,22 +29,22 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'reset_position':
-        return await resetRotationPosition(client_id);
+        return await resetRotationPosition(supabase, client_id);
       
       case 'change_mode':
-        return await changeRotationMode(client_id, params?.mode);
+        return await changeRotationMode(supabase, client_id, params?.mode);
       
       case 'manual_advance':
-        return await manualAdvancePosition(client_id, params?.steps || 1);
+        return await manualAdvancePosition(supabase, client_id, params?.steps || 1);
       
       case 'toggle_daily_reset':
-        return await toggleDailyReset(client_id, params?.enabled);
+        return await toggleDailyReset(supabase, client_id, params?.enabled);
       
       case 'update_gateway_weight':
-        return await updateGatewayWeight(client_id, params?.gateway_id, params?.weight);
+        return await updateGatewayWeight(supabase, client_id, params?.gateway_id, params?.weight);
       
       case 'reset_daily_counters':
-        return await resetDailyCounters();
+        return await resetDailyCounters(supabase);
       
       default:
         return NextResponse.json({ 
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function resetRotationPosition(clientId: string) {
+async function resetRotationPosition(supabase: any, clientId: string) {
   const { error } = await supabase
     .rpc('reset_client_rotation_position', {
       p_client_id: clientId
@@ -73,7 +74,7 @@ async function resetRotationPosition(clientId: string) {
   });
 }
 
-async function changeRotationMode(clientId: string, mode: string) {
+async function changeRotationMode(supabase: any, clientId: string, mode: string) {
   if (!['round_robin', 'priority', 'smart'].includes(mode)) {
     return NextResponse.json({ 
       error: 'Invalid mode. Supported: round_robin, priority, smart' 
@@ -100,7 +101,7 @@ async function changeRotationMode(clientId: string, mode: string) {
   });
 }
 
-async function manualAdvancePosition(clientId: string, steps: number) {
+async function manualAdvancePosition(supabase: any, clientId: string, steps: number) {
   // Get current position and total gateways
   const { data: client, error: clientError } = await supabase
     .from('clients')
@@ -143,7 +144,7 @@ async function manualAdvancePosition(clientId: string, steps: number) {
   });
 }
 
-async function toggleDailyReset(clientId: string, enabled: boolean) {
+async function toggleDailyReset(supabase: any, clientId: string, enabled: boolean) {
   const { error } = await supabase
     .from('clients')
     .update({ 
@@ -164,7 +165,7 @@ async function toggleDailyReset(clientId: string, enabled: boolean) {
   });
 }
 
-async function updateGatewayWeight(clientId: string, gatewayId: string, weight: number) {
+async function updateGatewayWeight(supabase: any, clientId: string, gatewayId: string, weight: number) {
   if (!gatewayId || weight < 0.1 || weight > 5.0) {
     return NextResponse.json({ 
       error: 'gateway_id required and weight must be between 0.1 and 5.0' 
@@ -193,7 +194,7 @@ async function updateGatewayWeight(clientId: string, gatewayId: string, weight: 
   });
 }
 
-async function resetDailyCounters() {
+async function resetDailyCounters(supabase: any) {
   const { error } = await supabase
     .rpc('reset_daily_rotation_counters');
 

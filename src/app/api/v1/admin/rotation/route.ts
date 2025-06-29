@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * GET /api/v1/admin/rotation
  * Get rotation configuration for all clients or specific client
@@ -16,6 +11,12 @@ export async function GET(request: NextRequest) {
     if (apiKey !== 'admin_test_key') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Create Supabase client at runtime
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('client_id');

@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * POST /api/v1/admin/rotation/controls
- * Control rotation operations: reset, change mode, manual advance
+ * Control rotation operations: reset, change mode, manual advance, toggle gateway assignment
  */
 export async function POST(request: NextRequest) {
   try {
@@ -40,9 +40,12 @@ export async function POST(request: NextRequest) {
       case 'toggle_daily_reset':
         return await toggleDailyReset(supabase, client_id, params?.enabled);
       
+      case 'toggle_gateway_assignment':
+        return await toggleGatewayAssignment(supabase, client_id, params?.gateway_id, params?.is_active);
+      
       default:
         return NextResponse.json({ 
-          error: 'Invalid action. Supported: reset_position, change_mode, manual_advance, toggle_daily_reset' 
+          error: 'Invalid action. Supported: reset_position, change_mode, manual_advance, toggle_daily_reset, toggle_gateway_assignment' 
         }, { status: 400 });
     }
 
@@ -156,5 +159,50 @@ async function toggleDailyReset(supabase: any, clientId: string, enabled: boolea
     message: `Daily rotation reset ${enabled ? 'enabled' : 'disabled'}`,
     action: 'toggle_daily_reset',
     daily_reset_enabled: enabled
+  });
+}
+
+async function toggleGatewayAssignment(supabase: any, clientId: string, gatewayId: string, isActive: boolean) {
+  if (!gatewayId || isActive === undefined) {
+    return NextResponse.json({ 
+      error: 'gateway_id and is_active required' 
+    }, { status: 400 });
+  }
+
+  // Update the client_gateway_assignments table
+  const { error } = await supabase
+    .from('client_gateway_assignments')
+    .update({ 
+      is_active: isActive,
+      updated_at: new Date().toISOString()
+    })
+    .eq('client_id', clientId)
+    .eq('gateway_id', gatewayId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Insert audit log
+  await supabase
+    .from('audit_logs')
+    .insert({
+      table_name: 'client_gateway_assignments',
+      action: isActive ? 'ENABLE' : 'DISABLE',
+      new_data: { 
+        client_id: clientId, 
+        gateway_id: gatewayId, 
+        is_active: isActive 
+      },
+      user_id: 'admin',
+      created_at: new Date().toISOString()
+    });
+
+  return NextResponse.json({ 
+    success: true, 
+    message: `Gateway assignment ${isActive ? 'enabled' : 'disabled'} successfully`,
+    action: 'toggle_gateway_assignment',
+    gateway_id: gatewayId,
+    is_active: isActive
   });
 } 

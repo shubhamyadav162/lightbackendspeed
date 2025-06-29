@@ -95,7 +95,12 @@ const App = () => {
   return (
     <GlobalErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Router>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
           {/* Enhanced Backend Connection Test Panel */}
           <div className={`fixed top-4 right-4 z-50 max-w-sm transition-all duration-200 ${getStatusColor()} border rounded-lg shadow-lg`}>
             <div className="p-3">

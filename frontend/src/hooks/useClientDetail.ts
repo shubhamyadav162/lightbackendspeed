@@ -58,8 +58,171 @@ interface ClientDetail {
   }>;
 }
 
+// Demo client detail data for Ramlal
+const DEMO_RAMLAL_DETAIL: ClientDetail = {
+  id: 'demo-ramlal-client-2024',
+  name: 'Ramlal Gupta',
+  company: 'Ramlal Electronics & Digital Payments',
+  email: 'ramlal.gupta@lightspeedpay.com',
+  phone: '+91-9876543210',
+  status: 'active',
+  client_key: 'lsp_live_demo_ramlal_4xA9dKj7mN8qP2wE3zR5tY6uI0oB1cF4G',
+  client_salt: 'ramlal_salt_8F3kL9mX2nQ5tW7yZ1bV4cD6eG0hJ8iK',
+  webhook_url: 'https://ramlal-electronics.com/webhooks/lightspeedpay',
+  created_at: '2024-01-01T00:00:00Z',
+  last_activity: '2024-01-15T10:30:00Z',
+  revenue: {
+    total_volume: 89543200,
+    total_transactions: 15847,
+    commission_earned: 2865784,
+    commission_rate: 3.2,
+    monthly_volume: 12458760,
+    monthly_transactions: 1247,
+    success_rate: 97.8
+  },
+  wallet: {
+    balance_due: 286978,
+    warn_threshold: 500000,
+    last_payout: '2024-01-01T00:00:00Z',
+    last_payout_amount: 1874590,
+    auto_payout_enabled: false
+  },
+  gateways: [
+    {
+      id: 'gw-razorpay-demo',
+      name: 'Razorpay Standard',
+      provider: 'razorpay',
+      priority: 1,
+      status: 'active',
+      success_rate: 98.5,
+      monthly_volume: 1247860,
+      limit: 5000000
+    },
+    {
+      id: 'gw-payu-demo',
+      name: 'PayU Money',
+      provider: 'payu',
+      priority: 2,
+      status: 'active',
+      success_rate: 96.8,
+      monthly_volume: 867453,
+      limit: 3000000
+    },
+    {
+      id: 'gw-ccavenue-demo',
+      name: 'CCAvenue Gateway',
+      provider: 'ccavenue',
+      priority: 3,
+      status: 'active',
+      success_rate: 94.2,
+      monthly_volume: 567892,
+      limit: 2500000
+    },
+    {
+      id: 'gw-phonepe-demo',
+      name: 'PhonePe Switch',
+      provider: 'phonepe',
+      priority: 4,
+      status: 'active',
+      success_rate: 97.1,
+      monthly_volume: 1156745,
+      limit: 4000000
+    },
+    {
+      id: 'gw-paytm-demo',
+      name: 'Paytm Payment Gateway',
+      provider: 'paytm',
+      priority: 5,
+      status: 'inactive',
+      success_rate: 95.7,
+      monthly_volume: 0,
+      limit: 3500000
+    },
+    {
+      id: 'gw-instamojo-demo',
+      name: 'Instamojo',
+      provider: 'instamojo',
+      priority: 6,
+      status: 'active',
+      success_rate: 93.8,
+      monthly_volume: 445672,
+      limit: 2000000
+    },
+    {
+      id: 'gw-billdesk-demo',
+      name: 'BillDesk Payment',
+      provider: 'billdesk',
+      priority: 7,
+      status: 'maintenance',
+      success_rate: 92.4,
+      monthly_volume: 234567,
+      limit: 1800000
+    },
+    {
+      id: 'gw-cashfree-demo',
+      name: 'Cashfree Payments',
+      provider: 'cashfree',
+      priority: 8,
+      status: 'active',
+      success_rate: 96.3,
+      monthly_volume: 678934,
+      limit: 3200000
+    }
+  ],
+  recent_transactions: [
+    {
+      id: 'txn_ramlal_001',
+      order_id: 'ORD_2024_001',
+      amount: 25000,
+      status: 'success',
+      gateway: 'Razorpay Standard',
+      created_at: '2024-01-15T09:30:00Z'
+    },
+    {
+      id: 'txn_ramlal_002', 
+      order_id: 'ORD_2024_002',
+      amount: 18500,
+      status: 'success',
+      gateway: 'PayU Money',
+      created_at: '2024-01-15T08:45:00Z'
+    },
+    {
+      id: 'txn_ramlal_003',
+      order_id: 'ORD_2024_003',
+      amount: 45000,
+      status: 'failed',
+      gateway: 'BillDesk Payment',
+      created_at: '2024-01-15T07:20:00Z'
+    }
+  ],
+  notifications: [
+    {
+      id: 'notif_001',
+      template: 'low_balance_alert',
+      type: 'LOW_BALANCE',
+      status: 'sent',
+      sent_at: '2024-01-14T10:00:00Z',
+      created_at: '2024-01-14T10:00:00Z'
+    },
+    {
+      id: 'notif_002',
+      template: 'payment_reminder',
+      type: 'PAYMENT_REMINDER',
+      status: 'sent',
+      sent_at: '2024-01-13T15:30:00Z',
+      created_at: '2024-01-13T15:30:00Z'
+    }
+  ]
+};
+
 // API functions
 const fetchClientDetail = async (clientId: string): Promise<ClientDetail> => {
+  // Return demo data for Ramlal client
+  if (clientId === 'demo-ramlal-client-2024') {
+    return DEMO_RAMLAL_DETAIL;
+  }
+
+  // Try to fetch from API for other clients
   const response = await fetch(`/api/v1/admin/clients/${clientId}`, {
     headers: {
       'x-api-key': 'admin_test_key',
@@ -204,7 +367,7 @@ export const useClientDetail = (clientId: string) => {
       // This would typically generate new credentials
       updateClientMutation.mutate({
         // In real implementation, this would trigger credential regeneration on backend
-        updated_at: new Date().toISOString(),
+        last_activity: new Date().toISOString(),
       });
     },
   };

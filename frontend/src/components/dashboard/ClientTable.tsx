@@ -229,11 +229,10 @@ export const ClientTable: React.FC<ClientTableProps> = ({
                 <TableCell>
                   <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center space-x-1">
-                      <Switch 
-                        checked={client.whatsappNotifications}
-                        onCheckedChange={() => toggleNotification(client.id, 'whatsapp')}
-                        size="sm"
-                      />
+                                              <Switch
+                          checked={client.whatsappNotifications}
+                          onCheckedChange={() => toggleNotification(client.id, 'whatsapp')}
+                        />
                       <span className="text-xs">Auto</span>
                     </div>
                     <div className="flex space-x-1">

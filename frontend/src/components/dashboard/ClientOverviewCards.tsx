@@ -11,8 +11,9 @@ interface ClientOverviewCardsProps {
 export const ClientOverviewCards: React.FC<ClientOverviewCardsProps> = ({ clients }) => {
   const totalClients = clients.length;
   const activeClients = clients.filter(c => c.status === 'active').length;
-  const totalVolume = clients.reduce((sum, c) => sum + c.totalVolume, 0);
-  const avgTransactions = Math.round(clients.reduce((sum, c) => sum + c.totalTransactions, 0) / clients.length);
+  const totalVolume = clients.reduce((sum, c) => sum + (c.totalVolume || 0), 0);
+  const totalTransactions = clients.reduce((sum, c) => sum + (c.totalTransactions || 0), 0);
+  const avgTransactions = totalClients > 0 ? Math.round(totalTransactions / totalClients) : 0;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -50,7 +51,7 @@ export const ClientOverviewCards: React.FC<ClientOverviewCardsProps> = ({ client
             <div>
               <p className="text-sm text-gray-600">Total Volume</p>
               <p className="text-2xl font-bold text-purple-600">
-                ${totalVolume.toLocaleString()}
+                ₹{(totalVolume / 100000).toFixed(1)}L
               </p>
             </div>
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">

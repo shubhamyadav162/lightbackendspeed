@@ -363,7 +363,25 @@ export const apiService = {
     try {
       const response = await apiClient.get('/analytics', { params });
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Analytics API Error:', error);
+      
+      // Return fallback data structure to prevent crashes
+      if (import.meta.env.DEV) {
+        console.log('🔄 Analytics API failed, returning fallback data');
+        return {
+          stats: [],
+          totals: {
+            total_count: 0,
+            completed_count: 0,
+            failed_count: 0,
+            pending_count: 0,
+            total_amount: 0,
+            completed_amount: 0
+          }
+        };
+      }
+      
       throw error;
     }
   },
@@ -469,6 +487,47 @@ export const apiService = {
     }
   },
 
+  // Client Gateway Management
+  async getClientGatewayAssignments(clientId: string) {
+    try {
+      const response = await apiClient.get(`/admin/clients/${clientId}/gateways`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error fetching client gateway assignments:', error);
+      throw error;
+    }
+  },
+
+  async createClientGatewayAssignment(clientId: string, gatewayData: any) {
+    try {
+      const response = await apiClient.post(`/admin/clients/${clientId}/gateways`, gatewayData);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error creating client gateway assignment:', error);
+      throw error;
+    }
+  },
+
+  async updateClientGatewayAssignment(clientId: string, gatewayId: string, updates: any) {
+    try {
+      const response = await apiClient.patch(`/admin/clients/${clientId}/gateways/${gatewayId}`, updates);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error updating client gateway assignment:', error);
+      throw error;
+    }
+  },
+
+  async deleteClientGatewayAssignment(clientId: string, gatewayId: string) {
+    try {
+      const response = await apiClient.delete(`/admin/clients/${clientId}/gateways/${gatewayId}`);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Error deleting client gateway assignment:', error);
+      throw error;
+    }
+  },
+
   // Utility function to add the custom gateway
   async addCustomGateway() {
     try {
@@ -509,27 +568,60 @@ export const subscribeToTransactions = (callback: (payload: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/transaction-stream`;
   
-  console.log('🔗 Connecting to Transaction Stream SSE:', url);
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
+  
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'transaction') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Transaction Stream SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Transaction Stream SSE Connected');
+        reconnectAttempts = 0; // Reset on successful connection
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Transaction Stream SSE data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Transaction Stream SSE Error, attempting graceful reconnection...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Transaction Stream`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Transaction Stream SSE failed after max attempts, continuing without live transaction data');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Transaction Stream SSE payload', err);
+      console.error('❌ Failed to create Transaction Stream SSE connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Transaction Stream SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  // Return cleanup function
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
@@ -538,58 +630,120 @@ export const subscribeToAlerts = (callback: (payload: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/alerts-stream`;
   
-  console.log('🔗 Connecting to Alerts Stream SSE:', url);
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
+  
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'alert') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Alerts SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Alerts Stream SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Alerts SSE data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Alerts Stream SSE Error, gracefully handling...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Alerts Stream`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Alerts Stream SSE failed after max attempts, continuing without live alerts');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Alerts Stream SSE payload', err);
+      console.error('❌ Failed to create Alerts Stream SSE connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Alerts Stream SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
 
-// SSE Subscription helpers
 export const subscribeToQueueMetrics = (callback: (metric: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/queue-stats-stream`;
   
-  DEBUG_LOGS && console.log('🔗 Connecting to Queue Metrics SSE:', url);
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
   
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'metric') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Queue Metrics SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Queue Metrics SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Queue Metrics SSE data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Queue Metrics SSE Error, gracefully handling...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Queue Metrics`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Queue Metrics SSE failed after max attempts, continuing without live queue data');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Queue Metrics SSE payload', err);
+      console.error('❌ Failed to create Queue Metrics SSE connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Queue Metrics SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
@@ -598,28 +752,59 @@ export const subscribeToGatewayHealth = (callback: (metric: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/gateway-health-stream`;
   
-  DEBUG_LOGS && console.log('🔗 Connecting to Gateway Health SSE:', url);
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
   
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'metric') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Gateway Health SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Gateway Health SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Gateway Health SSE data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Gateway Health SSE Error, gracefully handling...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Gateway Health`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Gateway Health SSE failed after max attempts, continuing without live health data');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Gateway Health SSE payload', err);
+      console.error('❌ Failed to create Gateway Health SSE connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Gateway Health SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
@@ -628,28 +813,59 @@ export const subscribeToTransactionStream = (callback: (txn: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/transaction-stream`;
   
-  DEBUG_LOGS && console.log('🔗 Connecting to Transaction Stream SSE:', url);
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
   
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'transaction') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Transaction Stream SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Transaction Stream SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Transaction Stream data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Transaction Stream SSE Error, gracefully reconnecting...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Transaction Stream`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Transaction Stream failed after max attempts');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Transaction Stream SSE payload', err);
+      console.error('❌ Failed to create Transaction Stream connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Transaction Stream SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
@@ -658,28 +874,59 @@ export const subscribeToAuditLogs = (callback: (log: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/audit-logs-stream`;
   
-  DEBUG_LOGS && console.log('🔗 Connecting to Audit Logs SSE:', url);
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
   
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'audit_log') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to Audit Logs SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ Audit Logs SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid Audit Logs data:', event.data);  
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 Audit Logs SSE Error, gracefully handling...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Audit Logs`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ Audit Logs SSE failed after max attempts');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse Audit Logs SSE payload', err);
+      console.error('❌ Failed to create Audit Logs connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('Audit Logs SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 };
@@ -688,28 +935,59 @@ export const subscribeToSystemStatus = (callback: (status: any) => void) => {
   const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
   const url = `${baseUrl}/functions/v1/system-status-stream`;
   
-  DEBUG_LOGS && console.log('🔗 Connecting to System Status SSE:', url);
+  let eventSource: EventSource | null = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 3;
+  let reconnectTimeout: NodeJS.Timeout;
   
-  const es = new EventSource(url);
-
-  es.onmessage = (event) => {
+  const connect = () => {
     try {
-      const parsed = JSON.parse(event.data);
-      if (parsed.type === 'status') {
-        callback(parsed.data);
-      }
+      console.log('🔗 Connecting to System Status SSE:', url);
+      eventSource = new EventSource(url);
+      
+      eventSource.onopen = () => {
+        console.log('✅ System Status SSE Connected');
+        reconnectAttempts = 0;
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          callback(data);
+        } catch (err) {
+          console.warn('⚠️ Invalid System Status data:', event.data);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.warn('🔄 System Status SSE Error, gracefully handling...', error);
+        
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for System Status`);
+            
+            reconnectTimeout = setTimeout(() => {
+              connect();
+            }, delay);
+          } else {
+            console.error('❌ System Status SSE failed after max attempts, continuing without live status');
+          }
+        }
+      };
     } catch (err) {
-      console.error('Failed to parse System Status SSE payload', err);
+      console.error('❌ Failed to create System Status connection:', err);
     }
   };
-
-  es.onerror = (error) => {
-    console.error('System Status SSE Error:', error);
-  };
-
-  return {
-    unsubscribe: () => {
-      es.close();
+  
+  connect();
+  
+  return () => {
+    if (reconnectTimeout) clearTimeout(reconnectTimeout);
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
     }
   };
 }; 

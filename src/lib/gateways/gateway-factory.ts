@@ -1,9 +1,9 @@
 import { BaseGatewayAdapter, GatewayCredentials } from './base-adapter';
 import { RazorpayAdapter } from './razorpay-adapter';
 import { PayUAdapter } from './payu-adapter';
-// Import other adapters as they are created
+import { EasebuzzAdapter } from './easebuzz-adapter';
 
-export type SupportedProvider = 'razorpay' | 'payu' | 'cashfree' | 'paytm' | 'phonepe' | 'custom';
+export type SupportedProvider = 'razorpay' | 'payu' | 'easebuzz' | 'cashfree' | 'paytm' | 'phonepe' | 'custom';
 
 export class GatewayFactory {
   private static instance: GatewayFactory;
@@ -27,6 +27,9 @@ export class GatewayFactory {
       
       case 'payu':
         return new PayUAdapter(this.validatePayUCredentials(credentials), isTestMode);
+      
+      case 'easebuzz':
+        return new EasebuzzAdapter(this.validateEasebuzzCredentials(credentials), isTestMode);
       
       // Add more cases as adapters are implemented
       // case 'cashfree':
@@ -78,6 +81,23 @@ export class GatewayFactory {
   }
 
   /**
+   * Validate and structure Easebuzz credentials
+   */
+  private validateEasebuzzCredentials(credentials: GatewayCredentials): GatewayCredentials {
+    const { api_key, api_secret, webhook_secret } = credentials;
+    
+    if (!api_key || !api_secret) {
+      throw new Error('Easebuzz requires api_key (merchant key) and api_secret (salt)');
+    }
+
+    return {
+      api_key: api_key as string,
+      api_secret: api_secret as string,
+      webhook_secret: webhook_secret as string | undefined
+    };
+  }
+
+  /**
    * Validate and structure Cashfree credentials  
    */
   private validateCashfreeCredentials(credentials: GatewayCredentials) {
@@ -117,7 +137,7 @@ export class GatewayFactory {
    * Get supported providers list
    */
   public getSupportedProviders(): SupportedProvider[] {
-    return ['razorpay', 'payu', 'cashfree', 'paytm', 'phonepe', 'custom'];
+    return ['razorpay', 'payu', 'easebuzz', 'cashfree', 'paytm', 'phonepe', 'custom'];
   }
 
   /**
@@ -130,6 +150,9 @@ export class GatewayFactory {
       
       case 'payu':
         return ['merchant_key', 'salt'];
+      
+      case 'easebuzz':
+        return ['api_key', 'api_secret']; // api_key = merchant key, api_secret = salt
       
       case 'cashfree':
         return ['app_id', 'secret_key'];
@@ -158,6 +181,9 @@ export class GatewayFactory {
       
       case 'payu':
         return ['auth_header'];
+      
+      case 'easebuzz':
+        return ['webhook_secret'];
       
       case 'cashfree':
         return ['environment'];

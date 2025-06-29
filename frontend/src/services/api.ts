@@ -394,29 +394,46 @@ export const apiService = {
     try {
       console.log('🧪 Testing Gateway:', id);
       
-      // For Easebuzz gateway, show detailed test result
-      if (id === 'easebuzz_live_gateway' || id === 'easebuzz_fallback') {
-        console.log('🎯 Testing Easebuzz Gateway...');
+      // 🚀 REAL API TEST: Call backend to test actual gateway connectivity
+      console.log('🎯 Making REAL API call to backend for gateway test...');
+      
+      const startTime = Date.now();
+      const response = await apiClient.post(`/admin/gateways/${id}/test`);
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+      
+      console.log('✅ Real Gateway Test API Response:', response.data);
+      
+      // Add actual response time to the result
+      const result = {
+        ...response.data,
+        actualResponseTime: `${responseTime}ms`,
+        testType: 'REAL API CALL',
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('🎯 Enhanced Real Test Result:', result);
+      return result;
+      
+    } catch (error: any) {
+      console.error('❌ Real Gateway Test Failed:', error);
+      
+      // Check if this is a specific gateway we need to handle differently
+      if (id === 'easebuzz_live_gateway' || id.includes('easebuzz')) {
+        console.log('🔄 Easebuzz API test failed, checking if it\'s because backend endpoint doesn\'t exist yet...');
         
-        // Simulate realistic test for Easebuzz
-        const testResult = {
-          success: true,
-          gateway: 'Easebuzz',
-          status: 'Active & Ready',
-          responseTime: '120ms',
-          credentials: 'Valid ✅',
-          webhook: 'https://web-production-0b337.up.railway.app/api/v1/callback/easebuzzp',
-          message: 'Easebuzz gateway सफलतापूर्वक tested! Production में payments accept करने के लिए ready है।',
-          details: {
-            api_key: 'D4SS5CFXKV (Active)',
-            salt: 'HRQ1A10K7J (Valid)',
-            environment: 'Production Ready',
-            supported_methods: ['Credit Card', 'Debit Card', 'Net Banking', 'UPI', 'Wallets']
-          }
-        };
-        
-        console.log('✅ Easebuzz Test Result:', testResult);
-        return testResult;
+        // If backend doesn't have the test endpoint yet, show informative response
+        if (error.response?.status === 404 || error.response?.status === 405) {
+          return {
+            success: false,
+            gateway: 'Easebuzz',
+            status: 'Backend Test Endpoint Not Implemented',
+            message: 'Backend में अभी तक gateway test endpoint implement नहीं हुआ है। Gateway database में stored है लेकिन API connectivity test pending है।',
+            testType: 'ENDPOINT_MISSING',
+            error: `HTTP ${error.response?.status}: Test endpoint not found`,
+            recommendation: 'Backend में /admin/gateways/{id}/test endpoint implement करना होगा।'
+          };
+        }
       }
       
       // For demo gateways, show appropriate mock results
@@ -426,21 +443,23 @@ export const apiService = {
           success: true,
           gateway: provider,
           status: 'Demo Mode',
+          testType: 'MOCK_DEMO',
           message: `${provider} demo gateway tested successfully! Demo mode में running है।`
         };
       }
       
-      // Try real API test for other gateways
-      const response = await apiClient.post(`/admin/gateways/${id}/test`);
-      return response.data;
-    } catch (error: any) {
-      console.error('❌ Gateway test failed:', error);
-      
-      // Return meaningful error for better UX
+      // Return detailed error for debugging
       return {
         success: false,
         error: error.message || 'Test failed',
-        message: 'Gateway test करने में issue आई - credentials या network check करें'
+        status: error.response?.status || 'Network Error',
+        testType: 'REAL_API_FAILED',
+        message: 'Gateway test करने में issue आई - credentials या network check करें',
+        details: {
+          statusCode: error.response?.status,
+          statusText: error.response?.statusText,
+          errorData: error.response?.data
+        }
       };
     }
   },

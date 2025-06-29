@@ -20,11 +20,11 @@ function setCorsHeaders(response: NextResponse, origin: string) {
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
   
-  // Include all possible headers that might be used - especially x-api-key
+  // Include all possible headers that might be used - especially x-api-key and x-api-secret
   response.headers.set('Access-Control-Allow-Headers', 
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, ' + 
     'Content-MD5, Content-Type, Date, X-Api-Version, Authorization, X-Client-Key, ' +
-    'x-api-key, X-API-Key, x-client-id, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+    'x-api-key, X-API-Key, x-api-secret, X-API-Secret, x-client-id, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
   
   // Cache preflight requests longer (24 hours)
   response.headers.set('Access-Control-Max-Age', '86400');

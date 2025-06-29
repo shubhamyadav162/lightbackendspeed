@@ -97,7 +97,7 @@ export const AddClientModal: React.FC<AddClientModalProps> = ({ isOpen, onClose,
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="font-medium text-blue-800 mb-2">🔧 Key-Salt Wrapper System</h4>
               <p className="text-sm text-blue-700">
-                ये credentials <strong>Razorpay, PayU, Cashfree, PhonePe, Paytm</strong> और 15+ अन्य gateways को automatically route करते हैं।
+                ये credentials <strong>LightSpeed Payment Gateway</strong> के through 20+ PSPs को automatically route करते हैं।
                 Client को सिर्फ ये तीन चीजें चाहिए integration के लिए।
               </p>
             </div>

@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Card, CardContent, CardHeader, CardTitle,
-  Button, Badge, Input, Label, 
-  Tabs, TabsContent, TabsList, TabsTrigger,
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-  Progress, Switch, Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
-} from '../ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   ArrowLeft, Eye, Settings, Key, Shield, MessageSquare, Copy, RefreshCw,
   DollarSign, TrendingUp, CreditCard, Wallet, Plus, Activity, BarChart3
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { CommissionManager } from './CommissionManager';
+import { DemoSetupButton } from './DemoSetupButton';
 
 interface ClientDetailPageProps {
   clientId: string;
@@ -244,11 +248,12 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
 
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="gateways">Gateways ({(clientData.gateways || []).length})</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
+          <TabsTrigger value="demo">Demo Data</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -467,6 +472,45 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ clientId, on
                   </TableBody>
                 </Table>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Demo Data Tab */}
+        <TabsContent value="demo" className="space-y-6">
+          <DemoSetupButton />
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="w-5 h-5" />
+                <span>Round-Robin Testing</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">How to Test:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>1. **Setup Demo Data** - Click the button above to add 5 demo clients</li>
+                    <li>2. **View Rotation Manager** - Navigate to each client to see rotation controls</li>
+                    <li>3. **Test Round-Robin** - Use manual advance/reset buttons to see rotation</li>
+                    <li>4. **Monitor Analytics** - Check distribution quality and metrics</li>
+                    <li>5. **Gateway Assignment** - Use drag & drop to change rotation order</li>
+                  </ul>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="text-sm font-medium text-green-900 mb-2">Demo Clients Include:</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-green-800">
+                    <div>• **Gaming World India** - 5 गेटवेज (Round-Robin)</div>
+                    <div>• **ShopKart Online** - 3 गेटवेज (Round-Robin)</div>
+                    <div>• **MoneyFlow Fintech** - 4 गेटवेज (Round-Robin)</div>
+                    <div>• **EduTech Learning** - 2 गेटवेज (Priority Mode)</div>
+                    <div>• **TravelEasy Booking** - 3 गेटवेज (Smart Mode)</div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

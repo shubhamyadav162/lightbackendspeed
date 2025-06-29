@@ -38,7 +38,7 @@ export const KeySaltWrapperInfo: React.FC = () => {
             </div>
             <h3 className="font-semibold text-sm mb-2">2. Route to 20+ Gateways</h3>
             <p className="text-xs text-gray-600">
-              Single credentials automatically route to <strong>Razorpay, PayU, Cashfree, PhonePe, Paytm</strong> और 15+ other PSPs
+              Single credentials automatically route to <strong>LightSpeed Payment Gateway</strong> with 20+ PSP integrations
             </p>
           </div>
         </div>

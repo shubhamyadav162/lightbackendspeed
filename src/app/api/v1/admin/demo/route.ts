@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseService } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 /**
  * Demo Data Setup API
@@ -43,6 +38,8 @@ export async function POST(request: NextRequest) {
 }
 
 async function setupDemoData() {
+  const supabase = getSupabaseService();
+  
   // 1. Create demo clients
   const { data: clients, error: clientError } = await supabase
     .from('clients')
@@ -153,7 +150,7 @@ async function setupDemoData() {
     ], { onConflict: 'client_id' });
 
   return {
-    clients: Array.isArray(clients) ? clients.length : 2,
+    clients: 2, // We always create exactly 2 demo clients
     gateways: gateways.length,
     assignments: assignments.length,
     wallets: 2
@@ -162,10 +159,7 @@ async function setupDemoData() {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
-    );
+    const supabase = getSupabaseService();
     
     const { data: clients, error: clientError } = await supabase
       .from('clients')

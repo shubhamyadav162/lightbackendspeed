@@ -67,12 +67,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       if (gateway.provider === 'easebuzz') {
         console.log('🚀 Testing Easebuzz gateway...');
         
-        // Get encrypted credentials
-        const { data: credentials } = await supabaseService
+        // Get credentials from JSONB column
+        const { data: gatewayData } = await supabaseService
           .from('payment_gateways')
-          .select('api_key, api_secret')
+          .select('credentials')
           .eq('id', id)
           .single();
+        
+        const credentials = gatewayData?.credentials as any;
         
         if (credentials?.api_key && credentials?.api_secret) {
           // Test Easebuzz API connectivity

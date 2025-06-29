@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +14,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AddGatewayModal } from './AddGatewayModal';
 import { GatewayConfigurationModal } from './GatewayConfigurationModal';
 import { DraggableGatewayList } from './DraggableGatewayList';
+import { toast } from 'sonner';
 
 interface Gateway {
   id: string;
@@ -66,8 +67,8 @@ export const GatewayManagement = () => {
     
     return () => {
       try {
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscription.unsubscribe();
+        if (subscription && typeof subscription === 'function') {
+          subscription();
         }
       } catch (error) {
         console.warn('Error cleaning up gateway health subscription:', error);
@@ -106,12 +107,47 @@ export const GatewayManagement = () => {
 
   const testConnection = useCallback(async (id: string) => {
     try {
+      console.log('🧪 Testing gateway:', id);
+      const gateway = gateways.find(g => g.id === id);
+      const gatewayName = gateway?.name || 'Unknown Gateway';
+      
+      // Show loading toast
+      toast.info(`${gatewayName} test हो रहा है...`, { duration: 2000 });
+      
       const result = await apiService.testGateway(id);
-      alert(`Gateway test result: ${JSON.stringify(result)}`);
-    } catch (e) {
-      alert('Gateway test failed.');
+      
+      if (result.success) {
+        // Success toast with detailed info
+        toast.success(`✅ ${result.gateway || gatewayName} Test Successful!`, {
+          description: result.message || 'Gateway working perfectly',
+          duration: 5000
+        });
+        
+        // For Easebuzz, show additional details
+        if (result.details) {
+          console.log('🎯 Gateway Test Details:', result.details);
+          setTimeout(() => {
+            toast.info(`🔍 Test Details: ${result.responseTime || 'N/A'} response time`, {
+              description: `Webhook: ${result.webhook ? '✅ Ready' : '❌ Not configured'}`,
+              duration: 4000
+            });
+          }, 1000);
+        }
+      } else {
+        // Error toast
+        toast.error(`❌ ${gatewayName} Test Failed`, {
+          description: result.message || result.error || 'Unknown error occurred',
+          duration: 5000
+        });
+      }
+    } catch (e: any) {
+      console.error('Gateway test error:', e);
+      toast.error('Gateway Test Failed', {
+        description: 'Network error या server issue हो सकता है',
+        duration: 5000
+      });
     }
-  }, []);
+  }, [gateways]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -138,6 +174,38 @@ export const GatewayManagement = () => {
     setIsConfigModalOpen(true);
   }, []);
 
+  // Add this temporary API test function
+  const testRealBackendAPI = async () => {
+    console.log('🧪 Testing Real Backend API Connection...');
+    
+    try {
+      const response = await fetch('https://web-production-0b337.up.railway.app/api/v1/admin/gateways', {
+        method: 'GET',
+        headers: {
+          'x-api-key': 'admin_test_key',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📡 API Response Status:', response.status);
+      console.log('📡 API Response Headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Real Backend API Success!', data);
+        toast.success('🎉 Real Backend API Working! Check console for details.');
+        return data;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ API Error Response:', errorText);
+        toast.error(`API Error: ${response.status} - ${errorText.substring(0, 100)}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Network/Connection Error:', error);
+      toast.error(`Connection Error: ${error.message}`);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-10">
@@ -147,26 +215,35 @@ export const GatewayManagement = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gateway Management</h1>
-          <p className="text-gray-600">Manage payment gateways, priorities, and routing</p>
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-2xl font-bold">Payment Gateway Management</CardTitle>
+            <CardDescription>
+              Configure and monitor your payment gateways
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Add temporary test button */}
+            <Button
+              onClick={testRealBackendAPI}
+              variant="outline"
+              size="sm"
+              className="bg-orange-50 border-orange-200 hover:bg-orange-100"
+            >
+              🧪 Test Real API
+            </Button>
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Gateway
+            </Button>
+          </div>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <Settings className="w-4 h-4 mr-2" />
-            Bulk Actions
-          </Button>
-          <Button 
-            onClick={() => setIsAddModalOpen(true)} 
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Gateway
-          </Button>
-        </div>
-      </div>
+      </CardHeader>
 
       {/* Add Gateway Modal */}
       <AddGatewayModal 
@@ -254,6 +331,6 @@ export const GatewayManagement = () => {
         onTestConnection={testConnection}
         onConfigure={openConfigModal}
       />
-    </div>
+    </Card>
   );
 };

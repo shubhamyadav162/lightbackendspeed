@@ -77,8 +77,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         const credentials = gatewayData?.credentials as any;
         
         if (credentials?.api_key && credentials?.api_secret) {
-          // Test Easebuzz API connectivity
-          const testUrl = 'https://secure.easebuzz.in/payment/initiateLink';
+          // Test Easebuzz API connectivity (using TEST environment)
+          const testUrl = 'https://testpay.easebuzz.in/payment/initiateLink';
           const testPayload = {
             key: credentials.api_key,
             txnid: `test_${Date.now()}`,
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             firstname: 'Test',
             email: 'test@example.com',
             phone: '9999999999',
-            surl: 'https://example.com/success',
-            furl: 'https://example.com/failure'
+            surl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp',
+            furl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp'
           };
           
           // Generate hash for test

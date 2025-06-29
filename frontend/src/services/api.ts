@@ -205,66 +205,13 @@ export const apiService = {
         // Backend returns { gateways: [...] }, so extract the gateways array
         gateways = response.data?.gateways || response.data || [];
       } catch (apiError: any) {
-        console.warn('⚠️ Gateway API failed, using mock data:', apiError.message);
-        // If API fails, use mock data to demonstrate functionality
-        gateways = [];
+        console.warn('⚠️ Gateway API failed, using fallback:', apiError.message);
+        // Return empty array if API fails
+        return [];
       }
       
-      // Add Easebuzz Gateway for demonstration (your real gateway)
-      const easebuzzGateway = {
-        id: 'easebuzz_live_gateway',
-        name: '🚀 Easebuzz Live Gateway',
-        provider: 'easebuzz',
-        is_active: true,
-        priority: 1,
-        success_rate: 98.5,
-        monthly_limit: 5000000,
-        response_time_ms: 120,
-        fee_percent: 2.5,
-        region: 'IN',
-        api_key: 'D4SS5C****', // Masked for security
-        api_secret: 'HRQ1A1****', // Masked for security
-        status: 'Live & Ready for Testing',
-        webhook_url: 'https://web-production-0b337.up.railway.app/api/v1/callback/easebuzzp'
-      };
-      
-      // Add demo gateways for better UI demonstration
-      const demoGateways = [
-        {
-          id: 'razorpay_demo',
-          name: 'Razorpay Demo',
-          provider: 'razorpay',
-          is_active: true,
-          priority: 2,
-          success_rate: 99.2,
-          monthly_limit: 10000000,
-          response_time_ms: 95,
-          fee_percent: 2.0,
-          region: 'IN',
-          api_key: 'rzp_test_****',
-          api_secret: 'demo_secret'
-        },
-        {
-          id: 'payu_demo',
-          name: 'PayU Demo',
-          provider: 'payu',
-          is_active: false,
-          priority: 3,
-          success_rate: 97.8,
-          monthly_limit: 2000000,
-          response_time_ms: 140,
-          fee_percent: 2.8,
-          region: 'IN',
-          api_key: 'payu_test_****',
-          api_secret: 'demo_salt'
-        }
-      ];
-      
-      // Combine real API data with demo data
-      const allGateways = [easebuzzGateway, ...demoGateways, ...gateways];
-      
       // Ensure each gateway has required properties for frontend
-      const processedGateways = allGateways.map((gateway: any) => ({
+      const processedGateways = gateways.map((gateway: any) => ({
         id: gateway.id,
         name: gateway.name || 'Unknown Gateway',
         provider: gateway.provider || gateway.code || 'unknown',
@@ -272,44 +219,28 @@ export const apiService = {
         priority: gateway.priority || 100,
         successRate: gateway.success_rate || 100,
         dailyLimit: gateway.monthly_limit || 1000000,
-        currentUsage: Math.floor(Math.random() * (gateway.monthly_limit || 1000000) * 0.3), // Random usage for demo
-        responseTime: gateway.response_time_ms || 100,
-        fees: gateway.fee_percent || 2.5,
-        region: gateway.region || 'IN',
-        // Include additional fields for custom providers
-        api_key: gateway.api_key,
-        api_secret: gateway.api_secret,
-        client_id: gateway.client_id,
-        api_id: gateway.api_id,
+        currentUsage: gateway.current_volume || 0,
+        responseTime: gateway.avg_response_time || 100,
+        fees: 2.5, // Default fee percentage
+        region: gateway.environment === 'production' ? 'PROD' : 'TEST',
+        // Include additional fields from database
+        api_key: gateway.credentials?.api_key,
+        api_secret: gateway.credentials?.api_secret,
+        client_id: gateway.credentials?.client_id,
+        api_id: gateway.credentials?.api_id,
         monthly_limit: gateway.monthly_limit,
         is_active: gateway.is_active,
-        webhook_url: gateway.webhook_url
+        webhook_url: gateway.webhook_url,
+        environment: gateway.environment
       }));
       
-      DEBUG_LOGS && console.log('🎯 Processed Gateways:', processedGateways);
-      console.log('✅ Easebuzz Gateway Added to Dashboard!', processedGateways.find(g => g.provider === 'easebuzz'));
+      DEBUG_LOGS && console.log('🎯 Processed Real Gateways:', processedGateways);
+      console.log('✅ Real Gateways from Database:', processedGateways.length, 'gateways loaded');
       return processedGateways;
     } catch (error: any) {
       console.error('❌ Error fetching gateways:', error);
-      
-      // Fallback: Return at least Easebuzz even if everything fails
-      return [{
-        id: 'easebuzz_fallback',
-        name: '🚀 Easebuzz (Fallback Mode)',
-        provider: 'easebuzz',
-        status: 'active',
-        priority: 1,
-        successRate: 98.5,
-        dailyLimit: 5000000,
-        currentUsage: 125000,
-        responseTime: 120,
-        fees: 2.5,
-        region: 'IN',
-        api_key: 'D4SS5C****',
-        api_secret: 'HRQ1A1****',
-        is_active: true,
-        webhook_url: 'https://web-production-0b337.up.railway.app/api/v1/callback/easebuzzp'
-      }];
+      // Return empty array on error instead of fallback gateways
+      return [];
     }
   },
 

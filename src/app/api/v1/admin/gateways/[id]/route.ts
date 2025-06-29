@@ -127,6 +127,120 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH method - same as PUT for partial updates
+export async function PATCH(request: NextRequest) {
+  try {
+    // Enhanced API key validation
+    const apiKey = request.headers.get('x-api-key');
+    const validApiKeys = [
+      'admin_test_key', 
+      process.env.ADMIN_API_KEY,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    ].filter(Boolean);
+    
+    if (!validApiKeys.includes(apiKey || '')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const id = getGatewayId(request);
+    if (!id) return NextResponse.json({ error: 'Invalid gateway id' }, { status: 400 });
+
+    const body = await request.json();
+    
+    // Expanded list of allowed fields for comprehensive gateway configuration
+    const allowed = [
+      'priority',
+      'is_active',
+      'monthly_limit',
+      'credentials',
+      'success_rate',
+      'name',
+      'provider',
+      'api_key',
+      'api_secret',
+      'webhook_url',
+      'webhook_secret',
+      'client_id',
+      'api_id',
+      'api_endpoint_url',
+      'environment',
+      'channel_id',
+      'auth_header',
+      'additional_headers',
+    ];
+    
+    const updateData: Record<string, any> = {};
+    
+    // Handle standard fields
+    for (const key of allowed) {
+      if (body[key] !== undefined) {
+        updateData[key] = body[key];
+      }
+    }
+
+    // Handle provider-specific credential logic
+    if (body.provider) {
+      let gatewayCredentials = body.credentials || {};
+      
+      if (body.provider === 'custom') {
+        gatewayCredentials = {
+          ...gatewayCredentials,
+          ...(body.client_id && { client_id: body.client_id }),
+          ...(body.api_id && { api_id: body.api_id }),
+          ...(body.api_secret && { api_secret: body.api_secret }),
+          ...(body.api_endpoint_url && { api_endpoint_url: body.api_endpoint_url }),
+          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+          ...(body.additional_headers && { additional_headers: typeof body.additional_headers === 'string' ? JSON.parse(body.additional_headers) : body.additional_headers }),
+        };
+      } else {
+        gatewayCredentials = {
+          ...gatewayCredentials,
+          ...(body.api_key && { api_key: body.api_key }),
+          ...(body.api_secret && { api_secret: body.api_secret }),
+          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+          ...(body.environment && ['phonepe', 'cashfree'].includes(body.provider) && { environment: body.environment }),
+          ...(body.channel_id && body.provider === 'paytm' && { channel_id: body.channel_id }),
+          ...(body.auth_header && body.provider === 'payu' && { auth_header: body.auth_header }),
+        };
+      }
+      
+      updateData.credentials = gatewayCredentials;
+    }
+
+    // Handle additional_headers JSON parsing
+    if (body.additional_headers && typeof body.additional_headers === 'string') {
+      try {
+        updateData.additional_headers = JSON.parse(body.additional_headers);
+      } catch (e) {
+        updateData.additional_headers = { raw: body.additional_headers };
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
+    }
+
+    updateData.updated_at = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from('payment_gateways')
+      .update(updateData)
+      .eq('id', id)
+      .select('*')
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    return NextResponse.json({ 
+      gateway: data,
+      message: 'Gateway updated successfully via PATCH'
+    });
+  } catch (err: any) {
+    console.error('Gateway PATCH update error:', err);
+    return NextResponse.json({ error: err.message }, { status: 400 });
+  }
+}
+
 // Delete gateway (soft delete -> is_active=false)
 export async function DELETE(request: NextRequest) {
   try {

@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { headers } from 'next/headers';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 /**
  * Demo Data Setup API
  * POST /api/v1/admin/demo - Add demo clients and data for testing
  */
 export async function POST(request: NextRequest) {
   try {
+    // Create Supabase client at runtime, not build time
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     // Verify admin authentication
     const headersList = headers();
     const authorization = headersList.get('authorization');
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Setup demo clients and assignments
-    const demoData = await setupDemoData();
+    const demoData = await setupDemoData(supabase);
     
     return NextResponse.json({
       success: true,
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function setupDemoData() {
+async function setupDemoData(supabase: any) {
   // 1. Create demo clients
   const { data: clients, error: clientError } = await supabase
     .from('clients')
@@ -162,9 +163,10 @@ async function setupDemoData() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Create Supabase client at runtime for GET request
     const supabase = createClient(
       process.env.SUPABASE_URL!,
-      process.env.SUPABASE_ANON_KEY!
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY!
     );
     
     const { data: clients, error: clientError } = await supabase

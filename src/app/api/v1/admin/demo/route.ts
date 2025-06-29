@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseService } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
 /**
@@ -19,8 +18,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Dynamic import to avoid build-time issues
+    const { getSupabaseService } = await import('@/lib/supabase/server');
+    
     // Setup demo clients and assignments
-    const demoData = await setupDemoData();
+    const demoData = await setupDemoData(getSupabaseService);
     
     return NextResponse.json({
       success: true,
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function setupDemoData() {
+async function setupDemoData(getSupabaseService: () => any) {
   const supabase = getSupabaseService();
   
   // 1. Create demo clients
@@ -159,6 +161,8 @@ async function setupDemoData() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Dynamic import to avoid build-time issues
+    const { getSupabaseService } = await import('@/lib/supabase/server');
     const supabase = getSupabaseService();
     
     const { data: clients, error: clientError } = await supabase

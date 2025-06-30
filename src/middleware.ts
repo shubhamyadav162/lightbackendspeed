@@ -79,7 +79,7 @@ export function middleware(request: NextRequest) {
         'Content-Type, Authorization, X-Client-Key, x-api-key, X-API-Key, Accept, Origin, ' +
         'X-Requested-With, X-CSRF-Token, X-Api-Version, Content-MD5, Content-Length, ' +
         'Accept-Version, Date, X-Client-Id, access-control-request-headers, ' +
-        'access-control-request-method'
+        'access-control-request-method, x-api-secret, X-API-Secret, X-Api-Secret'
       );
       headers.set('Access-Control-Allow-Credentials', 'true');
       headers.set('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
@@ -105,7 +105,7 @@ export function middleware(request: NextRequest) {
       'Content-Type, Authorization, X-Client-Key, x-api-key, X-API-Key, Accept, Origin, ' +
       'X-Requested-With, X-CSRF-Token, X-Api-Version, Content-MD5, Content-Length, ' +
       'Accept-Version, Date, X-Client-Id, access-control-request-headers, ' +
-      'access-control-request-method'
+      'access-control-request-method, x-api-secret, X-API-Secret, X-Api-Secret'
     );
     response.headers.set('Vary', 'Origin');
     

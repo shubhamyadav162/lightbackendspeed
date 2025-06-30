@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightSpeed Pay - Real Money Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .amount-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .amount-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .amount-btn:hover {
+            border-color: #4CAF50;
+            background: #f0f0f0;
+        }
+
+        .amount-btn.active {
+            border-color: #4CAF50;
+            background: #4CAF50;
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #45a049;
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .info {
+            background: #e3f2fd;
+            border: 1px solid #90caf9;
+            color: #1565c0;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .response-container {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .response-container.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .response-container.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>LightSpeed Pay - Real Money Test</h1>
+        
+        <div class="warning">
+            <strong>चेतावनी:</strong> यह real money test है। कृपया केवल छोटी राशि (₹1-10) का उपयोग करें।
+        </div>
+
+        <form id="paymentForm">
+            <div class="form-group">
+                <label for="amount">राशि (₹)</label>
+                <div class="amount-buttons">
+                    <button type="button" class="amount-btn" data-amount="1">₹1</button>
+                    <button type="button" class="amount-btn" data-amount="5">₹5</button>
+                    <button type="button" class="amount-btn" data-amount="10">₹10</button>
+                </div>
+                <input type="number" id="amount" name="amount" min="1" max="100" value="1" required>
+            </div>
+
+            <div class="form-group">
+                <label for="gateway">Payment Gateway चुनें</label>
+                <select id="gateway" name="gateway" required>
+                    <option value="">Gateway चुनें...</option>
+                    <option value="easebuzz">Easebuzz (NextGen Techno)</option>
+                    <option value="razorpay">Razorpay</option>
+                    <option value="payu">PayU</option>
+                    <option value="cashfree">Cashfree</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="name">नाम</label>
+                <input type="text" id="name" name="name" value="Test User" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="test@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">फोन नंबर</label>
+                <input type="tel" id="phone" name="phone" value="9999999999" pattern="[0-9]{10}" required>
+            </div>
+
+            <button type="submit" class="submit-btn">Payment शुरू करें</button>
+        </form>
+
+        <div class="loader">
+            <div class="spinner"></div>
+            <p style="margin-top: 10px;">Payment process हो रहा है...</p>
+        </div>
+
+        <div id="response" class="response-container"></div>
+
+        <div class="info">
+            <strong>महत्वपूर्ण जानकारी:</strong>
+            <ul style="margin-left: 20px; margin-top: 5px;">
+                <li>यह test production environment में है</li>
+                <li>Transaction successful होने पर database में record होगा</li>
+                <li>Refund के लिए admin panel का उपयोग करें</li>
+                <li>Payment URL: https://web-production-0b337.up.railway.app/api/v1</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://web-production-0b337.up.railway.app/api/v1';
+        const API_KEY = 'FRQT0XKLHY';  // Easebuzz merchant key as API key
+
+        // Amount button handling
+        document.querySelectorAll('.amount-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                document.getElementById('amount').value = this.dataset.amount;
+            });
+        });
+
+        // Form submission
+        document.getElementById('paymentForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('.submit-btn');
+            const loader = document.querySelector('.loader');
+            const responseDiv = document.getElementById('response');
+            
+            // Disable form and show loader
+            submitBtn.disabled = true;
+            loader.style.display = 'block';
+            responseDiv.style.display = 'none';
+            
+            try {
+                console.log('Initiating payment...');
+
+                // Call backend to create transaction WITHOUT x-api-secret header
+                const response = await fetch(`${API_BASE_URL}/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': API_KEY,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: parseInt(formData.get('amount')),  // Amount in rupees
+                        customer_email: formData.get('email'),
+                        customer_name: formData.get('name'),
+                        customer_phone: formData.get('phone'),
+                        payment_method: 'upi',
+                        test_mode: false,  // Real money test
+                        product_info: 'Real Money Test Transaction'
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Response:', result);
+                
+                if (response.ok && result.success) {
+                    // Show success message
+                    responseDiv.className = 'response-container success';
+                    responseDiv.innerHTML = `
+                        <strong>Payment initiated successfully!</strong><br>
+                        Transaction ID: ${result.transaction_id}<br>
+                        Gateway: ${result.gateway_used}<br>
+                        Redirecting to payment gateway...
+                    `;
+                    responseDiv.style.display = 'block';
+                    
+                    // Redirect to checkout URL after 2 seconds
+                    setTimeout(() => {
+                        if (result.checkout_url) {
+                            window.location.href = result.checkout_url;
+                        } else {
+                            throw new Error('No checkout URL received');
+                        }
+                    }, 2000);
+                } else {
+                    throw new Error(result.message || 'Payment initiation failed');
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                responseDiv.className = 'response-container error';
+                responseDiv.innerHTML = `
+                    <strong>Error:</strong> ${error.message}<br>
+                    कृपया retry करें या admin से संपर्क करें।
+                `;
+                responseDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                loader.style.display = 'none';
+            }
+        });
+
+        // Check for callback parameters in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('status')) {
+            const status = urlParams.get('status');
+            const transactionId = urlParams.get('transactionId');
+            const responseDiv = document.getElementById('response');
+            
+            if (status === 'success') {
+                responseDiv.className = 'response-container success';
+                responseDiv.innerHTML = `
+                    <strong>Payment Successful!</strong><br>
+                    Transaction ID: ${transactionId}<br>
+                    Payment successfully recorded in database.
+                `;
+            } else {
+                responseDiv.className = 'response-container error';
+                responseDiv.innerHTML = `
+                    <strong>Payment Failed!</strong><br>
+                    Transaction ID: ${transactionId}<br>
+                    Reason: ${urlParams.get('reason') || 'Unknown error'}
+                `;
+            }
+            responseDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 

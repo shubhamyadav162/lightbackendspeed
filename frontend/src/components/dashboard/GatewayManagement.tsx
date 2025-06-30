@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertTriangle, Settings, Zap, DollarSign, Globe, Shield, Plus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertTriangle, Settings, Zap, DollarSign, Globe, Shield, Plus, CreditCard } from 'lucide-react';
 import { apiService } from '@/services/api';
 import { useGateways, useUpdateGateway } from '@/hooks/useApi';
 import { subscribeToGatewayHealth } from '@/services/api';
@@ -14,6 +15,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AddGatewayModal } from './AddGatewayModal';
 import { GatewayConfigurationModal } from './GatewayConfigurationModal';
 import { DraggableGatewayList } from './DraggableGatewayList';
+import { EasebuzzQuickSetup } from './EasebuzzQuickSetup';
 import { toast } from 'sonner';
 
 interface Gateway {
@@ -44,6 +46,7 @@ export const GatewayManagement = () => {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [configGateway, setConfigGateway] = useState<Gateway | null>(null);
   const [healthMetrics, setHealthMetrics] = useState<Record<string, any>>({});
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Memoize processed gateways
   const gateways = useMemo(() => {
@@ -52,6 +55,11 @@ export const GatewayManagement = () => {
       ...healthMetrics[gateway.id] // Apply health metrics if available
     }));
   }, [apiGateways, healthMetrics]);
+
+  // Check if Easebuzz gateway exists
+  const easebuzzGateway = useMemo(() => {
+    return gateways.find(g => g.provider === 'easebuzz');
+  }, [gateways]);
 
   // Subscribe to real-time health metrics - only once
   useEffect(() => {
@@ -245,6 +253,163 @@ export const GatewayManagement = () => {
         </div>
       </CardHeader>
 
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview" className="flex items-center space-x-2">
+              <DollarSign className="w-4 h-4" />
+              <span>Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="easebuzz" className="flex items-center space-x-2">
+              <CreditCard className="w-4 h-4" />
+              <span>NextGen Techno - Easebuzz</span>
+              {easebuzzGateway && (
+                <Badge variant="outline" className="ml-1 bg-green-50 text-green-700 text-xs">
+                  Active
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="all-gateways" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span>All Gateways</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Gateway Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Active Gateways</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        {gateways.filter(g => g.status === 'active').length}
+                      </p>
+                    </div>
+                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Total Volume</p>
+                      <p className="text-2xl font-bold text-blue-600">$2.3M</p>
+                    </div>
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Avg Success Rate</p>
+                      <p className="text-2xl font-bold text-purple-600">98.2%</p>
+                    </div>
+                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <Shield className="w-4 h-4 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Regions</p>
+                      <p className="text-2xl font-bold text-orange-600">3</p>
+                    </div>
+                    <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <Globe className="w-4 h-4 text-orange-600" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {easebuzzGateway ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <CreditCard className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-green-900">NextGen Techno - Easebuzz Gateway</p>
+                          <p className="text-sm text-green-700">Production Ready • Priority 1 • 98.5% Success Rate</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setActiveTab("easebuzz")}
+                        className="bg-green-100 hover:bg-green-200 text-green-800 border-green-300"
+                      >
+                        Manage
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-yellow-900">Easebuzz Gateway Not Found</p>
+                          <p className="text-sm text-yellow-700">Setup your NextGen Techno Ventures Easebuzz gateway</p>
+                        </div>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setActiveTab("easebuzz")}
+                        className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 border-yellow-300"
+                      >
+                        Setup
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <div className="text-sm text-gray-600">
+                    Total Gateways: {gateways.length} | Active: {gateways.filter(g => g.status === 'active').length} | Highest Priority: {Math.min(...gateways.map(g => g.priority || 100))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="easebuzz" className="space-y-6">
+            <EasebuzzQuickSetup />
+          </TabsContent>
+
+          <TabsContent value="all-gateways" className="space-y-6">
+            {/* Gateway List - Draggable for Priority */}
+            <DraggableGatewayList
+              gateways={gateways}
+              onToggleStatus={toggleGatewayStatus}
+              onTestConnection={testConnection}
+              onConfigure={openConfigModal}
+            />
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+
       {/* Add Gateway Modal */}
       <AddGatewayModal 
         isOpen={isAddModalOpen}
@@ -261,75 +426,6 @@ export const GatewayManagement = () => {
         }}
         gateway={configGateway}
         onSuccess={handleConfigGatewaySuccess}
-      />
-
-      {/* Gateway Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Gateways</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {gateways.filter(g => g.status === 'active').length}
-                </p>
-              </div>
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Volume</p>
-                <p className="text-2xl font-bold text-blue-600">$2.3M</p>
-              </div>
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Avg Success Rate</p>
-                <p className="text-2xl font-bold text-purple-600">98.2%</p>
-              </div>
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Shield className="w-4 h-4 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Regions</p>
-                <p className="text-2xl font-bold text-orange-600">3</p>
-              </div>
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <Globe className="w-4 h-4 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Gateway List - Draggable for Priority */}
-      <DraggableGatewayList
-        gateways={gateways}
-        onToggleStatus={toggleGatewayStatus}
-        onTestConnection={testConnection}
-        onConfigure={openConfigModal}
       />
     </Card>
   );

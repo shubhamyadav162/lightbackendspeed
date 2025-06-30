@@ -7,51 +7,6 @@ import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
  */
 export async function GET(request: NextRequest) {
   try {
-<<<<<<< HEAD
-    // Check API key - allow admin_test_key in all environments for debugging
-    const apiKey = request.headers.get('x-api-key');
-    console.log('[GATEWAYS] API Key received:', apiKey ? 'present' : 'missing');
-    console.log('[GATEWAYS] Environment:', process.env.NODE_ENV);
-    
-    if (apiKey !== 'admin_test_key') {
-      console.log('[GATEWAYS] Unauthorized access attempt');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Debug logging for environment variables
-    console.log('[GATEWAYS] Environment check:', {
-      NODE_ENV: process.env.NODE_ENV,
-      SUPABASE_URL: process.env.SUPABASE_URL ? 'SET ✅' : 'MISSING ❌',
-      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET ✅' : 'MISSING ❌'
-    });
-
-    // Check if environment variables are available
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[GATEWAYS] Missing Supabase environment variables');
-      return NextResponse.json({ 
-        error: 'Configuration error - missing Supabase credentials',
-        debug: {
-          SUPABASE_URL: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
-          SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? 'SET' : 'MISSING'
-        }
-      }, { status: 500 });
-    }
-
-    const supabase = getSupabaseService();
-    console.log('[GATEWAYS] Supabase client initialized');
-
-    const { data: gateways, error } = await supabase
-      .from('payment_gateways')
-      .select(`
-        id,
-        name,
-        code,
-        credentials,
-        is_active,
-        priority,
-        created_at,
-        updated_at
-=======
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -63,6 +18,8 @@ export async function GET(request: NextRequest) {
     if (!validApiKeys.includes(apiKey || '')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const supabase = getSupabaseService();
 
     // Fetch all gateways with extended fields
     const { data: gateways, error } = await supabase
@@ -77,7 +34,6 @@ export async function GET(request: NextRequest) {
         additional_headers,
         client_id,
         api_id
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       `)
       .order('priority', { ascending: true });
 
@@ -152,12 +108,6 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-<<<<<<< HEAD
-    // Check API key for admin access
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== 'admin_test_key') {
-      console.log('[GATEWAYS POST] Unauthorized access attempt');
-=======
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -167,7 +117,6 @@ export async function POST(request: NextRequest) {
     ].filter(Boolean);
     
     if (!validApiKeys.includes(apiKey || '')) {
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -181,9 +130,6 @@ export async function POST(request: NextRequest) {
       name,
       provider,
       credentials,
-<<<<<<< HEAD
-      api_endpoint_url,
-=======
       api_key,
       api_secret,
       webhook_url,
@@ -195,25 +141,12 @@ export async function POST(request: NextRequest) {
       channel_id,
       auth_header,
       additional_headers,
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       monthly_limit = 1_000_000,
       priority = 100,
       is_active = true,
       success_rate = 100,
     } = body || {};
 
-<<<<<<< HEAD
-    if (!name || !provider || !credentials) {
-      console.log('[GATEWAYS POST] Missing required fields:', { name, provider, credentials });
-      return NextResponse.json({ 
-        error: 'name, provider, credentials required',
-        received: { name, provider, credentials: credentials ? 'present' : 'missing' }
-      }, { status: 400 });
-    }
-
-    // Derive code slug (unique) from provider + name
-    const code = `${provider}_${name}`.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-=======
     if (!name || !provider) {
       return NextResponse.json({ error: 'name and provider are required' }, { status: 400 });
     }
@@ -280,39 +213,13 @@ export async function POST(request: NextRequest) {
         insertData.additional_headers = { raw: additional_headers };
       }
     }
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
 
     console.log('[GATEWAYS POST] Creating gateway with:', { code, name, provider, priority, is_active });
-
-    // Enhance credentials object to include provider info and gateway details
-    const enhancedCredentials = {
-      ...credentials,
-      provider: provider,
-      monthly_limit: monthly_limit,
-      success_rate: success_rate,
-      ...(api_endpoint_url && { api_endpoint_url: api_endpoint_url }),
-    };
-
-    const insertPayload = {
-      code,
-      name,
-      credentials: enhancedCredentials, // Store all additional info in credentials JSON
-      priority,
-      is_active,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log('[GATEWAYS POST] Final insert payload:', insertPayload);
 
     // Insert gateway row using existing schema columns only
     const { data: gateway, error: insErr } = await supabase
       .from('payment_gateways')
-<<<<<<< HEAD
-      .insert(insertPayload)
-=======
       .insert(insertData)
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       .select('*')
       .single();
 
@@ -321,17 +228,6 @@ export async function POST(request: NextRequest) {
       throw new Error(insErr.message);
     }
 
-<<<<<<< HEAD
-    console.log('[GATEWAYS POST] Gateway created successfully:', gateway);
-    return NextResponse.json({ gateway });
-    
-  } catch (err: any) {
-    console.error('[GATEWAYS POST] Error:', err);
-    return NextResponse.json({ 
-      error: err.message,
-      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    }, { status: 400 });
-=======
     return NextResponse.json({ 
       gateway,
       message: 'Gateway created successfully with comprehensive credential support'
@@ -339,6 +235,5 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error('Gateway creation error:', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
   }
 } 

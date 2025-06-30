@@ -12,11 +12,6 @@ import crypto from 'crypto';
  */
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-<<<<<<< HEAD
-    // Simple API key check for private deployment
-    const apiKey = request.headers.get('x-api-key');
-    if (apiKey !== 'admin_test_key') {
-=======
     // Consistent API key check - accept both admin_test_key and ADMIN_API_KEY
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -27,7 +22,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     
     if (!apiKey || !validApiKeys.includes(apiKey)) {
       console.log('🔐 Gateway Test - Invalid API key:', apiKey);
->>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

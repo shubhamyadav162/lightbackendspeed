@@ -1,0 +1,14 @@
+# Ignore workers directory for Railway auto-detection
+workers/
+
+# Ignore frontend
+frontend/
+
+# Ignore memory bank and docs
+memory-bank/
+*.md
+
+# Ignore config files
+.cursorrules
+.env
+.env.local 

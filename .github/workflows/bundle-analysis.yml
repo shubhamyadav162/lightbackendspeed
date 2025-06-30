@@ -1,0 +1,37 @@
+name: Bundle Analysis
+
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Generate bundle analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - name: Install dependencies
+        run: |
+          cd frontend && npm ci
+      - name: Build & analyze bundle
+        run: |
+          cd frontend
+          npm run analyze
+      - name: Upload Vite bundle report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bundle-report
+          path: frontend/dist/bundle-report.html
+      - name: Comment PR with link
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: |
+            📊 Bundle analysis report generated. Download artifact `bundle-report.html` to review detailed breakdown. 

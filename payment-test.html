@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 LightSpeedPay - Payment Test Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .title {
+            color: #333;
+            font-size: 1.8em;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            color: #555;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .amount-display {
+            background: #f8f9fa;
+            border: 2px solid #28a745;
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .pay-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+        
+        .pay-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .test-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #856404;
+        }
+        
+        .credentials-info {
+            background: #e2e3e5;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="logo">💳</div>
+        <h1 class="title">LightSpeedPay Test Payment</h1>
+        
+        <div class="test-info">
+            <strong>🧪 Test Mode:</strong> यह real payment test है। आपका ₹1 charge होगा।
+        </div>
+        
+        <form id="paymentForm">
+            <div class="form-group">
+                <label for="amount">💰 Amount (INR)</label>
+                <input type="number" id="amount" value="1" class="amount-display" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">📧 Email Address</label>
+                <input type="email" id="email" value="test@lightspeedpay.in" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone">📱 Phone Number</label>
+                <input type="tel" id="phone" value="9999999999" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">👤 Full Name</label>
+                <input type="text" id="name" value="Test User" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="method">💳 Payment Method</label>
+                <select id="method" required>
+                    <option value="upi">UPI</option>
+                    <option value="card">Credit/Debit Card</option>
+                    <option value="netbanking">Net Banking</option>
+                    <option value="wallet">Wallet</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="pay-button" id="payButton">
+                🚀 Pay ₹1 - Test Real Payment
+            </button>
+        </form>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="credentials-info">
+            <strong>🔧 API Endpoint:</strong> Railway Production<br>
+            <strong>💳 Gateway:</strong> Easebuzz Live<br>
+            <strong>🔐 Mode:</strong> Real Transaction
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://web-production-0b337.up.railway.app/api/v1';
+        const API_KEY = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+        const API_SECRET = 'a3d9e150-0c1f-4f9d-8061-6f8251413dc5';
+        
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        function hideStatus() {
+            document.getElementById('status').style.display = 'none';
+        }
+        
+        async function initiatePayment(paymentData) {
+            try {
+                showStatus('🔄 Payment initiate हो रहा है...', 'loading');
+                
+                const response = await fetch(`${API_BASE}/pay`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': API_KEY,
+                        'x-api-secret': API_SECRET
+                    },
+                    body: JSON.stringify(paymentData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.checkout_url) {
+                    showStatus('✅ Payment URL बन गया! Redirect हो रहा है...', 'success');
+                    
+                    // Transaction details log करें
+                    console.log('✅ Payment Created:', {
+                        transaction_id: result.transaction_id,
+                        checkout_url: result.checkout_url,
+                        amount: result.amount,
+                        gateway: result.gateway_used
+                    });
+                    
+                    // 2 seconds बाद redirect करें
+                    setTimeout(() => {
+                        window.open(result.checkout_url, '_blank');
+                        showStatus('💳 Payment page खुल गया! Payment complete करें।', 'success');
+                    }, 2000);
+                    
+                } else {
+                    throw new Error(result.message || 'Payment initiation failed');
+                }
+                
+            } catch (error) {
+                console.error('❌ Payment Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideStatus();
+            
+            const payButton = document.getElementById('payButton');
+            payButton.disabled = true;
+            payButton.textContent = '⏳ Processing...';
+            
+            try {
+                const formData = {
+                    amount: parseInt(document.getElementById('amount').value),
+                    customer_email: document.getElementById('email').value,
+                    customer_phone: document.getElementById('phone').value,
+                    customer_name: document.getElementById('name').value,
+                    payment_method: document.getElementById('method').value,
+                    product_info: 'LightSpeedPay Test Payment'
+                };
+                
+                await initiatePayment(formData);
+                
+            } finally {
+                // 5 seconds बाद button restore करें
+                setTimeout(() => {
+                    payButton.disabled = false;
+                    payButton.textContent = '🚀 Pay ₹1 - Test Real Payment';
+                }, 5000);
+            }
+        });
+        
+        // Page load पर API connection test करें
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    console.log('✅ Backend Connection: Success');
+                } else {
+                    console.warn('⚠️ Backend Connection: Issues detected');
+                }
+            } catch (error) {
+                console.error('❌ Backend Connection: Failed', error);
+                showStatus('⚠️ Backend connection issues। कुछ समय बाद try करें।', 'error');
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -15,6 +15,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database unavailable' }, { status: 500 });
+    }
+
     const { data, error } = await supabase
       .from('vw_queue_metrics_hourly')
       .select('*')

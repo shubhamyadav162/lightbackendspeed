@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
-    "start": "node server-express.js",
+    "start": "node .next/standalone/server.js",
+    "start:express": "node server-express.js",
     "start:railway": "npm run build && npm run start",
     "lint": "next lint",
     "test": "jest --passWithNoTests",

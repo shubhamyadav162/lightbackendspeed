@@ -16,6 +16,11 @@ function getGatewayId(request: NextRequest): string | null {
 // Update gateway (priority, status, credentials, etc.)
 export async function PUT(request: NextRequest) {
   try {
+<<<<<<< HEAD
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
+=======
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -25,6 +30,7 @@ export async function PUT(request: NextRequest) {
     ].filter(Boolean);
     
     if (!validApiKeys.includes(apiKey || '')) {
+>>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -41,6 +47,9 @@ export async function PUT(request: NextRequest) {
       'credentials',
       'success_rate',
       'name',
+<<<<<<< HEAD
+      'api_endpoint_url',
+=======
       'provider',
       'api_key',
       'api_secret',
@@ -53,6 +62,7 @@ export async function PUT(request: NextRequest) {
       'channel_id',
       'auth_header',
       'additional_headers',
+>>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
     ];
     
     const updateData: Record<string, any> = {};
@@ -63,6 +73,26 @@ export async function PUT(request: NextRequest) {
         updateData[key] = body[key];
       }
     }
+<<<<<<< HEAD
+    
+    // Handle api_endpoint_url specially - store it in credentials JSON
+    if (body.api_endpoint_url !== undefined) {
+      // Get current gateway to merge with existing credentials
+      const { data: currentGateway } = await supabase
+        .from('payment_gateways')
+        .select('credentials')
+        .eq('id', id)
+        .single();
+      
+      const existingCredentials = currentGateway?.credentials || {};
+      updateData.credentials = {
+        ...existingCredentials,
+        api_endpoint_url: body.api_endpoint_url
+      };
+      delete updateData.api_endpoint_url; // Remove from direct column update
+    }
+    
+=======
 
     // Handle provider-specific credential logic
     if (body.provider) {
@@ -102,6 +132,7 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+>>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 });
     }
@@ -244,6 +275,11 @@ export async function PATCH(request: NextRequest) {
 // Delete gateway (soft delete -> is_active=false)
 export async function DELETE(request: NextRequest) {
   try {
+<<<<<<< HEAD
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
+=======
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -253,6 +289,7 @@ export async function DELETE(request: NextRequest) {
     ].filter(Boolean);
     
     if (!validApiKeys.includes(apiKey || '')) {
+>>>>>>> 6b1b07c04742caa4c3c5916df73816499b810376
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

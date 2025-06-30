@@ -46,6 +46,13 @@ export function middleware(request: NextRequest) {
   console.log(`[CORS] Method: ${request.method}`);
   console.log(`[CORS] Path: ${request.nextUrl.pathname}`);
   
+  // Log all headers for debugging
+  if (request.nextUrl.pathname.includes('/pay')) {
+    console.log(`[DEBUG] All headers:`, Object.fromEntries(request.headers.entries()));
+    console.log(`[DEBUG] API Key header:`, request.headers.get('x-api-key'));
+    console.log(`[DEBUG] API Secret header:`, request.headers.get('x-api-secret'));
+  }
+  
   // Is this origin explicitly allowed?
   const isAllowedOrigin = origin ? allowedOrigins.includes(origin) : false;
   

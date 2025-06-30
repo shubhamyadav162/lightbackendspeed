@@ -240,7 +240,9 @@
 
     <script>
         const API_BASE_URL = 'https://web-production-0b337.up.railway.app/api/v1';
-        const API_KEY = 'FRQT0XKLHY';  // Easebuzz merchant key as API key
+        // Using the correct API key that exists in the database
+        const API_KEY = 'lsp_live_frqt0xklhy_nextgen';  // Updated API key format
+        const API_SECRET = 'S84LOJ3U8N';  // Easebuzz salt as API secret
 
         // Amount button handling
         document.querySelectorAll('.amount-btn').forEach(btn => {
@@ -266,57 +268,69 @@
             responseDiv.style.display = 'none';
             
             try {
-                console.log('Initiating payment...');
+                console.log('🚀 Initiating payment...');
+                console.log('📧 API Key:', API_KEY);
+                console.log('🌐 API URL:', `${API_BASE_URL}/pay`);
 
-                // Call backend to create transaction WITHOUT x-api-secret header
+                const requestBody = {
+                    amount: parseInt(formData.get('amount')),  // Amount in rupees
+                    customer_email: formData.get('email'),
+                    customer_name: formData.get('name'),
+                    customer_phone: formData.get('phone'),
+                    payment_method: 'upi',
+                    test_mode: false,  // Real money test
+                    product_info: 'Real Money Test Transaction'
+                };
+
+                console.log('📤 Request Body:', requestBody);
+
+                // Call backend to create transaction
                 const response = await fetch(`${API_BASE_URL}/pay`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-API-Key': API_KEY,
+                        'X-API-Secret': API_SECRET,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        amount: parseInt(formData.get('amount')),  // Amount in rupees
-                        customer_email: formData.get('email'),
-                        customer_name: formData.get('name'),
-                        customer_phone: formData.get('phone'),
-                        payment_method: 'upi',
-                        test_mode: false,  // Real money test
-                        product_info: 'Real Money Test Transaction'
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
+                console.log('📥 Response Status:', response.status);
+                console.log('📥 Response Headers:', [...response.headers.entries()]);
+
                 const result = await response.json();
-                console.log('Response:', result);
+                console.log('📋 Response Data:', result);
                 
                 if (response.ok && result.success) {
                     // Show success message
                     responseDiv.className = 'response-container success';
                     responseDiv.innerHTML = `
-                        <strong>Payment initiated successfully!</strong><br>
+                        <strong>✅ Payment initiated successfully!</strong><br>
                         Transaction ID: ${result.transaction_id}<br>
                         Gateway: ${result.gateway_used}<br>
-                        Redirecting to payment gateway...
+                        <em>Redirecting to payment gateway...</em>
                     `;
                     responseDiv.style.display = 'block';
                     
                     // Redirect to checkout URL after 2 seconds
                     setTimeout(() => {
                         if (result.checkout_url) {
+                            console.log('🔗 Redirecting to:', result.checkout_url);
                             window.location.href = result.checkout_url;
                         } else {
                             throw new Error('No checkout URL received');
                         }
                     }, 2000);
                 } else {
-                    throw new Error(result.message || 'Payment initiation failed');
+                    throw new Error(result.error || 'Payment initiation failed');
                 }
             } catch (error) {
-                console.error('Payment error:', error);
+                console.error('❌ Payment error:', error);
                 responseDiv.className = 'response-container error';
                 responseDiv.innerHTML = `
-                    <strong>Error:</strong> ${error.message}<br>
+                    <strong>❌ Error:</strong> ${error.message}<br>
+                    <small>Check browser console for details</small><br>
                     कृपया retry करें या admin से संपर्क करें।
                 `;
                 responseDiv.style.display = 'block';
@@ -336,20 +350,25 @@
             if (status === 'success') {
                 responseDiv.className = 'response-container success';
                 responseDiv.innerHTML = `
-                    <strong>Payment Successful!</strong><br>
+                    <strong>✅ Payment Successful!</strong><br>
                     Transaction ID: ${transactionId}<br>
                     Payment successfully recorded in database.
                 `;
             } else {
                 responseDiv.className = 'response-container error';
                 responseDiv.innerHTML = `
-                    <strong>Payment Failed!</strong><br>
+                    <strong>❌ Payment Failed!</strong><br>
                     Transaction ID: ${transactionId}<br>
                     Reason: ${urlParams.get('reason') || 'Unknown error'}
                 `;
             }
             responseDiv.style.display = 'block';
         }
+
+        // Log page load
+        console.log('🚀 LightSpeed Pay Test Page Loaded');
+        console.log('📱 Frontend URL:', window.location.origin);
+        console.log('🔗 Backend URL:', API_BASE_URL);
     </script>
 </body>
 </html> 

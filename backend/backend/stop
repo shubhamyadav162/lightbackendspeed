@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Stop script for LightSpeedPay Integrated
+# This script stops all running services
+
+echo "Stopping LightSpeedPay Integrated services..."
+
+# Find and kill Node.js processes for Next.js and workers
+NODE_PIDS=$(ps aux | grep "node" | grep -v grep | awk '{print $2}')
+
+if [ -z "$NODE_PIDS" ]; then
+  echo "No running Node.js processes found."
+else
+  echo "Stopping Node.js processes..."
+  for PID in $NODE_PIDS; do
+    echo "Killing process $PID"
+    kill -15 $PID 2>/dev/null
+  done
+  
+  # Wait a moment to allow processes to exit gracefully
+  sleep 2
+  
+  # Force kill any remaining processes
+  for PID in $NODE_PIDS; do
+    if ps -p $PID > /dev/null; then
+      echo "Force killing process $PID"
+      kill -9 $PID 2>/dev/null
+    fi
+  done
+fi
+
+echo "All services stopped!" 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, supabaseService } from '@/lib/supabase/server';
+import { EasebuzzAdapter } from '@/lib/gateways/easebuzz-adapter';
 
 // Initialize Supabase client
 const supabase = supabaseService;
@@ -49,17 +50,38 @@ async function verifyMerchantAuth(request: NextRequest) {
   return data;
 }
 
+// Helper function to get active gateway
+async function getActiveGateway() {
+  const { data, error } = await supabase
+    .from('payment_gateways')
+    .select('*')
+    .eq('is_active', true)
+    .eq('provider', 'easebuzz')
+    .order('priority', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    throw new Error('No active Easebuzz gateway found');
+  }
+
+  return data;
+}
+
 // Helper function to create a transaction
 async function createTransaction(params: {
   merchantId: string;
   amount: number;
   customerEmail: string;
+  customerName: string;
+  customerPhone: string;
   paymentMethod: string;
+  testMode: boolean;
 }) {
-  const { merchantId, amount, customerEmail, paymentMethod } = params;
+  const { merchantId, amount, customerEmail, customerName, customerPhone, paymentMethod, testMode } = params;
   
   // Generate a transaction ID
-  const txnId = `TXN_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const txnId = `LSP_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   
   // Create the transaction record
   const { data, error } = await supabase
@@ -70,9 +92,9 @@ async function createTransaction(params: {
       amount,
       currency: 'INR',
       customer_email: customerEmail,
-      customer_phone: '', // This would come from the request in a real implementation
+      customer_phone: customerPhone,
       status: 'PENDING',
-      is_sandbox: false,
+      is_sandbox: testMode,
     })
     .select()
     .single();
@@ -90,28 +112,90 @@ export async function POST(request: NextRequest) {
     const merchant = await verifyMerchantAuth(request);
     
     // Parse request body
-    const { amount, customer_email, payment_method } = await request.json();
+    const { 
+      amount, 
+      customer_email, 
+      customer_name, 
+      customer_phone,
+      payment_method,
+      test_mode = false,
+      product_info = 'LightSpeedPay Payment'
+    } = await request.json();
     
     // Validate required fields
     if (!amount || !customer_email) {
       return NextResponse.json({ error: 'Amount and customer email are required' }, { status: 400 });
     }
     
-    // Create transaction
+    // Get active gateway
+    const gateway = await getActiveGateway();
+    
+    // Create EaseBuzz adapter
+    const easebuzzAdapter = new EasebuzzAdapter({
+      api_key: gateway.credentials.api_key,
+      api_secret: gateway.credentials.api_secret
+    }, test_mode);
+    
+    // Create transaction record
     const transaction = await createTransaction({
       merchantId: merchant.id,
       amount,
       customerEmail: customer_email,
+      customerName: customer_name || 'Customer',
+      customerPhone: customer_phone || '9999999999',
       paymentMethod: payment_method || 'upi',
+      testMode: test_mode
     });
     
-    // Return response with checkout URL
+    // Create payment with EaseBuzz
+    const paymentResponse = await easebuzzAdapter.initiatePayment({
+      amount: amount,
+      order_id: transaction.txn_id,
+      description: product_info,
+      customer_info: {
+        name: customer_name || 'Customer',
+        email: customer_email,
+        phone: customer_phone || '9999999999'
+      }
+    });
+    
+    if (!paymentResponse.success) {
+      // Update transaction status to failed
+      await supabase
+        .from('transactions')
+        .update({ status: 'FAILED' })
+        .eq('txn_id', transaction.txn_id);
+        
+      return NextResponse.json({ 
+        success: false,
+        error: paymentResponse.error || 'Payment initiation failed' 
+      }, { status: 400 });
+    }
+    
+    // Update transaction with gateway details
+    await supabase
+      .from('transactions')
+      .update({ 
+        gateway_txn_id: paymentResponse.transaction_id,
+        checkout_url: paymentResponse.checkout_url
+      })
+      .eq('txn_id', transaction.txn_id);
+    
+    // Return success response
     return NextResponse.json({
-      txn_id: transaction.txn_id,
-      checkout_url: `/checkout/${merchant.id}/${transaction.txn_id}`,
+      success: true,
+      transaction_id: transaction.txn_id,
+      checkout_url: paymentResponse.checkout_url,
+      amount: amount,
+      gateway_used: test_mode ? 'Easebuzz Sandbox' : 'Easebuzz Live',
       status: 'PENDING'
     });
+    
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error('Payment initiation error:', error);
+    return NextResponse.json({ 
+      success: false,
+      error: error.message 
+    }, { status: 400 });
   }
 } 

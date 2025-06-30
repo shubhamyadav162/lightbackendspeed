@@ -1,0 +1,60 @@
+{
+  "_comment": "Auto-generated Grafana dashboard for BullMQ queue metrics stored in queue_metrics table.",
+  "schemaVersion": 37,
+  "title": "Queue Metrics – BullMQ",
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Jobs Waiting",
+      "datasource": "Supabase",
+      "targets": [
+        {
+          "format": "time_series",
+          "refId": "A",
+          "rawSql": "SELECT $__timeGroupAlias(recorded_at, 1m), sum(waiting) as waiting FROM queue_metrics WHERE $__timeFilter(recorded_at) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Active",
+      "datasource": "Supabase",
+      "targets": [
+        {
+          "format": "time_series",
+          "refId": "B",
+          "rawSql": "SELECT $__timeGroupAlias(recorded_at, 1m), sum(active) as active FROM queue_metrics WHERE $__timeFilter(recorded_at) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Failed",
+      "datasource": "Supabase",
+      "targets": [
+        {
+          "format": "time_series",
+          "refId": "C",
+          "rawSql": "SELECT $__timeGroupAlias(recorded_at, 1m), sum(failed) as failed FROM queue_metrics WHERE $__timeFilter(recorded_at) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Jobs Completed",
+      "datasource": "Supabase",
+      "targets": [
+        {
+          "format": "time_series",
+          "refId": "D",
+          "rawSql": "SELECT $__timeGroupAlias(recorded_at, 1m), sum(completed) as completed FROM queue_metrics WHERE $__timeFilter(recorded_at) GROUP BY 1 ORDER BY 1"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 }
+    }
+  ]
+} 

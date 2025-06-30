@@ -1,0 +1,26 @@
+[variables]
+NODE_ENV = "production"
+FORCE_REBUILD = "2025-01-25-14:45"
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci --legacy-peer-deps"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[phases.start]
+cmd = "npm start"
+
+[staticAssets]
+"public" = "./"
+
+# Force complete cache invalidation
+[buildCache]
+clearCache = true
+
+# Disable nixpacks and force Dockerfile usage
+[build]
+builder = "dockerfile" 

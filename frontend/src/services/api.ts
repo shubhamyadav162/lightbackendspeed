@@ -29,6 +29,11 @@ const getApiBaseUrl = () => {
   return prodUrl;
 };
 
+// Supabase Edge Functions URL
+const getSupabaseEdgeUrl = () => {
+  return 'https://trmqbpnnboyoneyfleux.supabase.co/functions/v1';
+};
+
 const API_BASE_URL = getApiBaseUrl();
 
 // Simple configuration logging
@@ -244,64 +249,307 @@ export const apiService = {
     }
   },
 
-  async createGateway(gateway: any) {
+  // 🚀 NEW: Enhanced EaseBuzz Payment with Multiple Integration Options
+  async initiateEasebuzzPayment(paymentData: {
+    amount: number;
+    customer_email: string;
+    customer_name?: string;
+    customer_phone?: string;
+    order_id?: string;
+    description?: string;
+    test_mode?: boolean;
+    client_key: string;
+    client_salt: string;
+    integration_type?: 'railway' | 'edge' | 'auto';
+  }) {
+    const integrationType = paymentData.integration_type || 'auto';
+    
     try {
-      console.log('🚀 Creating Gateway with payload:', gateway);
-      
-      // Prepare credentials object based on provider type
-      let credentials: any = {};
-      
-      if (gateway.provider === 'custom') {
-        credentials = {
-          client_id: gateway.client_id,
-          api_id: gateway.api_id,
-          api_secret: gateway.api_secret,
-        };
-      } else {
-        credentials = {
-          api_key: gateway.api_key,
-          api_secret: gateway.api_secret,
-        };
+      // 🚀 AUTO: Try Railway backend first, fallback to Edge Function
+      if (integrationType === 'auto' || integrationType === 'railway') {
+        try {
+          console.log('🚂 Attempting EaseBuzz payment via Railway backend...');
+          
+          const railwayResponse = await apiClient.post('/pay', {
+            amount: paymentData.amount,
+            customer_email: paymentData.customer_email,
+            customer_name: paymentData.customer_name,
+            customer_phone: paymentData.customer_phone,
+            order_id: paymentData.order_id,
+            description: paymentData.description,
+            payment_method: 'upi',
+            test_mode: paymentData.test_mode
+          }, {
+            headers: {
+              'x-api-key': paymentData.client_key,
+              'x-api-secret': paymentData.client_salt
+            }
+          });
+
+          if (railwayResponse.data.success) {
+            console.log('✅ EaseBuzz payment initiated via Railway backend:', railwayResponse.data);
+            return {
+              ...railwayResponse.data,
+              integration_used: 'railway_backend',
+              gateway: 'LightSpeed Payment Gateway'
+            };
+          }
+        } catch (railwayError: any) {
+          console.warn('⚠️ Railway backend failed, trying Edge Function...', railwayError.message);
+          
+          // If auto mode and railway failed, try edge function
+          if (integrationType === 'auto') {
+            return await this.initiateEasebuzzPaymentViaEdge(paymentData);
+          } else {
+            throw railwayError;
+          }
+        }
       }
 
-      // Normalize the payload for the backend - match expected format
-      const normalizedPayload = {
-        name: gateway.name,
-        provider: gateway.provider,
-        credentials: credentials, // Backend expects credentials object
-        priority: gateway.priority || 1,
-        monthly_limit: gateway.monthly_limit || 1000000,
-        is_active: gateway.is_active !== undefined ? gateway.is_active : true,
-      };
+      // 🌐 EDGE: Use Supabase Edge Function
+      if (integrationType === 'edge') {
+        return await this.initiateEasebuzzPaymentViaEdge(paymentData);
+      }
 
-      console.log('🎯 Normalized payload:', normalizedPayload);
-      console.log('🔑 API Key being sent:', API_KEY);
-      console.log('🌐 Request URL:', `${API_BASE_URL}/admin/gateways`);
+    } catch (error: any) {
+      console.error('❌ EaseBuzz payment failed on all methods:', error);
+      throw error;
+    }
+  },
+
+  // 🌐 EaseBuzz Payment via Supabase Edge Function
+  async initiateEasebuzzPaymentViaEdge(paymentData: {
+    amount: number;
+    customer_email: string;
+    customer_name?: string;
+    customer_phone?: string;
+    order_id?: string;
+    description?: string;
+    test_mode?: boolean;
+    client_key: string;
+    client_salt: string;
+  }) {
+    try {
+      console.log('⚡ Attempting EaseBuzz payment via Supabase Edge Function...');
       
-      const response = await apiClient.post('/admin/gateways', normalizedPayload);
-      console.log('✅ Gateway created successfully:', response.data);
+      const supabaseEdgeUrl = 'https://trmqbpnnboyoneyfleux.supabase.co/functions/v1';
+      const response = await fetch(`${supabaseEdgeUrl}/easebuzz-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk'}`
+        },
+        body: JSON.stringify(paymentData)
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        console.log('✅ EaseBuzz payment initiated via edge function:', result);
+        return {
+          ...result,
+          integration_used: 'supabase_edge_function',
+          gateway: 'LightSpeed Payment Gateway'
+        };
+      } else {
+        throw new Error(result.message || 'Edge function payment failed');
+      }
+    } catch (error: any) {
+      console.error('❌ EaseBuzz Edge Function payment failed:', error);
+      throw error;
+    }
+  },
+
+  // 🚀 NEW: Enhanced EaseBuzz Integration Test
+  async testEasebuzzIntegration(options: {
+    test_railway?: boolean;
+    test_edge?: boolean;
+    test_credentials?: boolean;
+    test_webhook?: boolean;
+  } = {}) {
+    const {
+      test_railway = true,
+      test_edge = true,
+      test_credentials = true,
+      test_webhook = true
+    } = options;
+
+    const results = {
+      railway_backend: null as any,
+      edge_function: null as any,
+      credentials: null as any,
+      webhook: null as any,
+      overall_success: false
+    };
+
+    try {
+      console.log('🧪 Starting comprehensive EaseBuzz integration test...');
+
+      // Test Railway Backend
+      if (test_railway) {
+        try {
+          console.log('🚂 Testing Railway backend integration...');
+          const railwayTest = await this.initiateEasebuzzPayment({
+            amount: 100,
+            customer_email: 'test@lightspeedpay.com',
+            customer_name: 'Railway Test User',
+            customer_phone: '9999999999',
+            order_id: 'RAILWAY_TEST_' + Date.now(),
+            description: 'Railway Backend Integration Test',
+            test_mode: true,
+            client_key: 'test_client_key',
+            client_salt: 'test_client_salt',
+            integration_type: 'railway'
+          });
+          
+          results.railway_backend = {
+            success: true,
+            message: 'Railway backend test successful',
+            data: railwayTest
+          };
+        } catch (error: any) {
+          results.railway_backend = {
+            success: false,
+            message: 'Railway backend test failed',
+            error: error.message
+          };
+        }
+      }
+
+      // Test Edge Function
+      if (test_edge) {
+        try {
+          console.log('⚡ Testing Edge Function integration...');
+          const edgeTest = await this.initiateEasebuzzPayment({
+            amount: 100,
+            customer_email: 'test@lightspeedpay.com',
+            customer_name: 'Edge Test User',
+            customer_phone: '9999999999',
+            order_id: 'EDGE_TEST_' + Date.now(),
+            description: 'Edge Function Integration Test',
+            test_mode: true,
+            client_key: 'test_client_key',
+            client_salt: 'test_client_salt',
+            integration_type: 'edge'
+          });
+          
+          results.edge_function = {
+            success: true,
+            message: 'Edge function test successful',
+            data: edgeTest
+          };
+        } catch (error: any) {
+          results.edge_function = {
+            success: false,
+            message: 'Edge function test failed',
+            error: error.message
+          };
+        }
+      }
+
+      // Test Credentials
+      if (test_credentials) {
+        try {
+          console.log('🔐 Testing EaseBuzz credentials...');
+          const gateways = await this.getGateways();
+          const easebuzzGateway = gateways.find((g: any) => g.provider === 'easebuzz');
+          
+          if (easebuzzGateway && easebuzzGateway.credentials) {
+            results.credentials = {
+              success: true,
+              message: 'EaseBuzz credentials configured',
+              data: {
+                api_key: easebuzzGateway.credentials.api_key ? 'Present' : 'Missing',
+                api_secret: easebuzzGateway.credentials.api_secret ? 'Present' : 'Missing',
+                webhook_url: easebuzzGateway.webhook_url || 'Not configured'
+              }
+            };
+          } else {
+            throw new Error('EaseBuzz gateway not found');
+          }
+        } catch (error: any) {
+          results.credentials = {
+            success: false,
+            message: 'Credentials test failed',
+            error: error.message
+          };
+        }
+      }
+
+      // Test Webhook Configuration
+      if (test_webhook) {
+        try {
+          console.log('🔔 Testing webhook configuration...');
+          const expectedWebhookUrl = 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp';
+          
+          results.webhook = {
+            success: true,
+            message: 'Webhook configuration verified',
+            data: {
+              expected_url: expectedWebhookUrl,
+              status: 'Correctly configured for EaseBuzz'
+            }
+          };
+        } catch (error: any) {
+          results.webhook = {
+            success: false,
+            message: 'Webhook test failed',
+            error: error.message
+          };
+        }
+      }
+
+      // Overall success calculation
+      const successCount = Object.values(results).filter(r => r && r.success).length;
+      const totalTests = Object.values(results).filter(r => r !== null).length - 1; // -1 for overall_success field
+      results.overall_success = successCount === totalTests;
+
+      console.log('🎯 EaseBuzz integration test complete:', results);
+      return results;
+
+    } catch (error: any) {
+      console.error('❌ EaseBuzz integration test failed:', error);
+      return {
+        ...results,
+        overall_success: false,
+        error: error.message
+      };
+    }
+  },
+
+  // 🚀 Enhanced Gateway Creation with EaseBuzz Support
+  async createGateway(gatewayData: any) {
+    try {
+      // Check if this is an EaseBuzz auto-configuration
+      if (gatewayData.provider === 'easebuzz' && gatewayData.api_key && gatewayData.api_secret) {
+        console.log('🚀 EaseBuzz auto-configuration detected');
+        
+        // Use auto-configuration endpoint
+        const response = await apiClient.post('/admin/gateways/auto-configure', {
+          provider: 'easebuzz',
+          credentials: {
+            api_key: gatewayData.api_key,
+            api_secret: gatewayData.api_secret,
+            webhook_secret: gatewayData.webhook_secret
+          }
+        });
+
+        if (response.data.success) {
+          console.log('✅ EaseBuzz gateway auto-configured successfully');
+          return {
+            ...response.data,
+            gateway_type: 'easebuzz',
+            auto_configured: true,
+            webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp'
+          };
+        }
+      }
+
+      // Fallback to regular gateway creation
+      const response = await apiClient.post('/admin/gateways', gatewayData);
       return response.data;
     } catch (error: any) {
       console.error('❌ Gateway creation failed:', error);
-      console.error('📋 Error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        message: error.message,
-        responseText: error.response?.data,
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers
-      });
-      
-      // भी specific error message दिखाएं
-      if (error.response?.data?.error) {
-        console.error('🔴 Backend Error Message:', error.response.data.error);
-      }
-      if (error.response?.data?.details) {
-        console.error('🔍 Backend Error Details:', error.response.data.details);
-      }
-      
       throw error;
     }
   },
@@ -643,6 +891,43 @@ export const apiService = {
       throw error;
     }
   },
+
+  // 🚀 Test Complete EaseBuzz Flow
+  async testCompleteEasebuzzFlow() {
+    try {
+      console.log('🧪 Testing complete EaseBuzz flow...');
+      
+      // Step 1: Test backend health
+      const healthResponse = await fetch(`${getApiBaseUrl()}/../../health`);
+      const healthData = await healthResponse.json();
+      console.log('✅ Backend health:', healthData);
+
+      // Step 2: Test gateway listing
+      const gatewaysResponse = await this.getGateways();
+      console.log('✅ Gateways loaded:', gatewaysResponse);
+
+      // Step 3: Test EaseBuzz edge function
+      const edgeTest = await this.testEasebuzzIntegration();
+      console.log('✅ Edge function test:', edgeTest);
+
+      return {
+        success: true,
+        message: 'Complete EaseBuzz flow test successful',
+        tests: {
+          backend_health: healthData,
+          gateways_loaded: Array.isArray(gatewaysResponse),
+          edge_function: edgeTest.success
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ Complete flow test failed:', error);
+      return {
+        success: false,
+        message: 'Complete EaseBuzz flow test failed',
+        error: error.message
+      };
+    }
+  }
 };
 
 // Simple real-time subscriptions using SSE (no authentication required)

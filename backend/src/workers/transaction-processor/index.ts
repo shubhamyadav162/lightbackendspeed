@@ -41,11 +41,12 @@ async function createOrder(
       });
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(`RAZORPAY_ORDER_FAILED_${errText}`);
+        throw new Error(`PAYMENT_ORDER_FAILED`);
       }
       const json = await res.json();
       const gateway_txn_id = json.id;
-      const checkout_url = `https://checkout.razorpay.com/v1/checkout.js?order_id=${gateway_txn_id}`;
+      // Return LightSpeed branded checkout URL instead of Razorpay's
+      const checkout_url = `https://pay.lightspeedpay.com/checkout/${payload.transaction_id}`;
       return { gateway_txn_id, checkout_url };
     }
     case "payu": {
@@ -101,9 +102,13 @@ async function createOrder(
         hash,
       });
 
-      const checkout_url = `https://secure.payu.in/_payment?${formParams.toString()}`;
+      // Store PayU URL internally but return LightSpeed branded URL to client
+      const payuUrl = `https://secure.payu.in/_payment?${formParams.toString()}`;
+      const checkout_url = `https://pay.lightspeedpay.com/checkout/${payload.transaction_id}`;
       const gateway_txn_id = txnid; // PayU uses our txnid as reference
-      return { gateway_txn_id, checkout_url };
+      
+      // Store the real PayU URL for internal processing
+      return { gateway_txn_id, checkout_url, internal_url: payuUrl };
     }
     default: {
       throw new Error(`UNSUPPORTED_PROVIDER_${provider}`);
@@ -140,10 +145,19 @@ export const worker = new Worker(
       redirect_url,
     });
 
-    // 3. Persist transaction details
+    // 3. Persist transaction details with LightSpeed branding
     await supabase
       .from("client_transactions")
-      .update({ gateway_txn_id, status: "pending", gateway_response: { provider: gateway.provider } })
+      .update({ 
+        gateway_txn_id, 
+        status: "pending", 
+        gateway_response: { 
+          processed_by: "LightSpeed Payment Gateway",
+          timestamp: new Date().toISOString(),
+          amount: amount,
+          currency: "INR"
+        }
+      })
       .eq("id", transaction_id);
 
     return { checkout_url };

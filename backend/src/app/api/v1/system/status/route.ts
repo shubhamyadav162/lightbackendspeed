@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { handleCors } from '@/lib/cors';
 
 // Initialize Supabase client (service role) with build-time safety
 const supabaseUrl = process.env.SUPABASE_URL || '';
@@ -21,7 +22,27 @@ type ComponentStatus = {
   updated_at: string;
 };
 
-export async function GET(_request: NextRequest) {
+// API Key validation middleware
+function validateApiKey(request: NextRequest) {
+  const apiKey = request.headers.get('x-api-key') || request.headers.get('X-API-Key');
+  const expectedKey = process.env.API_KEY || 'admin_test_key';
+  
+  console.log('[API Key Check]', {
+    provided: apiKey ? `${apiKey.substring(0, 8)}...` : 'none',
+    expected: expectedKey ? `${expectedKey.substring(0, 8)}...` : 'none',
+    valid: apiKey === expectedKey
+  });
+  
+  if (!apiKey || apiKey !== expectedKey) {
+    return NextResponse.json(
+      { error: 'Invalid or missing API key', code: 'UNAUTHORIZED' },
+      { status: 401 }
+    );
+  }
+  return null;
+}
+
+async function handler(req: NextRequest) {
   try {
     // Return build-time safe response if Supabase not available
     if (!supabase || !supabaseUrl || !supabaseServiceKey) {
@@ -41,6 +62,10 @@ export async function GET(_request: NextRequest) {
         ],
       });
     }
+
+    // Validate API key
+    const authError = validateApiKey(req);
+    if (authError) return authError;
 
     // Fetch the latest status entries (per component)
     const { data: rows, error } = await supabase
@@ -84,4 +109,19 @@ export async function GET(_request: NextRequest) {
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
+}
+
+// Wrap the handler with the CORS helper
+export async function GET(req: NextRequest) {
+  console.log('[System Status] API called');
+  
+  // Validate API key
+  const authError = validateApiKey(req);
+  if (authError) return authError;
+  
+  return handleCors(req, handler);
+}
+
+export async function OPTIONS(req: NextRequest) {
+  return handleCors(req, async () => new NextResponse(null, { status: 204 }));
 } 

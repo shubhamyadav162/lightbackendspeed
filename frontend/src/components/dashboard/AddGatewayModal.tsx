@@ -163,6 +163,20 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
   const showChannelId = formData.provider === 'paytm';
   const showAuthHeader = formData.provider === 'payu';
 
+  // Auto-setup providers list with EaseBuzz
+  const autoSetupProviders = ['easebuzz', 'razorpay', 'payu'];
+
+  // Add EaseBuzz to provider options list
+  const providerOptions = [
+    { value: 'easebuzz', label: '🚀 EaseBuzz (Auto-Setup)', isAutoSetup: true },
+    { value: 'razorpay', label: '💳 Razorpay (Auto-Setup)', isAutoSetup: true },
+    { value: 'payu', label: '🔵 PayU (Auto-Setup)', isAutoSetup: true },
+    { value: 'phonepe', label: '📱 PhonePe', isAutoSetup: false },
+    { value: 'paytm', label: '💰 Paytm', isAutoSetup: false },
+    { value: 'cashfree', label: '💸 Cashfree', isAutoSetup: false },
+    { value: 'custom', label: '⚙️ Custom Gateway', isAutoSetup: false }
+  ];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
@@ -204,13 +218,11 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
                     <SelectValue placeholder="Select Provider" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="razorpay">🚀 Razorpay (Auto-Setup)</SelectItem>
-                    <SelectItem value="payu">🚀 PayU (Auto-Setup)</SelectItem>
-                    <SelectItem value="easebuzz">🚀 Easebuzz (Auto-Setup)</SelectItem>
-                    <SelectItem value="phonepe">PhonePe</SelectItem>
-                    <SelectItem value="paytm">Paytm</SelectItem>
-                    <SelectItem value="cashfree">Cashfree</SelectItem>
-                    <SelectItem value="custom">Custom Provider</SelectItem>
+                    {providerOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 {isCustomProvider && (

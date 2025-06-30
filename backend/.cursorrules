@@ -1,0 +1,51 @@
+# LightSpeedPay Project Rules
+
+## Implementation Patterns
+
+### Database Schema
+- All tables should have created_at and updated_at timestamps
+- Use UUID as primary keys across all tables
+- Follow proper naming conventions (snake_case for tables and columns)
+- Add appropriate indexes for columns used in WHERE clauses
+- Encrypt sensitive data (API keys, credentials) before storage
+
+### Code Structure
+- Follow a clean architecture approach
+- Group code by feature rather than by type
+- Use repository pattern for database access
+- Implement proper error handling and logging
+- Create abstractions for external services
+
+### API Design
+- All endpoints should validate inputs using Zod schemas
+- Return consistent error formats across all APIs
+- Include appropriate status codes and messages
+- Implement rate limiting for public-facing endpoints
+- Document all APIs with clear request/response examples
+
+### Security Practices
+- Never log sensitive information
+- Always validate and sanitize user inputs
+- Use parameterized queries to prevent SQL injection
+- Generate strong, random API keys and salts
+- Implement proper CORS policies
+
+### Development Workflow
+- Follow conventional commits format
+- Write tests for critical components
+- Document changes in memory bank
+- Keep third-party dependencies to a minimum
+- Perform regular security audits
+
+## Project-Specific Intelligence
+- Primary focus is on reliability and security
+- Critical payment data should never be lost
+- Real-time monitoring is essential
+- System should handle graceful degradation
+- Favor consistency over performance when necessary
+
+### Testing Patterns (Added 2025-06-14)
+- Jest default test environment is `jsdom` to enable React component and hook rendering in unit tests.
+- Use `@testing-library/react` / `@testing-library/react-hooks` for React unit testing; avoid JSX in *.test.tsx by preferring `React.createElement` when helpers complain under ts-jest.
+- Provide module mocks for third-party ESM packages (e.g., `@supabase/supabase-js`) in `jest.setup.ts` to sidestep CommonJS/ESM interop issues.
+- Collect coverage only from files explicitly tested to keep the signal clean; project and patch thresholds enforced at ≥ 80 % via Codecov status checks. 

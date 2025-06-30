@@ -16,6 +16,17 @@ const REDIS_URL = Deno.env.get("REDIS_URL")!; // "redis://host:port"
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const txnQueue = new Queue("transaction-processing", { connection: { url: REDIS_URL } });
 
+// LightSpeed branding utilities
+function generateLightSpeedTxnId(): string {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `LSP_${timestamp}_${random}`;
+}
+
+function generateLightSpeedCheckoutUrl(txnId: string): string {
+  return `https://pay.lightspeedpay.com/checkout/${txnId}`;
+}
+
 interface PaymentRequest {
   amount: number;
   order_id: string;
@@ -60,7 +71,14 @@ serve(async (req) => {
     .single();
 
   if (!client) {
-    return new Response("Client not found", { status: 404 });
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Invalid credentials",
+      gateway: "LightSpeed Payment Gateway"
+    }), { 
+      status: 404,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   // 2. Validate HMAC signature
@@ -70,7 +88,14 @@ serve(async (req) => {
   );
 
   if (expectedSig !== body.signature) {
-    return new Response("Invalid signature", { status: 401 });
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Authentication failed",
+      gateway: "LightSpeed Payment Gateway"
+    }), { 
+      status: 401,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   // 3. Check commission balance vs suspend_threshold
@@ -104,7 +129,11 @@ serve(async (req) => {
 
   const gateway = gateways[0];
 
-  // 5. Insert transaction & enqueue job
+  // 5. Generate LightSpeed transaction ID
+  const lightspeedTxnId = generateLightSpeedTxnId();
+  const checkoutUrl = generateLightSpeedCheckoutUrl(lightspeedTxnId);
+
+  // 6. Insert transaction & enqueue job
   const { data: txn, error } = await supabase
     .from("client_transactions")
     .insert({
@@ -112,12 +141,20 @@ serve(async (req) => {
       client_id: client.id,
       gateway_id: gateway.id,
       amount: body.amount,
+      lightspeed_txn_id: lightspeedTxnId,
     })
     .select()
     .single();
 
   if (error) {
-    return new Response("DB_ERROR", { status: 500 });
+    return new Response(JSON.stringify({
+      success: false,
+      message: "Service temporarily unavailable",
+      gateway: "LightSpeed Payment Gateway"
+    }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   await txnQueue.add("process", {
@@ -126,10 +163,19 @@ serve(async (req) => {
     amount: body.amount,
     order_id: body.order_id,
     transaction_id: txn.id,
+    lightspeed_txn_id: lightspeedTxnId,
     redirect_url: body.redirect_url ?? null,
   });
 
-  return new Response(JSON.stringify({ transaction_id: txn.id, status: "created" }), {
+  return new Response(JSON.stringify({
+    success: true,
+    transaction_id: lightspeedTxnId,
+    checkout_url: checkoutUrl,
+    status: "pending",
+    amount: body.amount,
+    currency: "INR",
+    gateway: "LightSpeed Payment Gateway"
+  }), {
     headers: { "Content-Type": "application/json" },
   });
 }); 

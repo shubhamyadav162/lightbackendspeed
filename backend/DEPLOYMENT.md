@@ -1,200 +1,187 @@
-# Deployment Guide for LightSpeedPay Integrated
+# LightSpeedPay - Deployment Guide
 
-This document outlines the deployment process for the LightSpeedPay Integrated payment gateway system.
+This guide provides detailed instructions for deploying the LightSpeedPay platform to production environments.
 
-## Architecture Overview
+## Prerequisites
 
-LightSpeedPay Integrated consists of several components:
+Before beginning the deployment process, ensure you have:
 
-1. **Next.js Application** - Frontend and API routes
-2. **Supabase Database** - PostgreSQL database
-3. **Background Workers** - Node.js workers for transaction monitoring and settlements
-4. **Redis** - For job queues and caching
+1. Access to the GitHub repository
+2. Admin access to Vercel account
+3. Admin access to Railway account
+4. Admin access to Supabase account
+5. All required API keys and credentials for payment gateways
+6. Domain names configured and ready
 
-## Deployment Options
+## Step 1: Setting Up GitHub Repository
 
-### Option 1: Railway Deployment (Recommended)
-
-[Railway](https://railway.app) provides a simple, integrated platform for deploying all components of this application.
-
-#### Step 1: Create a Railway Project
-
-```bash
-# Install Railway CLI
-npm i -g @railway/cli
-
-# Login to Railway
-railway login
-
-# Initialize a new project
-railway init
-```
-
-#### Step 2: Add Services to Railway
-
-1. **Next.js Application**:
+1. Push the codebase to GitHub:
    ```bash
-   railway up
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin https://github.com/yourusername/lightspeedpay.git
+   git push -u origin main
    ```
 
-2. **PostgreSQL Database**:
-   - Add a PostgreSQL service from the Railway dashboard
-   - The connection string will be automatically added as an environment variable
+2. Configure GitHub repository secrets for CI/CD:
+   - Go to Repository Settings > Secrets and Variables > Actions
+   - Add the following secrets:
+     - `VERCEL_TOKEN`: Your Vercel API token
+     - `RAILWAY_TOKEN`: Your Railway API token
+     - `RAILWAY_SERVICE_ID`: Your Railway service ID
+     - `SUPABASE_ACCESS_TOKEN`: Your Supabase access token
+     - `SUPABASE_PROJECT_REF_PREVIEW`: Supabase project reference for preview environment
+     - `SUPABASE_PROJECT_REF_PROD`: Supabase project reference for production environment
 
-3. **Redis**:
-   - Add a Redis service from the Railway dashboard
-   - The connection string will be automatically added as an environment variable
+## Step 2: Setting Up Supabase Database
 
-#### Step 3: Configure Environment Variables
+1. Create a new Supabase project:
+   - Go to https://app.supabase.io/
+   - Click "New Project"
+   - Enter project details
+   - Choose a region close to your target users
+   - Wait for the project to initialize
 
-Add the following environment variables in the Railway dashboard:
+2. Get your Supabase credentials:
+   - Project URL: `https://[PROJECT_ID].supabase.co`
+   - API Keys: Found in Project Settings > API
+   - Save the `anon` public key and `service_role` key
 
-```
-SUPABASE_URL=your-supabase-url
-SUPABASE_SERVICE_KEY=your-supabase-service-key
-SUPABASE_ANON_KEY=your-supabase-anon-key
-RAZORPAY_KEY_ID=your-razorpay-key-id
-RAZORPAY_KEY_SECRET=your-razorpay-key-secret
-JWT_SECRET=your-jwt-secret
-ENCRYPTION_KEY=your-encryption-key
-# ... and other environment variables
-```
-
-#### Step 4: Deploy Application
-
-```bash
-railway up
-```
-
-### Option 2: Vercel + Supabase Deployment
-
-#### Step 1: Deploy Database to Supabase
-
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Run migrations to set up the database schema:
+3. Run migrations manually the first time:
    ```bash
-   npx supabase db push
+   cd supabase-mcp
+   npm install -g supabase
+   supabase login --access-token your-access-token
+   supabase link --project-ref your-project-ref
+   supabase db push
    ```
 
-#### Step 2: Deploy Next.js to Vercel
+4. Verify database schema:
+   - Check that all tables have been created
+   - Verify relationships and constraints
+   - Run basic queries to ensure proper setup
 
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Configure environment variables in the Vercel dashboard
-4. Deploy the application
+## Step 3: Setting Up Vercel (Frontend)
 
-#### Step 3: Deploy Background Workers
+1. Create a new Vercel project:
+   - Go to https://vercel.com/
+   - Click "New Project"
+   - Import your GitHub repository
+   - Configure project settings
 
-Background workers need to be deployed separately as they run continuously.
+2. Configure environment variables:
+   - Go to Project Settings > Environment Variables
+   - Add all required environment variables:
+     ```
+     NEXT_PUBLIC_API_URL=https://api.lightspeedpay.com
+     NEXT_PUBLIC_SUPABASE_URL=https://[PROJECT_ID].supabase.co
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=[ANON_KEY]
+     NEXTAUTH_SECRET=[STRONG_RANDOM_SECRET]
+     NEXTAUTH_URL=https://lightspeedpay.com
+     ```
 
-Options:
-- Deploy as a separate service on Railway
-- Use a serverless platform like AWS Lambda with scheduled triggers
-- Use a dedicated VM or container on a cloud provider
+3. Configure custom domains:
+   - Go to Project Settings > Domains
+   - Add your domains:
+     - `lightspeedpay.com`
+     - `www.lightspeedpay.com`
+     - `checkout.lightspeedpay.com`
+   - Follow Vercel's instructions for DNS configuration
 
-## Database Migrations
+4. Configure preview deployments:
+   - Go to Project Settings > Git
+   - Enable preview deployments for pull requests
 
-Database migrations are handled through Supabase CLI.
+## Step 4: Setting Up Railway (Background Jobs)
 
-```bash
-# Apply migrations
-npm run migrate:apply
+1. Create a new Railway project:
+   - Go to https://railway.app/
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose your GitHub repository
 
-# Create a new migration
-npm run migrate:new name_of_migration
-```
+2. Configure environment variables:
+   - Go to Project Settings > Variables
+   - Add all required environment variables:
+     ```
+     DATABASE_URL=postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres
+     SUPABASE_URL=https://[PROJECT_ID].supabase.co
+     SUPABASE_SERVICE_ROLE_KEY=[SERVICE_ROLE_KEY]
+     JWT_SECRET=[STRONG_SECRET]
+     REDIS_URL=redis://[USERNAME]:[PASSWORD]@[HOST]:[PORT]
+     NODE_ENV=production
+     ```
 
-## Monitoring and Logging
+3. Configure project settings:
+   - Go to Project Settings > General
+   - Set the root directory to `supabase-mcp`
+   - Set the start command to `npm run start:worker`
 
-### Monitoring Services
+4. Set up auto-scaling:
+   - Go to Project Settings > Scaling
+   - Configure minimum and maximum instances
+   - Set up auto-scaling rules based on CPU and memory usage
 
-- Set up [Sentry](https://sentry.io) for error tracking
-- Use [Datadog](https://www.datadoghq.com/) or [New Relic](https://newrelic.com/) for performance monitoring
-- Configure alerts for critical errors and performance issues
+## Step 5: Configuring Payment Gateways
 
-### Logging
+### Razorpay
 
-- Configure logging to a centralized service like [Logtail](https://betterstack.com/logtail) or [Papertrail](https://www.papertrail.com/)
-- Set up log retention policies
-- Monitor transaction failures and system errors
+1. Log in to your Razorpay dashboard
+2. Go to Settings > API Keys
+3. Generate live API keys
+4. Configure webhook URL: `https://api.lightspeedpay.com/webhooks/razorpay`
+5. Enable the required webhooks:
+   - Payment authorized
+   - Payment captured
+   - Payment failed
 
-## Scaling Considerations
+### PhonePe
 
-### Horizontal Scaling
+1. Log in to your PhonePe dashboard
+2. Go to Developer Settings
+3. Generate production API keys
+4. Configure callback URL: `https://api.lightspeedpay.com/webhooks/phonepe`
+5. Set up IP allowlisting if required
 
-- The Next.js application can be scaled horizontally by adding more instances
-- Background workers should be deployed with shared Redis to prevent duplicate job processing
-- Use connection pooling for database connections
+## Step 6: Final Verification and Launch
 
-### Database Scaling
+Follow this sequence for a smooth launch:
 
-- Consider read replicas for heavy read workloads
-- Implement caching for frequently accessed data
-- Use database connection pooling
+1. **Soft Launch**:
+   - Invite 5-10 partner merchants
+   - Process limited transaction volume
+   - Monitor system performance closely
+   - Address any issues immediately
 
-## Security Considerations
+2. **Full Launch**:
+   - Remove access restrictions
+   - Send announcement to all pre-registered merchants
+   - Begin onboarding new merchants
+   - Scale infrastructure according to demand
 
-1. **API Security**:
-   - Use rate limiting on all API endpoints
-   - Implement proper authentication and authorization
-   - Validate all inputs with Zod schemas
+3. **Post-Launch Monitoring**:
+   - Monitor transaction success rates
+   - Track API response times
+   - Watch for error patterns
+   - Adjust resources as needed
 
-2. **Database Security**:
-   - Use Row Level Security (RLS) policies in Supabase
-   - Encrypt sensitive data before storage
-   - Regularly audit database access
+## Rollback Plan
 
-3. **Payment Security**:
-   - Never log sensitive payment information
-   - Use proper encryption for API keys and credentials
-   - Implement IP whitelisting for critical operations
+In case of critical issues during launch:
 
-## Backup and Disaster Recovery
+1. **Identification Criteria**:
+   - Transaction success rate drops below 99.5%
+   - API response time exceeds 1 second for more than 5 minutes
+   - Error rate exceeds 1% for more than 5 minutes
+   - Security vulnerability identified
 
-1. **Database Backups**:
-   - Configure automated daily backups
-   - Test restoration process regularly
-   - Store backups in multiple geographic locations
-
-2. **Application Recovery**:
-   - Document deployment procedures
-   - Maintain configuration in version control
-   - Practice recovery scenarios
-
-## Going Live Checklist
-
-Before going live, ensure:
-
-1. All environment variables are properly configured
-2. Database migrations have been applied
-3. Payment gateway integrations are tested
-4. SSL/TLS certificates are valid
-5. Domain DNS is properly configured
-6. Monitoring and alerting systems are active
-7. Backup systems are in place
-8. Security audit has been performed
-9. Load testing has been conducted
-10. Documentation is up-to-date
-
-## Troubleshooting
-
-Common issues and their solutions:
-
-1. **Worker not processing jobs**:
-   - Verify Redis connection
-   - Check worker logs for errors
-   - Ensure proper queue configuration
-
-2. **Database connection issues**:
-   - Check connection string
-   - Verify network access
-   - Check database server status
-
-3. **Payment gateway failures**:
-   - Verify API credentials
-   - Check network connectivity
-   - Ensure correct request format
-
-## Support
-
-For deployment assistance, contact the development team at dev@lightspeedpay.com. 
+2. **Rollback Process**:
+   - Halt new merchant onboarding
+   - Notify operations team via emergency channel
+   - Convene incident response team
+   - Execute relevant rollback procedure:
+     - Code rollback to previous stable version
+     - Database rollback if data corruption occurred
+     - Infrastructure configuration rollback
+   - Notify affected merchants via multiple channels
+   - Update status page with incident details

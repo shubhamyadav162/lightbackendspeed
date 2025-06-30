@@ -1,0 +1,43 @@
+name: Supabase Rollback
+
+on:
+  workflow_run:
+    workflows: ["Supabase Migrations"]
+    types:
+      - completed
+
+jobs:
+  rollback-on-failure:
+    if: |
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.name == 'Supabase Migrations'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Login to Supabase
+        run: supabase login --access-token ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Rollback latest migration
+        run: |
+          cd lightspeedpay-integrated
+          supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_REF_PROD }}
+          # Rollback to previous migration version (automatic)
+          supabase db reset --skip-seed --non-interactive
+
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"🚨 *Supabase migrations failed on main*. Automatic rollback executed."}' \
+            ${{ secrets.SLACK_WEBHOOK_URL }} 

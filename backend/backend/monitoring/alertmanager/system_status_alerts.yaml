@@ -1,0 +1,11 @@
+groups:
+  - name: system_status_alerts
+    rules:
+      - alert: ComponentDown
+        expr: sum by(component)(system_status_response_time_ms{status!~"2.."} > 0) >= 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Component {{ $labels.component }} is down"
+          description: "{{ $labels.component }} has reported a non-2xx status for more than 2 minutes. Investigate immediately." 

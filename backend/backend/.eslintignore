@@ -1,0 +1,5 @@
+../archive/
+../payment-gateway-backend*
+../payment-gateway-backend-nodejs*
+../payment-service/
+../supabase-mcp/ 

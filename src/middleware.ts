@@ -61,8 +61,11 @@ export function middleware(request: NextRequest) {
   const isDevelopment = process.env.NODE_ENV === 'development';
   const isLocalhost = origin?.includes('localhost') || origin?.includes('127.0.0.1');
   
-  // Decision: Allow if explicitly allowed OR (in dev mode AND is localhost)
-  const shouldAllowOrigin = isAllowedOrigin || (isDevelopment && isLocalhost);
+  // Allow 'null' origin for file:// protocol testing (local HTML files)
+  const isNullOrigin = origin === null || origin === 'null';
+  
+  // Decision: Allow if explicitly allowed OR (in dev mode AND is localhost) OR null origin for testing
+  const shouldAllowOrigin = isAllowedOrigin || (isDevelopment && isLocalhost) || isNullOrigin;
   
   console.log(`[CORS] Origin "${origin}" allowed: ${shouldAllowOrigin ? 'YES' : 'NO'}`);
   console.log(`[CORS] Dev mode: ${isDevelopment}, Is localhost: ${isLocalhost}`);
@@ -80,7 +83,8 @@ export function middleware(request: NextRequest) {
     
     if (shouldAllowOrigin) {
       const headers = new Headers();
-      headers.set('Access-Control-Allow-Origin', origin!);
+      // Handle null origin for file:// protocol
+      headers.set('Access-Control-Allow-Origin', origin || '*');
       headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
       // Include ALL possible headers client might send - critical for x-api-key
       headers.set('Access-Control-Allow-Headers', 
@@ -105,7 +109,8 @@ export function middleware(request: NextRequest) {
   // Add CORS headers to the actual response
   const response = NextResponse.next();
   if (shouldAllowOrigin) {
-    response.headers.set('Access-Control-Allow-Origin', origin!);
+    // Handle null origin for file:// protocol
+    response.headers.set('Access-Control-Allow-Origin', origin || '*');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD');
     // Make sure we include the same headers as in preflight response

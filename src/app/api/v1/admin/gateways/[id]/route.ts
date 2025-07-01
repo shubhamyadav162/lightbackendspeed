@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     
-    // Expanded list of allowed fields for comprehensive gateway configuration
+    // Only include fields that exist as actual database columns
     const allowed = [
       'priority',
       'is_active',
@@ -42,13 +42,8 @@ export async function PUT(request: NextRequest) {
       'success_rate',
       'name',
       'provider',
-      'api_key',
-      'api_secret',
       'webhook_url',
       'webhook_secret',
-      'client_id',
-      'api_id',
-      'api_endpoint_url',
       'environment',
       'channel_id',
       'auth_header',
@@ -57,43 +52,58 @@ export async function PUT(request: NextRequest) {
     
     const updateData: Record<string, any> = {};
     
-    // Handle standard fields
+    // Handle standard fields (excluding api_key/api_secret as they go in credentials)
     for (const key of allowed) {
-      if (body[key] !== undefined) {
+      if (body[key] !== undefined && key !== 'api_key' && key !== 'api_secret') {
         updateData[key] = body[key];
       }
     }
 
-    // Handle provider-specific credential logic
-    if (body.provider) {
-      let gatewayCredentials = body.credentials || {};
-      
-      if (body.provider === 'custom') {
-        gatewayCredentials = {
-          ...gatewayCredentials,
-          ...(body.client_id && { client_id: body.client_id }),
-          ...(body.api_id && { api_id: body.api_id }),
-          ...(body.api_secret && { api_secret: body.api_secret }),
-          ...(body.api_endpoint_url && { api_endpoint_url: body.api_endpoint_url }),
-          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
-          ...(body.additional_headers && { additional_headers: typeof body.additional_headers === 'string' ? JSON.parse(body.additional_headers) : body.additional_headers }),
-        };
-      } else {
-        gatewayCredentials = {
-          ...gatewayCredentials,
-          ...(body.api_key && { api_key: body.api_key }),
-          ...(body.api_secret && { api_secret: body.api_secret }),
-          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
-          ...(body.environment && ['phonepe', 'cashfree'].includes(body.provider) && { environment: body.environment }),
-          ...(body.channel_id && body.provider === 'paytm' && { channel_id: body.channel_id }),
-          ...(body.auth_header && body.provider === 'payu' && { auth_header: body.auth_header }),
-        };
-      }
-      
+    // Get existing credentials to merge with new ones
+    const { data: existingGateway } = await supabase
+      .from('payment_gateways')
+      .select('credentials, provider')
+      .eq('id', id)
+      .single();
+
+    let gatewayCredentials = existingGateway?.credentials || {};
+    const currentProvider = body.provider || existingGateway?.provider;
+
+    // Handle credential updates - put api_key/api_secret in credentials JSON
+    if (currentProvider === 'custom') {
+      // Custom provider credentials
+      gatewayCredentials = {
+        ...gatewayCredentials,
+        ...(body.client_id && { client_id: body.client_id }),
+        ...(body.api_id && { api_id: body.api_id }),
+        ...(body.api_secret && { api_secret: body.api_secret }),
+        ...(body.api_endpoint_url && { api_endpoint_url: body.api_endpoint_url }),
+        ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+        ...(body.additional_headers && { 
+          additional_headers: typeof body.additional_headers === 'string' 
+            ? JSON.parse(body.additional_headers) 
+            : body.additional_headers 
+        }),
+      };
+    } else {
+      // Standard provider credentials (Easebuzz, Razorpay, etc.)
+      gatewayCredentials = {
+        ...gatewayCredentials,
+        ...(body.api_key && { api_key: body.api_key }),
+        ...(body.api_secret && { api_secret: body.api_secret }),
+        ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+        ...(body.environment && ['phonepe', 'cashfree'].includes(currentProvider) && { environment: body.environment }),
+        ...(body.channel_id && currentProvider === 'paytm' && { channel_id: body.channel_id }),
+        ...(body.auth_header && currentProvider === 'payu' && { auth_header: body.auth_header }),
+      };
+    }
+
+    // Always update credentials if we have credential-related changes
+    if (body.api_key || body.api_secret || body.webhook_secret || body.client_id || body.api_id || body.api_endpoint_url) {
       updateData.credentials = gatewayCredentials;
     }
 
-    // Handle additional_headers JSON parsing
+    // Handle additional_headers JSON parsing for direct column (if it exists)
     if (body.additional_headers && typeof body.additional_headers === 'string') {
       try {
         updateData.additional_headers = JSON.parse(body.additional_headers);
@@ -107,6 +117,8 @@ export async function PUT(request: NextRequest) {
     }
 
     updateData.updated_at = new Date().toISOString();
+
+    console.log('🔧 Gateway Update Data (PUT):', updateData);
 
     const { data, error } = await supabase
       .from('payment_gateways')
@@ -147,7 +159,7 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     
-    // Expanded list of allowed fields for comprehensive gateway configuration
+    // Only include fields that exist as actual database columns
     const allowed = [
       'priority',
       'is_active',
@@ -156,13 +168,8 @@ export async function PATCH(request: NextRequest) {
       'success_rate',
       'name',
       'provider',
-      'api_key',
-      'api_secret',
       'webhook_url',
       'webhook_secret',
-      'client_id',
-      'api_id',
-      'api_endpoint_url',
       'environment',
       'channel_id',
       'auth_header',
@@ -171,43 +178,58 @@ export async function PATCH(request: NextRequest) {
     
     const updateData: Record<string, any> = {};
     
-    // Handle standard fields
+    // Handle standard fields (excluding api_key/api_secret as they go in credentials)
     for (const key of allowed) {
-      if (body[key] !== undefined) {
+      if (body[key] !== undefined && key !== 'api_key' && key !== 'api_secret') {
         updateData[key] = body[key];
       }
     }
 
-    // Handle provider-specific credential logic
-    if (body.provider) {
-      let gatewayCredentials = body.credentials || {};
-      
-      if (body.provider === 'custom') {
-        gatewayCredentials = {
-          ...gatewayCredentials,
-          ...(body.client_id && { client_id: body.client_id }),
-          ...(body.api_id && { api_id: body.api_id }),
-          ...(body.api_secret && { api_secret: body.api_secret }),
-          ...(body.api_endpoint_url && { api_endpoint_url: body.api_endpoint_url }),
-          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
-          ...(body.additional_headers && { additional_headers: typeof body.additional_headers === 'string' ? JSON.parse(body.additional_headers) : body.additional_headers }),
-        };
-      } else {
-        gatewayCredentials = {
-          ...gatewayCredentials,
-          ...(body.api_key && { api_key: body.api_key }),
-          ...(body.api_secret && { api_secret: body.api_secret }),
-          ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
-          ...(body.environment && ['phonepe', 'cashfree'].includes(body.provider) && { environment: body.environment }),
-          ...(body.channel_id && body.provider === 'paytm' && { channel_id: body.channel_id }),
-          ...(body.auth_header && body.provider === 'payu' && { auth_header: body.auth_header }),
-        };
-      }
-      
+    // Get existing credentials to merge with new ones
+    const { data: existingGateway } = await supabase
+      .from('payment_gateways')
+      .select('credentials, provider')
+      .eq('id', id)
+      .single();
+
+    let gatewayCredentials = existingGateway?.credentials || {};
+    const currentProvider = body.provider || existingGateway?.provider;
+
+    // Handle credential updates - put api_key/api_secret in credentials JSON
+    if (currentProvider === 'custom') {
+      // Custom provider credentials
+      gatewayCredentials = {
+        ...gatewayCredentials,
+        ...(body.client_id && { client_id: body.client_id }),
+        ...(body.api_id && { api_id: body.api_id }),
+        ...(body.api_secret && { api_secret: body.api_secret }),
+        ...(body.api_endpoint_url && { api_endpoint_url: body.api_endpoint_url }),
+        ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+        ...(body.additional_headers && { 
+          additional_headers: typeof body.additional_headers === 'string' 
+            ? JSON.parse(body.additional_headers) 
+            : body.additional_headers 
+        }),
+      };
+    } else {
+      // Standard provider credentials (Easebuzz, Razorpay, etc.)
+      gatewayCredentials = {
+        ...gatewayCredentials,
+        ...(body.api_key && { api_key: body.api_key }),
+        ...(body.api_secret && { api_secret: body.api_secret }),
+        ...(body.webhook_secret && { webhook_secret: body.webhook_secret }),
+        ...(body.environment && ['phonepe', 'cashfree'].includes(currentProvider) && { environment: body.environment }),
+        ...(body.channel_id && currentProvider === 'paytm' && { channel_id: body.channel_id }),
+        ...(body.auth_header && currentProvider === 'payu' && { auth_header: body.auth_header }),
+      };
+    }
+
+    // Always update credentials if we have credential-related changes
+    if (body.api_key || body.api_secret || body.webhook_secret || body.client_id || body.api_id || body.api_endpoint_url) {
       updateData.credentials = gatewayCredentials;
     }
 
-    // Handle additional_headers JSON parsing
+    // Handle additional_headers JSON parsing for direct column (if it exists)
     if (body.additional_headers && typeof body.additional_headers === 'string') {
       try {
         updateData.additional_headers = JSON.parse(body.additional_headers);
@@ -221,6 +243,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     updateData.updated_at = new Date().toISOString();
+
+    console.log('🔧 Gateway Update Data:', updateData);
 
     const { data, error } = await supabase
       .from('payment_gateways')

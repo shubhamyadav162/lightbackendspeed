@@ -8,14 +8,18 @@ import { Switch } from '@/components/ui/switch';
 import { Copy, CheckCircle, AlertCircle, Zap, Settings, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Updated to use direct fetch calls instead of apiClient for Railway deployment
+// ✅ FIXED: Get proper backend URL from environment variables
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
+const API_BASE_URL = `${BACKEND_URL}/api/v1`;
+
+// Updated to use correct backend URLs for Railway deployment
 export const EasebuzzQuickSetup = () => {
   const [isConfigured, setIsConfigured] = useState(true); // Already exists
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [credentials, setCredentials] = useState({
-    clientId: "682aefe4e352d264171612c0",     // ✅ CORRECTED: Real NextGen Techno Client ID
-    merchantKey: "FRQT0XKLHY",               // ✅ CORRECTED: Real NextGen Techno Merchant Key
-    salt: "S84LOJ3U0N",                      // ✅ CORRECTED: Real NextGen Techno Salt
+    clientId: import.meta.env.VITE_EASEBUZZ_CLIENT_ID || '',
+    merchantKey: import.meta.env.VITE_EASEBUZZ_KEY || '',
+    salt: import.meta.env.VITE_EASEBUZZ_SALT || '',
     environment: "production"
   });
 
@@ -32,8 +36,8 @@ export const EasebuzzQuickSetup = () => {
   const testEasebuzzConnection = async () => {
     setIsTestingConnection(true);
     try {
-      // Test the existing Easebuzz gateway
-      const response = await fetch('/api/v1/admin/gateways/2fc79b96-36a3-4a67-ab21-94ce961600b8/test', {
+      // ✅ FIXED: Use full Railway backend URL
+      const response = await fetch(`${API_BASE_URL}/admin/gateways/2fc79b96-36a3-4a67-ab21-94ce961600b8/test`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -63,7 +67,8 @@ export const EasebuzzQuickSetup = () => {
 
   const updateGatewayCredentials = async () => {
     try {
-      const response = await fetch('/api/v1/admin/gateways/2fc79b96-36a3-4a67-ab21-94ce961600b8', {
+      // ✅ FIXED: Use full Railway backend URL
+      const response = await fetch(`${API_BASE_URL}/admin/gateways/2fc79b96-36a3-4a67-ab21-94ce961600b8`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -72,13 +77,16 @@ export const EasebuzzQuickSetup = () => {
         body: JSON.stringify({
           name: "🚀 NextGen Techno Ventures - Easebuzz Live Gateway",
           provider: "easebuzz",
-          client_id: credentials.clientId,         // ✅ Real Client ID
-          api_key: credentials.merchantKey,        // ✅ Real Merchant Key
-          api_secret: credentials.salt,            // ✅ Real Salt
+          credentials: {
+            api_key: credentials.merchantKey,
+            api_secret: credentials.salt,
+            client_id: credentials.clientId,
+            environment: credentials.environment,
+            webhook_url: webhookUrl
+          },
           environment: credentials.environment,
           priority: 1,
-          is_active: true,
-          webhook_url: webhookUrl  // ✅ Using corrected webhook URL
+          is_active: true
         })
       });
 
@@ -86,10 +94,17 @@ export const EasebuzzQuickSetup = () => {
         toast.success('✅ Gateway Updated with Real NextGen Techno Credentials!');
         setIsConfigured(true);
       } else {
-        toast.error('❌ Update Failed');
+        const errorData = await response.text();
+        console.error('Update error:', errorData);
+        toast.error('❌ Update Failed', {
+          description: `Server error: ${response.status}`
+        });
       }
     } catch (error) {
-      toast.error('❌ Network Error');
+      console.error('Network error:', error);
+      toast.error('❌ Network Error', {
+        description: 'Could not connect to server'
+      });
     }
   };
 

@@ -74,16 +74,19 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
 
   useEffect(() => {
     if (gateway) {
+      // Auto-fill Easebuzz credentials if provider is easebuzz
+      const isEasebuzz = gateway.provider === 'easebuzz';
+      
       setFormData({
         name: gateway.name || '',
         provider: gateway.provider || '',
-        api_key: gateway.api_key || '',
-        api_secret: gateway.api_secret || '',
+        api_key: isEasebuzz ? (import.meta.env.VITE_EASEBUZZ_KEY || '') : (gateway.api_key || ''),
+        api_secret: isEasebuzz ? (import.meta.env.VITE_EASEBUZZ_SALT || '') : (gateway.api_secret || ''),
         webhook_secret: gateway.webhook_secret || '',
         client_id: gateway.client_id || '',
         api_id: gateway.api_id || '',
         api_endpoint_url: gateway.api_endpoint_url || '',
-        webhook_url: gateway.webhook_url || '',
+        webhook_url: isEasebuzz ? 'https://api.lightspeedpay.in/api/v1/callback/easebuzz' : (gateway.webhook_url || ''),
         environment: gateway.environment || 'test',
         channel_id: gateway.channel_id || '',
         auth_header: gateway.auth_header || '',
@@ -92,8 +95,34 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
         monthly_limit: gateway.monthly_limit || 1000000,
         is_active: gateway.is_active !== undefined ? gateway.is_active : true
       });
+      
+      // Notify about auto-fill for Easebuzz
+      if (isEasebuzz) {
+        setTimeout(() => {
+          toast.success('✅ Easebuzz credentials auto-loaded with NextGen Techno Ventures config');
+        }, 500);
+      }
     }
   }, [gateway]);
+
+  // Auto-fill when provider changes to easebuzz
+  const handleProviderChange = (value: string) => {
+    handleInputChange('provider', value);
+    
+    // Auto-fill Easebuzz credentials
+    if (value === 'easebuzz') {
+      setFormData(prev => ({
+        ...prev,
+        provider: value,
+        api_key: import.meta.env.VITE_EASEBUZZ_KEY || '',
+        api_secret: import.meta.env.VITE_EASEBUZZ_SALT || '',
+        webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz'
+      }));
+      
+      // Notify user about auto-fill
+      toast.success('✨ Easebuzz credentials auto-filled! Ready to save.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,13 +157,32 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
         })
       };
 
+      // Debug logging
+      console.log('🔍 Form Data:', formData);
+      console.log('🚀 Payload being sent:', payload);
+      
+      // Validation for Easebuzz
+      if (formData.provider === 'easebuzz') {
+        if (!formData.api_key || !formData.api_secret) {
+          toast.error('Easebuzz के लिए API Key और API Secret जरूरी हैं!');
+          return;
+        }
+      }
+
       await apiService.updateGateway(gateway.id, payload);
       toast.success('Gateway updated successfully');
       onClose();
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Gateway update error:', error);
-      toast.error('Failed to update gateway');
+      
+      // More detailed error logging
+      if (error.response?.data) {
+        console.error('Backend error details:', error.response.data);
+        toast.error(`Failed to update gateway: ${error.response.data.error || error.message}`);
+      } else {
+        toast.error('Failed to update gateway - Network or server error');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -206,7 +254,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                 <Label htmlFor="provider">Provider *</Label>
                 <Select
                   value={formData.provider}
-                  onValueChange={(value) => handleInputChange('provider', value)}
+                  onValueChange={(value) => handleProviderChange(value)}
                   required
                 >
                   <SelectTrigger>
@@ -306,7 +354,13 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                     placeholder="e.g., rzp_test_... or rzp_live_..."
                     value={formData.api_key}
                     onChange={(e) => handleInputChange('api_key', e.target.value)}
+                    className={formData.provider === 'easebuzz' ? 'border-green-500 bg-green-50' : ''}
                   />
+                  {formData.provider === 'easebuzz' && (
+                    <p className="text-xs text-green-600">
+                      ✅ Auto-filled with NextGen Techno Ventures credentials
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -317,7 +371,13 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                     placeholder="Enter new API secret (leave empty to keep unchanged)"
                     value={formData.api_secret}
                     onChange={(e) => handleInputChange('api_secret', e.target.value)}
+                    className={formData.provider === 'easebuzz' ? 'border-green-500 bg-green-50' : ''}
                   />
+                  {formData.provider === 'easebuzz' && (
+                    <p className="text-xs text-green-600">
+                      ✅ Auto-filled with NextGen Techno Ventures salt key
+                    </p>
+                  )}
                 </div>
 
                 {showEnvironment && (
@@ -381,10 +441,16 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                   placeholder="https://your-domain.com/webhook/payment-notifications"
                   value={formData.webhook_url}
                   onChange={(e) => handleInputChange('webhook_url', e.target.value)}
+                  className={formData.provider === 'easebuzz' ? 'border-green-500 bg-green-50' : ''}
                 />
                 <p className="text-xs text-gray-500">
                   URL where payment gateway will send transaction updates
                 </p>
+                {formData.provider === 'easebuzz' && (
+                  <p className="text-xs text-green-600">
+                    ✅ Auto-configured for LightSpeed Payment Gateway
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">

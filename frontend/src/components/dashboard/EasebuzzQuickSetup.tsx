@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Copy, CheckCircle, AlertCircle, Zap, Settings, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Updated to use direct fetch calls instead of apiClient for Railway deployment
 export const EasebuzzQuickSetup = () => {
   const [isConfigured, setIsConfigured] = useState(true); // Already exists
   const [isTestingConnection, setIsTestingConnection] = useState(false);

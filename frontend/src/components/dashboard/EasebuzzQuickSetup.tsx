@@ -48,7 +48,7 @@ export const EasebuzzQuickSetup = () => {
       const result = await response.json();
       
       if (result.success) {
-        toast.success('🎉 NextGen Techno Easebuzz Connection Test Successful!', {
+        toast.success('🎉 NGME Easebuzz Connection Test Successful!', {
           description: 'Gateway is working perfectly with your real credentials'
         });
       } else {
@@ -75,7 +75,7 @@ export const EasebuzzQuickSetup = () => {
           'x-api-key': 'admin_test_key'
         },
         body: JSON.stringify({
-          name: "🚀 NextGen Techno Ventures - Easebuzz Live Gateway",
+          name: "🚀 NGME's bus, payment gateway",
           provider: "easebuzz",
           credentials: {
             api_key: credentials.merchantKey,
@@ -91,7 +91,7 @@ export const EasebuzzQuickSetup = () => {
       });
 
       if (response.ok) {
-        toast.success('✅ Gateway Updated with Real NextGen Techno Credentials!');
+        toast.success('✅ Gateway Updated with Real NGME Credentials!');
         setIsConfigured(true);
       } else {
         const errorData = await response.text();
@@ -108,6 +108,123 @@ export const EasebuzzQuickSetup = () => {
     }
   };
 
+  // Real Money Payment Test Function
+  const createRealPaymentTest = async () => {
+    console.log('💰 Creating real money payment test for ₹10...');
+    
+    try {
+      // Show loading toast
+      toast.info('💰 Creating real payment link...', { duration: 2000 });
+      
+      // Generate unique order ID
+      const orderId = `NGME_TEST_${Date.now()}`;
+      const customerEmail = 'ngme@lightspeedpay.com';
+      const customerPhone = '9999999999';
+      const customerName = 'NGME Real Test User';
+      const amount = 10;
+      
+      console.log('📋 NGME Payment Details:', {
+        amount,
+        orderId,
+        customerName,
+        customerEmail,
+        customerPhone
+      });
+      
+      // Use admin credentials for testing (temporarily allowed in payment API)
+      console.log('🔐 Using admin credentials for NGME real money testing...');
+      const demoMerchantKey = 'admin_test_key';
+      const demoMerchantSalt = 'admin_test_secret';
+      
+      // Create payment request with demo merchant credentials
+      const response = await fetch(`${API_BASE_URL}/pay`, {
+        method: 'POST',
+        headers: {
+          'x-api-key': demoMerchantKey,
+          'x-api-secret': demoMerchantSalt,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: amount,
+          customer_email: customerEmail,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          order_id: orderId,
+          description: `NGME Real Money Test - ₹${amount} via Easebuzz`,
+          payment_method: 'upi',
+          test_mode: false // Set to false for real money
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Payment creation failed: ${response.status} - ${errorText}`);
+      }
+      
+      const paymentData = await response.json();
+      
+      if (paymentData.success && paymentData.payment_url) {
+        console.log('🎉 NGME Payment link created successfully!');
+        console.log('💳 Payment URL:', paymentData.payment_url);
+        console.log('🆔 Transaction ID:', paymentData.transaction_id);
+        console.log('📱 Order ID:', orderId);
+        
+        // Success toast with action
+        toast.success('🎉 NGME Real Payment Link Created!', {
+          description: `₹${amount} • Order: ${orderId} • Via Easebuzz`,
+          duration: 8000,
+          action: {
+            label: 'Open Payment',
+            onClick: () => window.open(paymentData.payment_url, '_blank')
+          }
+        });
+        
+        // Also open payment page automatically
+        setTimeout(() => {
+          const shouldOpen = confirm(
+            `✅ NGME real payment link created for ₹${amount}!\n\n` +
+            `Transaction ID: ${paymentData.transaction_id}\n` +
+            `Order ID: ${orderId}\n\n` +
+            `Open payment page now to complete with UPI?\n` +
+            `This will use your real NGME Easebuzz gateway.`
+          );
+          
+          if (shouldOpen) {
+            window.open(paymentData.payment_url, '_blank');
+          }
+        }, 500);
+        
+        // Copy to clipboard if available
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(paymentData.payment_url);
+          setTimeout(() => {
+            toast.info('📋 Payment URL copied to clipboard!', { duration: 3000 });
+          }, 1000);
+        }
+        
+        return {
+          success: true,
+          payment_url: paymentData.payment_url,
+          transaction_id: paymentData.transaction_id,
+          order_id: orderId,
+          amount: amount
+        };
+        
+      } else {
+        throw new Error(paymentData.message || 'Payment creation failed');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error creating NGME payment test:', error);
+      toast.error(`❌ NGME Payment Test Failed: ${error.message}`, { duration: 5000 });
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -117,7 +234,7 @@ export const EasebuzzQuickSetup = () => {
               <Zap className="w-6 h-6 text-white" />
             </div>
             <div>
-              <CardTitle className="text-xl">NextGen Techno Ventures - Easebuzz Gateway</CardTitle>
+              <CardTitle className="text-xl">NGME's bus, payment gateway</CardTitle>
               <p className="text-sm text-gray-600">Complete gateway management with your REAL credentials</p>
             </div>
           </div>
@@ -139,7 +256,7 @@ export const EasebuzzQuickSetup = () => {
           <div className="space-y-4 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-semibold text-blue-900 flex items-center">
               <Settings className="w-4 h-4 mr-2" />
-              ✅ Real NextGen Techno Easebuzz Credentials
+              ✅ Real NGME Easebuzz Credentials
             </h3>
             
             <div className="space-y-3">
@@ -160,7 +277,7 @@ export const EasebuzzQuickSetup = () => {
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-blue-700 mt-1">NextGen Techno Ventures Client ID</p>
+                <p className="text-xs text-blue-700 mt-1">NGME's bus Client ID</p>
               </div>
 
               <div>
@@ -180,7 +297,7 @@ export const EasebuzzQuickSetup = () => {
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-blue-700 mt-1">Real NextGen Techno API Key</p>
+                <p className="text-xs text-blue-700 mt-1">Real NGME API Key</p>
               </div>
               
               <div>
@@ -200,7 +317,7 @@ export const EasebuzzQuickSetup = () => {
                     <Copy className="w-3 h-3" />
                   </Button>
                 </div>
-                <p className="text-xs text-blue-700 mt-1">Real NextGen Techno API Secret</p>
+                <p className="text-xs text-blue-700 mt-1">Real NGME API Secret</p>
               </div>
 
               <div className="flex items-center justify-between">
@@ -293,7 +410,7 @@ export const EasebuzzQuickSetup = () => {
           <div className="text-sm text-gray-600">
             <p>✅ Gateway ID: 2fc79b96-36a3-4a67-ab21-94ce961600b8</p>
             <p>✅ Status: Active | Priority: 1 | Environment: {credentials.environment}</p>
-            <p>✅ Credentials: Real NextGen Techno Ventures</p>
+            <p>✅ Credentials: Real NGME's bus</p>
           </div>
           
           <div className="flex items-center space-x-3">
@@ -309,6 +426,13 @@ export const EasebuzzQuickSetup = () => {
                 <TestTube className="w-4 h-4 mr-2" />
               )}
               Test Real Credentials
+            </Button>
+            
+            <Button
+              onClick={createRealPaymentTest}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              💰 Real Money Test (₹10)
             </Button>
             
             <Button
@@ -335,7 +459,7 @@ export const EasebuzzQuickSetup = () => {
 
         {/* Real Credentials Summary */}
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">✅ Your Real NextGen Techno Ventures Credentials:</h4>
+          <h4 className="font-semibold text-green-800 mb-2">✅ Your Real NGME's bus Credentials:</h4>
           <div className="text-sm text-green-700 space-y-1">
             <p><strong>Client ID:</strong> <code className="bg-white px-1 rounded">682aefe4e352d264171612c0</code></p>
             <p><strong>Merchant Key:</strong> <code className="bg-white px-1 rounded">FRQT0XKLHY</code></p>

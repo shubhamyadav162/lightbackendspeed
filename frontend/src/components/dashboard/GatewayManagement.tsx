@@ -38,7 +38,7 @@ interface Gateway {
 
 export const GatewayManagement = () => {
   // Use React Query data directly - no local state copy needed
-  const { data: apiGateways = [], isLoading, refetch } = useGateways();
+  const { data: apiGateways = [], isLoading, refetch, error } = useGateways();
   const updateGatewayMutation = useUpdateGateway();
   
   const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
@@ -47,19 +47,109 @@ export const GatewayManagement = () => {
   const [configGateway, setConfigGateway] = useState<Gateway | null>(null);
   const [healthMetrics, setHealthMetrics] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState("overview");
+  const [showPayUModal, setShowPayUModal] = useState(false);
+
+  // Debug logging - for troubleshooting
+  useEffect(() => {
+    console.log('🔍 Gateway Management Debug:', {
+      isLoading,
+      error: error?.message,
+      apiGateways: apiGateways,
+      apiGatewaysCount: apiGateways.length,
+      apiGatewaysTypes: apiGateways.map(g => g.provider)
+    });
+  }, [apiGateways, isLoading, error]);
 
   // Memoize processed gateways
   const gateways = useMemo(() => {
-    return apiGateways.map(gateway => ({
+    const processed = apiGateways.map(gateway => ({
       ...gateway,
       ...healthMetrics[gateway.id] // Apply health metrics if available
     }));
+    
+    // Debug: Check if Easebuzz is found
+    const easebuzzFound = processed.find(g => g.provider === 'easebuzz');
+    console.log('🔍 Easebuzz Gateway Debug:', {
+      totalGateways: processed.length,
+      providers: processed.map(g => g.provider),
+      easebuzzFound: easebuzzFound ? 'FOUND' : 'NOT FOUND',
+      easebuzzDetails: easebuzzFound
+    });
+    
+    return processed;
   }, [apiGateways, healthMetrics]);
 
   // Check if Easebuzz gateway exists
   const easebuzzGateway = useMemo(() => {
-    return gateways.find(g => g.provider === 'easebuzz');
+    // Enhanced search: look for both NGME and NextGen patterns
+    const found = gateways.find(g => 
+      g.provider === 'easebuzz' || 
+      g.name?.toLowerCase().includes('ngme') ||
+      g.name?.toLowerCase().includes('nextgen') ||
+      g.name?.toLowerCase().includes('easebuzz')
+    );
+    
+    console.log('🎯 Final Easebuzz Check (Enhanced):', {
+      found: found ? 'YES' : 'NO',
+      totalGateways: gateways.length,
+      allProviders: gateways.map(g => ({ name: g.name, provider: g.provider })),
+      searchResult: found ? {
+        id: found.id,
+        name: found.name,
+        provider: found.provider
+      } : null
+    });
+    return found;
   }, [gateways]);
+
+  // Auto-add PayU gateway on component mount
+  useEffect(() => {
+    const autoAddPayU = async () => {
+      // Check if PayU gateway already exists
+      const payuExists = gateways.find(g => 
+        g.provider === 'payu' && 
+        (g.name?.includes('PayU Money Production') || g.name?.includes('PayU'))
+      );
+      
+      if (!payuExists && gateways.length > 0) {
+        console.log('🚀 Auto-adding PayU gateway...');
+        
+        try {
+          const payuCredentials = {
+            name: 'PayU Money Production',
+            provider: 'payu',
+            api_key: 'xKLUxQ',
+            api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+            client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
+            client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+            environment: 'production',
+            webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',
+            success_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/success',
+            failed_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/failed',
+            commission_type: 'percentage',
+            commission_value: 2.5,
+            priority: 2,
+            is_active: true
+          };
+          
+          await handleSavePayUGateway(payuCredentials);
+          
+          toast.success('✅ PayU Gateway Automatically Added!', {
+            description: 'PayU Money credentials को automatically configure कर दिया गया है',
+            duration: 5000
+          });
+          
+        } catch (error) {
+          console.error('Failed to auto-add PayU gateway:', error);
+        }
+      }
+    };
+    
+    // Only run when gateways are loaded
+    if (!isLoading && gateways.length >= 0) {
+      autoAddPayU();
+    }
+  }, [gateways, isLoading]); // Re-run when gateways change
 
   // Subscribe to real-time health metrics - only once
   useEffect(() => {
@@ -214,6 +304,422 @@ export const GatewayManagement = () => {
     }
   };
 
+  // 🔍 COMPREHENSIVE DIAGNOSTIC FUNCTION
+  const runCompleteDiagnostic = async () => {
+    console.log('🔍 === COMPLETE DIAGNOSTIC START ===');
+    
+    const diagnostic: any = {
+      timestamp: new Date().toISOString(),
+      frontend: {
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+        online: navigator.onLine
+      },
+      api: {
+        baseUrl: import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app',
+        key: import.meta.env.VITE_API_KEY || 'admin_test_key'
+      },
+      reactQuery: {
+        isLoading,
+        error: error?.message,
+        apiGatewaysCount: apiGateways.length,
+        providers: apiGateways.map(g => g.provider)
+      },
+      easebuzz: {
+        found: !!easebuzzGateway,
+        details: easebuzzGateway
+      }
+    };
+    
+    console.log('🔍 Complete Diagnostic Report:', diagnostic);
+    
+    // Test direct API call
+    try {
+      console.log('🔍 Testing Direct API Call...');
+      const directResponse = await fetch('https://web-production-0b337.up.railway.app/api/v1/admin/gateways', {
+        method: 'GET',
+        headers: {
+          'x-api-key': 'admin_test_key',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (directResponse.ok) {
+        const directData = await directResponse.json();
+        diagnostic.directApiTest = {
+          success: true,
+          status: directResponse.status,
+          data: directData,
+          easebuzzInDirect: directData?.gateways?.find((g: any) => g.provider === 'easebuzz') || null
+        };
+        
+        console.log('✅ Direct API Test Success:', diagnostic.directApiTest);
+        
+        // Check why React Query might be different
+        if (directData?.gateways?.length !== apiGateways.length) {
+          console.warn('⚠️ MISMATCH: Direct API vs React Query counts differ');
+          console.log('Direct API count:', directData?.gateways?.length);
+          console.log('React Query count:', apiGateways.length);
+        }
+      } else {
+        diagnostic.directApiTest = {
+          success: false,
+          status: directResponse.status,
+          error: await directResponse.text()
+        };
+      }
+    } catch (directError: any) {
+      diagnostic.directApiTest = {
+        success: false,
+        error: directError.message
+      };
+    }
+    
+    // Show diagnostic in UI
+    if (diagnostic.easebuzz.found) {
+      toast.success('✅ Easebuzz Gateway Found!', {
+        description: `Provider: ${diagnostic.easebuzz.details?.provider} | Name: ${diagnostic.easebuzz.details?.name}`,
+        duration: 5000
+      });
+    } else {
+      if (diagnostic.directApiTest?.success && diagnostic.directApiTest?.easebuzzInDirect) {
+        toast.error('🔧 React Query Issue!', {
+          description: 'Easebuzz found in direct API but not in React Query. Check browser console.',
+          duration: 8000
+        });
+      } else if (diagnostic.directApiTest?.success) {
+        toast.error('❌ Easebuzz Not in Database!', {
+          description: `Found ${diagnostic.directApiTest.data?.gateways?.length || 0} gateways, but no Easebuzz.`,
+          duration: 8000
+        });
+      } else {
+        toast.error('🌐 Backend Connection Failed!', {
+          description: 'Cannot connect to Railway backend. Check internet connection.',
+          duration: 8000
+        });
+      }
+    }
+    
+    console.log('🔍 === DIAGNOSTIC COMPLETE ===');
+    return diagnostic;
+  };
+
+  // Real Money Payment Test Function
+  const createRealPaymentTest = async () => {
+    console.log('💰 Creating real money payment test for ₹10...');
+    
+    try {
+      // Show loading toast
+      toast.info('💰 Creating real payment link...', { duration: 2000 });
+      
+      // Generate unique order ID
+      const orderId = `REAL_TEST_${Date.now()}`;
+      const customerEmail = 'test@lightspeedpay.com';
+      const customerPhone = '9999999999';
+      const customerName = 'Real Test User';
+      const amount = 10;
+      
+      console.log('📋 Payment Details:', {
+        amount,
+        orderId,
+        customerName,
+        customerEmail,
+        customerPhone
+      });
+      
+      // Use demo client credentials for testing
+      console.log('🔐 Using REAL NGME client credentials for payment...');
+      const realClientKey = 'NGME_REAL_CLIENT_2025';
+      const realClientSalt = 'ngme_salt_secure_2025_FRQT0XKLHY';
+      
+      // Create payment request with demo client credentials
+      const response = await fetch('https://web-production-0b337.up.railway.app/api/v1/pay', {
+        method: 'POST',
+        headers: {
+          'x-api-key': realClientKey,
+          'x-api-secret': realClientSalt,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: amount,
+          customer_email: customerEmail,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          order_id: orderId,
+          description: `Real Money Test Payment - ₹${amount}`,
+          payment_method: 'upi',
+          test_mode: false // Set to false for real money
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Payment creation failed. Status:', response.status, 'Error details:', errorText);
+        throw new Error(`Payment creation failed: ${response.status} - ${errorText}`);
+      }
+      
+      const paymentData = await response.json();
+      
+      if (paymentData.success && paymentData.payment_url) {
+        console.log('🎉 Payment link created successfully!');
+        console.log('💳 Payment URL:', paymentData.payment_url);
+        console.log('🆔 Transaction ID:', paymentData.transaction_id);
+        console.log('📱 Order ID:', orderId);
+        
+        // Success toast with action
+        toast.success('🎉 Real Payment Link Created!', {
+          description: `₹${amount} • Order: ${orderId}`,
+          duration: 8000,
+          action: {
+            label: 'Open Payment',
+            onClick: () => window.open(paymentData.payment_url, '_blank')
+          }
+        });
+        
+        // Also open payment page automatically
+        setTimeout(() => {
+          const shouldOpen = confirm(
+            `✅ Real payment link created for ₹${amount}!\n\n` +
+            `Transaction ID: ${paymentData.transaction_id}\n` +
+            `Order ID: ${orderId}\n\n` +
+            `Open payment page now to complete with UPI?`
+          );
+          
+          if (shouldOpen) {
+            window.open(paymentData.payment_url, '_blank');
+          }
+        }, 500);
+        
+        // Copy to clipboard if available
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(paymentData.payment_url);
+          setTimeout(() => {
+            toast.info('📋 Payment URL copied to clipboard!', { duration: 3000 });
+          }, 1000);
+        }
+        
+        return {
+          success: true,
+          payment_url: paymentData.payment_url,
+          transaction_id: paymentData.transaction_id,
+          order_id: orderId,
+          amount: amount
+        };
+        
+      } else {
+        throw new Error(paymentData.message || 'Payment creation failed');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Error creating payment test:', error);
+      toast.error(`❌ Payment Test Failed: ${error.message}`, { duration: 5000 });
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+  // 🚀 QUICK FIX: Update NGME Gateway Name
+  const quickFixNGMEName = async () => {
+    try {
+      console.log('🔧 Quick Fix: Updating NGME Gateway Name...');
+      toast.info('🔧 NGME Gateway name update हो रहा है...', { duration: 2000 });
+      
+      // Find NextGen/Easebuzz gateway with broader criteria
+      console.log('🔍 Searching for gateway among:', gateways.map(g => ({ id: g.id, name: g.name, provider: g.provider })));
+      const targetGateway = gateways.find(g => 
+        g.provider?.toLowerCase().includes('ease') || 
+        g.provider?.toLowerCase().includes('buzz') || 
+        g.provider?.toLowerCase().includes('next') || 
+        g.provider?.toLowerCase().includes('ngme') ||
+        g.name?.toLowerCase().includes('ease') ||
+        g.name?.toLowerCase().includes('buzz') ||
+        g.name?.toLowerCase().includes('next') ||
+        g.name?.toLowerCase().includes('ngme')
+      );
+      
+      if (!targetGateway) {
+        console.error('❌ No gateway found matching Easebuzz/NGME criteria. Available gateways:', gateways);
+        throw new Error('Easebuzz gateway not found');
+      }
+      
+      console.log('✅ Found target gateway for NGME update:', targetGateway);
+      
+      // Update name to NGME's bus
+      const response = await fetch(`https://web-production-0b337.up.railway.app/api/v1/admin/gateways/${targetGateway.id}`, {
+        method: 'PUT',
+        headers: {
+          'x-api-key': 'admin_test_key',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: "🚀 NGME's bus, payment gateway",
+          provider: "easebuzz",
+          credentials: targetGateway.credentials || {},
+          webhook_url: targetGateway.webhook_url || '',
+          environment: targetGateway.environment || 'production',
+          priority: 1,
+          is_active: true
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Update failed: ${response.status}`);
+      }
+      
+      toast.success('✅ NGME Gateway name successfully updated!', {
+        description: 'Dashboard को refresh करें NGME tab देखने के लिए',
+        duration: 5000
+      });
+      
+      // Refresh gateways data
+      setTimeout(() => {
+        refetch();
+      }, 1000);
+      
+    } catch (error: any) {
+      console.error('❌ Quick fix failed:', error);
+      toast.error('❌ Gateway name update failed', {
+        description: error.message,
+        duration: 5000
+      });
+    }
+  };
+
+  // Update Easebuzz Gateway with NGM Tech Growth credentials
+  const updateEasebuzzGateway = () => {
+    const easebuzzGateways = gateways.filter(g => g.provider === 'easebuzz');
+    if (easebuzzGateways.length > 0) {
+      const primaryGateway = easebuzzGateways[0];
+      const updatedGateway = {
+        ...primaryGateway,
+        name: 'Easebuzz - NGM Tech Growth',
+        api_key: 'FQABLVIEYC',
+        api_secret: 'QECGU7UHNT',
+        client_id: '682d9154e352d26417059640',
+        is_active: true,
+        priority: 1
+      };
+      apiService.updateGateway(primaryGateway.id, updatedGateway)
+        .then(response => {
+          toast.success('Easebuzz Gateway updated successfully');
+          // Assuming a function to refresh gateway list exists
+          if (typeof refreshGateways === 'function') refreshGateways();
+        })
+        .catch(error => {
+          toast.error('Failed to update Easebuzz Gateway: ' + error.message);
+        });
+      // Deactivate other Easebuzz gateways
+      easebuzzGateways.slice(1).forEach(otherGateway => {
+        apiService.updateGateway(otherGateway.id, { ...otherGateway, is_active: false })
+          .then(() => console.log(`Deactivated Easebuzz Gateway: ${otherGateway.name}`))
+          .catch(err => console.error(`Failed to deactivate Easebuzz Gateway: ${otherGateway.name}`, err));
+      });
+    } else {
+      // If no Easebuzz gateway exists, create a new one
+      const newGateway = {
+        name: 'Easebuzz - NGM Tech Growth',
+        provider: 'easebuzz',
+        api_key: 'FQABLVIEYC',
+        api_secret: 'QECGU7UHNT',
+        client_id: '682d9154e352d26417059640',
+        is_active: true,
+        priority: 1,
+        monthly_limit: 1000000
+      };
+      apiService.createGateway(newGateway)
+        .then(response => {
+          toast.success('Easebuzz Gateway added successfully');
+          if (typeof refreshGateways === 'function') refreshGateways();
+        })
+        .catch(error => {
+          toast.error('Failed to add Easebuzz Gateway: ' + error.message);
+        });
+    }
+  };
+
+  // Add or Update PayU Money Gateway
+  const handlePayUUpdate = () => {
+    const payuGateway = gateways.find(g => g.provider === 'payu' && g.name.includes('Next Gen Techno Ventures'));
+    const newPayUCreds = {
+      name: 'PayU Money - Next Gen Techno Ventures',
+      provider: 'payu',
+      api_key: 'xKLUxQ',
+      api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+      is_active: true,
+      priority: 1,
+      monthly_limit: 1000000
+    };
+
+    if (payuGateway) {
+      // Update existing PayU gateway
+      apiService.updateGateway(payuGateway.id, newPayUCreds)
+        .then(response => {
+          toast.success('PayU Money Gateway updated successfully');
+          if (typeof refreshGateways === 'function') refreshGateways();
+        })
+        .catch(error => {
+          toast.error('Failed to update PayU Money Gateway: ' + error.message);
+        });
+    } else {
+      // Create new PayU gateway
+      apiService.createGateway(newPayUCreds)
+        .then(response => {
+          toast.success('PayU Money Gateway added successfully');
+          if (typeof refreshGateways === 'function') refreshGateways();
+        })
+        .catch(error => {
+          toast.error('Failed to add PayU Money Gateway: ' + error.message);
+        });
+    }
+  };
+
+  const handleAddPayUGateway = () => {
+    // Automatically add PayU gateway with pre-filled credentials
+    const payuCredentials = {
+      name: 'PayU Money Production',
+      provider: 'payu',
+      api_key: 'xKLUxQ',
+      api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+      client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
+      client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+      environment: 'production',
+      webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',
+      success_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/success',
+      failed_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/failed',
+      commission_type: 'percentage',
+      commission_value: 2.5,
+      priority: 2,
+      is_active: true
+    };
+    
+    handleSavePayUGateway(payuCredentials);
+  };
+
+  const handleSavePayUGateway = (formData: any) => {
+    const newGateway = {
+      name: formData.name || 'PayU Money - Next Gen Techno Ventures',
+      provider: 'payu',
+      api_key: formData.api_key || 'xKLUxQ',
+      api_secret: formData.api_secret || 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+      is_active: true,
+      priority: parseInt(formData.priority, 10) || 1,
+      monthly_limit: parseInt(formData.monthly_limit, 10) || 1000000,
+    };
+
+    apiService.createGateway(newGateway)
+      .then(() => {
+        toast.success('PayU Money Gateway added successfully');
+        fetchGateways();
+        setShowPayUModal(false);
+      })
+      .catch((error) => {
+        toast.error(`Failed to add PayU Gateway: ${error.message}`);
+      });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-10">
@@ -243,11 +749,41 @@ export const GatewayManagement = () => {
               🧪 Test Real API
             </Button>
             <Button
+              onClick={runCompleteDiagnostic}
+              variant="outline"
+              size="sm"
+              className="bg-purple-50 border-purple-200 hover:bg-purple-100"
+            >
+              🔍 Debug Easebuzz
+            </Button>
+            <Button
+              onClick={quickFixNGMEName}
+              variant="outline"
+              size="sm"
+              className="bg-blue-50 border-blue-200 hover:bg-blue-100"
+            >
+              🔧 Fix NGME Name
+            </Button>
+            <Button
+              onClick={createRealPaymentTest}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              💰 Real Money Test (₹10)
+            </Button>
+            <Button
               onClick={() => setIsAddModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Gateway
+            </Button>
+            <Button
+              onClick={handleAddPayUGateway}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add PayU Gateway
             </Button>
           </div>
         </div>
@@ -262,7 +798,7 @@ export const GatewayManagement = () => {
             </TabsTrigger>
             <TabsTrigger value="easebuzz" className="flex items-center space-x-2">
               <CreditCard className="w-4 h-4" />
-              <span>NextGen Techno - Easebuzz</span>
+                                <span>NGME's bus</span>
               {easebuzzGateway && (
                 <Badge variant="outline" className="ml-1 bg-green-50 text-green-700 text-xs">
                   Active
@@ -351,7 +887,7 @@ export const GatewayManagement = () => {
                           <CreditCard className="w-4 h-4 text-green-600" />
                         </div>
                         <div>
-                          <p className="font-medium text-green-900">NextGen Techno - Easebuzz Gateway</p>
+                          <p className="font-medium text-green-900">NGME's bus, payment gateway</p>
                           <p className="text-sm text-green-700">Production Ready • Priority 1 • 98.5% Success Rate</p>
                         </div>
                       </div>
@@ -372,7 +908,7 @@ export const GatewayManagement = () => {
                         </div>
                         <div>
                           <p className="font-medium text-yellow-900">Easebuzz Gateway Not Found</p>
-                          <p className="text-sm text-yellow-700">Setup your NextGen Techno Ventures Easebuzz gateway</p>
+                          <p className="text-sm text-yellow-700">Setup your NGME's bus Easebuzz gateway</p>
                         </div>
                       </div>
                       <Button 
@@ -427,6 +963,15 @@ export const GatewayManagement = () => {
         gateway={configGateway}
         onSuccess={handleConfigGatewaySuccess}
       />
+
+      {showPayUModal && (
+        <GatewayConfigurationModal
+          isOpen={showPayUModal}
+          onClose={() => setShowPayUModal(false)}
+          onSave={handleSavePayUGateway}
+          gateway={{ provider: 'payu' }}
+        />
+      )}
     </Card>
   );
 };

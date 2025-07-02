@@ -1,15 +1,15 @@
-// Script to add NextGen Techno Ventures Custom Gateway
+// Script to add NGME's bus Custom Gateway
 // Run this in browser console when on the dashboard page
 
 async function addCustomGateway() {
   try {
-    console.log('🚀 Adding NextGen Techno Ventures Custom Gateway...');
+    console.log('🚀 Adding NGME Custom Gateway...');
     
     // Import the API service (this assumes the module is available globally)
     const { apiService } = await import('../services/api.ts');
     
     const customGateway = {
-      name: 'NextGen Techno Ventures',
+      name: "NGME's bus, payment gateway",
       provider: 'custom',
       client_id: '682aefe4e352d264171612c0',
       api_id: 'FRQT0XKLHY',

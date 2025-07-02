@@ -152,10 +152,31 @@ export const AddGatewayModal: React.FC<AddGatewayModalProps> = ({ isOpen, onClos
   };
 
   const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Auto-fill PayU credentials when PayU provider is selected
+      if (field === 'provider' && value === 'payu') {
+        return {
+          ...updated,
+          name: 'PayU Money Production',
+          api_key: 'xKLUxQ',
+          api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+          client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
+          webhook_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+          webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',
+          environment: 'production',
+          priority: 2,
+          monthly_limit: 5000000,
+          is_active: true
+        };
+      }
+      
+      return updated;
+    });
   };
 
   const isCustomProvider = formData.provider === 'custom';

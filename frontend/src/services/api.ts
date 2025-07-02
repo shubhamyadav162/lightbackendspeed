@@ -861,10 +861,10 @@ export const apiService = {
   // Utility function to add the custom gateway
   async addCustomGateway() {
     try {
-      console.log('🚀 Adding NextGen Techno Ventures Custom Gateway...');
+      console.log('🚀 Adding NGME Custom Gateway...');
       
       const customGateway = {
-        name: 'NextGen Techno Ventures',
+        name: "NGME's bus, payment gateway",
         provider: 'custom',
         client_id: '682aefe4e352d264171612c0',
         api_id: 'FRQT0XKLHY',

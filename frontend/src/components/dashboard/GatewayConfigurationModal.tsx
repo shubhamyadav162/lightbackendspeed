@@ -99,7 +99,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       // Notify about auto-fill for Easebuzz
       if (isEasebuzz) {
         setTimeout(() => {
-          toast.success('✅ Easebuzz credentials auto-loaded with NextGen Techno Ventures config');
+          toast.success('✅ Easebuzz credentials auto-loaded with NGME config');
         }, 500);
       }
     }
@@ -131,57 +131,81 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
 
     setIsSaving(true);
     try {
+      // Enhanced payload with proper webhook URL handling
       const payload = {
         name: formData.name,
         provider: formData.provider,
         priority: formData.priority,
         monthly_limit: formData.monthly_limit,
         is_active: formData.is_active,
+        // Always include webhook_url regardless of provider type
+        webhook_url: formData.webhook_url,
+        webhook_secret: formData.webhook_secret,
         ...(formData.provider === 'custom' ? {
           client_id: formData.client_id,
           api_id: formData.api_id,
           api_secret: formData.api_secret,
           api_endpoint_url: formData.api_endpoint_url,
-          webhook_url: formData.webhook_url,
-          webhook_secret: formData.webhook_secret,
           additional_headers: formData.additional_headers,
         } : {
           api_key: formData.api_key,
           api_secret: formData.api_secret,
-          webhook_secret: formData.webhook_secret,
-          webhook_url: formData.webhook_url,
           ...(formData.provider === 'phonepe' && { environment: formData.environment }),
           ...(formData.provider === 'cashfree' && { environment: formData.environment }),
+          ...(formData.provider === 'easebuzz' && { environment: formData.environment }),
           ...(formData.provider === 'paytm' && { channel_id: formData.channel_id }),
           ...(formData.provider === 'payu' && { auth_header: formData.auth_header }),
         })
       };
 
-      // Debug logging
-      console.log('🔍 Form Data:', formData);
-      console.log('🚀 Payload being sent:', payload);
+      // Enhanced debugging
+      console.log('🔍 Original Form Data:', formData);
+      console.log('🚀 Final Payload to Backend:', payload);
+      console.log('🔧 Gateway ID:', gateway.id);
+      console.log('📡 API Endpoint:', `/admin/gateways/${gateway.id}`);
       
-      // Validation for Easebuzz
+      // Enhanced validation
       if (formData.provider === 'easebuzz') {
         if (!formData.api_key || !formData.api_secret) {
-          toast.error('Easebuzz के लिए API Key और API Secret जरूरी हैं!');
+          toast.error('❌ Easebuzz के लिए API Key और API Secret जरूरी हैं!');
           return;
         }
+        if (!formData.webhook_url) {
+          toast.error('❌ Webhook URL जरूरी है payment notifications के लिए!');
+          return;
+        }
+        console.log('✅ Easebuzz validation passed');
       }
 
-      await apiService.updateGateway(gateway.id, payload);
-      toast.success('Gateway updated successfully');
+      // Make API call with enhanced error handling
+      console.log('📤 Sending update request...');
+      const response = await apiService.updateGateway(gateway.id, payload);
+      console.log('✅ Update successful:', response);
+      
+      toast.success('✅ Gateway configuration saved successfully!');
       onClose();
       onSuccess?.();
     } catch (error: any) {
-      console.error('Gateway update error:', error);
+      console.error('❌ Gateway update error:', error);
       
-      // More detailed error logging
+      // Enhanced error reporting
       if (error.response?.data) {
-        console.error('Backend error details:', error.response.data);
-        toast.error(`Failed to update gateway: ${error.response.data.error || error.message}`);
+        console.error('🔥 Backend error details:', error.response.data);
+        const errorMsg = error.response.data.error || error.response.data.message || error.message;
+        toast.error(`❌ Gateway save failed: ${errorMsg}`);
+      } else if (error.request) {
+        console.error('🌐 Network error - no response received');
+        toast.error('❌ Network error - Check internet connection');
       } else {
-        toast.error('Failed to update gateway - Network or server error');
+        console.error('⚙️ Request setup error:', error.message);
+        toast.error(`❌ Configuration error: ${error.message}`);
+      }
+      
+      // Additional debugging for webhook URL specifically
+      if (formData.webhook_url) {
+        console.log('🔗 Webhook URL being saved:', formData.webhook_url);
+      } else {
+        console.warn('⚠️ No webhook URL provided in form data');
       }
     } finally {
       setIsSaving(false);
@@ -358,7 +382,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                   />
                   {formData.provider === 'easebuzz' && (
                     <p className="text-xs text-green-600">
-                      ✅ Auto-filled with NextGen Techno Ventures credentials
+                      ✅ Auto-filled with NGME credentials
                     </p>
                   )}
                 </div>
@@ -375,7 +399,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                   />
                   {formData.provider === 'easebuzz' && (
                     <p className="text-xs text-green-600">
-                      ✅ Auto-filled with NextGen Techno Ventures salt key
+                      ✅ Auto-filled with NGME salt key
                     </p>
                   )}
                 </div>

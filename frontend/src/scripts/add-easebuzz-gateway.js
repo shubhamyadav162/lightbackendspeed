@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 
 /**
- * NextGen Techno Ventures - Easebuzz Gateway Auto-Setup Script
+ * NGME's bus - Easebuzz Gateway Auto-Setup Script
  * This script automatically adds your Easebuzz gateway credentials
  */
 
 const RAILWAY_API_URL = 'https://web-production-0b337.up.railway.app/api/v1';
 const API_KEY = 'admin_test_key';
 
-// NextGen Techno Ventures Easebuzz Credentials
+// NGME's bus Easebuzz Credentials
 const EASEBUZZ_CONFIG = {
-  name: "🚀 NextGen Techno - Easebuzz Live Gateway",
+  name: "🚀 NGME's bus, payment gateway",
   provider: "easebuzz",
   api_key: "D4SS5CFXKV",        // Merchant Key
   api_secret: "HRQ1A10K7J",     // Salt
@@ -23,7 +23,7 @@ const EASEBUZZ_CONFIG = {
 };
 
 async function addEasebuzzGateway() {
-  console.log('🚀 Adding NextGen Techno Ventures Easebuzz Gateway...');
+  console.log('🚀 Adding NGME Easebuzz Gateway...');
   console.log('📋 Configuration:', {
     provider: EASEBUZZ_CONFIG.provider,
     environment: EASEBUZZ_CONFIG.environment,
@@ -147,7 +147,7 @@ async function listExistingGateways() {
 
 // Main execution
 async function main() {
-  console.log('🚀 NextGen Techno Ventures - Easebuzz Gateway Setup');
+  console.log('🚀 NGME - Easebuzz Gateway Setup');
   console.log('=' .repeat(60));
   
   // Step 1: Check existing gateways

@@ -545,7 +545,30 @@ export const apiService = {
         }
       }
 
+      // Handle PayU provider specially
+      if (gatewayData.provider === 'payu') {
+        console.log('🚀 PayU gateway configuration detected');
+        
+        // Make sure credentials are properly formatted
+        if (!gatewayData.credentials) {
+          gatewayData.credentials = {
+            provider: 'payu',
+            api_key: gatewayData.api_key,
+            api_secret: gatewayData.api_secret,
+            client_id: gatewayData.client_id,
+            client_secret: gatewayData.client_secret
+          };
+          
+          // Remove standalone properties that are now in credentials
+          delete gatewayData.api_key;
+          delete gatewayData.api_secret;
+          delete gatewayData.client_id;
+          delete gatewayData.client_secret;
+        }
+      }
+
       // Fallback to regular gateway creation
+      console.log('📤 Sending gateway creation request:', gatewayData);
       const response = await apiClient.post('/admin/gateways', gatewayData);
       return response.data;
     } catch (error: any) {
@@ -1116,62 +1139,58 @@ export const subscribeToQueueMetrics = (callback: (metric: any) => void) => {
 };
 
 export const subscribeToGatewayHealth = (callback: (metric: any) => void) => {
-  const baseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co';
-  const url = `${baseUrl}/functions/v1/gateway-health-stream`;
-  
   let eventSource: EventSource | null = null;
-  let reconnectAttempts = 0;
-  const maxReconnectAttempts = 3;
-  let reconnectTimeout: NodeJS.Timeout;
-  
+  let retryCount = 0;
+  const maxRetries = 3;
+  const retryDelay = 5000;
+  let reconnectTimer: number | null = null;
+
   const connect = () => {
     try {
-      console.log('🔗 Connecting to Gateway Health SSE:', url);
-      eventSource = new EventSource(url);
+      // Enhanced URL with proper authentication
+      const supabaseUrl = 'https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/gateway-health-stream';
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk';
+      
+      // Create URL with authorization as query parameter (for SSE)
+      const urlWithAuth = `${supabaseUrl}?authorization=Bearer ${anonKey}`;
+      
+      DEBUG_LOGS && console.log('🔄 Connecting to gateway health stream with auth...');
+      
+      eventSource = new EventSource(urlWithAuth);
       
       eventSource.onopen = () => {
-        console.log('✅ Gateway Health SSE Connected');
-        reconnectAttempts = 0;
+        DEBUG_LOGS && console.log('✅ Gateway Health SSE Connected');
+        retryCount = 0;
       };
-      
+
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          DEBUG_LOGS && console.log('📊 Gateway Health Update:', data);
           callback(data);
-        } catch (err) {
-          console.warn('⚠️ Invalid Gateway Health SSE data:', event.data);
+        } catch (e) {
+          console.warn('⚠️ Gateway Health SSE: Invalid JSON received');
         }
       };
-      
-      eventSource.onerror = (error) => {
-        console.warn('🔄 Gateway Health SSE Error, gracefully handling...', error);
+
+      eventSource.onerror = (event) => {
+        console.warn('🔄 Gateway Health SSE Error, gracefully handling...', event);
         
         if (eventSource?.readyState === EventSource.CLOSED) {
-          if (reconnectAttempts < maxReconnectAttempts) {
-            reconnectAttempts++;
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
-            console.log(`🔄 Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts} for Gateway Health`);
-            
-            reconnectTimeout = setTimeout(() => {
+          console.log('🔌 Gateway Health SSE connection closed, attempting reconnect...');
+          
+          if (retryCount < maxRetries) {
+            retryCount++;
+            reconnectTimer = window.setTimeout(() => {
               connect();
-            }, delay);
+            }, retryDelay * retryCount);
           } else {
-            console.error('❌ Gateway Health SSE failed after max attempts, continuing without live health data');
+            console.log('❌ Gateway Health SSE failed after max attempts, continuing without live health data');
           }
         }
       };
-    } catch (err) {
-      console.error('❌ Failed to create Gateway Health SSE connection:', err);
-    }
-  };
-  
-  connect();
-  
-  return () => {
-    if (reconnectTimeout) clearTimeout(reconnectTimeout);
-    if (eventSource) {
-      eventSource.close();
-      eventSource = null;
+    } catch (error) {
+      console.warn('⚠️ Gateway Health SSE setup failed:', error);
     }
   };
 };

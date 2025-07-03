@@ -168,8 +168,8 @@ const DEMO_RAMLAL_GATEWAYS: Gateway[] = [
     limit: 3200000,
     response_time: 298,
     is_active: true,
-    api_key: 'cashfree_live_K1lN3oQ6rU9tX2y',
-    api_secret: 'cashfree_secret_Y8zA1cF4gI7jM0nP',
+    api_key: 'cashfree_demo_key',
+    api_secret: 'cashfree_demo_secret',
     daily_usage: 24500,
     daily_limit: 110000
   }

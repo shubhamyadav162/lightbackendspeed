@@ -85,65 +85,51 @@ serve(async (req) => {
 
   const url = new URL(req.url);
   const pathSegments = url.pathname.split('/');
-  const gatewayType = pathSegments[pathSegments.length - 1]; // easebuzz, razorpay, etc.
+  const lastSegment = pathSegments.pop() || ''; // success, failed, or client_key
+  const secondLastSegment = pathSegments.pop() || ''; // payu or callback
 
-  console.log(`🔔 Webhook received for gateway: ${gatewayType}`);
+  let clientKey = '';
+  let webhookType = '';
 
-  try {
-    let payload: any;
-    
-    if (req.method === 'POST') {
-      const contentType = req.headers.get('content-type') || '';
-      
-      if (contentType.includes('application/x-www-form-urlencoded')) {
-        const formData = await req.formData();
-        payload = {};
-        for (const [key, value] of formData.entries()) {
-          payload[key] = value;
-        }
-      } else {
-        payload = await req.json();
-      }
-    } else if (req.method === 'GET') {
-      // Handle GET webhooks (verification)
-      return new Response(JSON.stringify({ 
-        message: `${gatewayType} webhook endpoint is active`,
-        timestamp: new Date().toISOString(),
-        gateway: 'LightSpeed Payment Gateway'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log('📦 Webhook payload:', payload);
-
-    // Process based on gateway type
-    if (gatewayType === 'easebuzz' || gatewayType === 'easebuzzp') {
-      return await processEasebuzzWebhook(payload);
-    } else if (gatewayType === 'razorpay') {
-      return await processRazorpayWebhook(payload);
-    } else {
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Unknown gateway type',
-        gateway: 'LightSpeed Payment Gateway'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-  } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      message: 'Webhook processing failed',
-      gateway: 'LightSpeed Payment Gateway'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+  // Handle new /api/v1/callback/payu/success|failed structure
+  if (secondLastSegment === 'payu' && (lastSegment === 'success' || lastSegment === 'failed')) {
+    webhookType = lastSegment;
+    // For this structure, we need to extract client_key from the payload if possible
+    // or assume a generic handler. For now, we'll log it.
+    console.log(`Received PayU webhook of type: ${webhookType}`);
+  } else {
+    // Handle existing /webhook/:client_key structure
+    clientKey = lastSegment;
   }
+
+  // Read raw body for signature verification (cannot use req.json yet)
+  const rawBody = await req.text();
+
+  // Signature verification (provider-specific)
+  const verified = await verifySignature(req, rawBody);
+  if (!verified) {
+    return new Response("INVALID_SIGNATURE", { status: 401 });
+  }
+
+  // Parse body JSON after verification
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody);
+    // If clientKey is not in the URL, try to get it from the payload
+    if (!clientKey && payload?.client_key) {
+      clientKey = payload.client_key;
+    }
+  } catch (_) {
+    return new Response("Invalid JSON", { status: 400 });
+  }
+
+  await queue.add("webhook", {
+    client_key: clientKey,
+    webhook_data: payload,
+    webhook_type: webhookType // Pass type to the worker
+  });
+
+  return new Response("OK", { status: 200 });
 });
 
 async function processEasebuzzWebhook(payload: any) {

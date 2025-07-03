@@ -43,13 +43,15 @@ interface GatewayConfigurationModalProps {
   onClose: () => void;
   gateway: Gateway | null;
   onSuccess?: () => void;
+  onSave?: (formData: any) => Promise<void>;
 }
 
 export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps> = ({ 
   isOpen, 
   onClose, 
   gateway,
-  onSuccess 
+  onSuccess,
+  onSave
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -80,8 +82,8 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       setFormData({
         name: gateway.name || '',
         provider: gateway.provider || '',
-        api_key: isEasebuzz ? (import.meta.env.VITE_EASEBUZZ_KEY || '') : (gateway.api_key || ''),
-        api_secret: isEasebuzz ? (import.meta.env.VITE_EASEBUZZ_SALT || '') : (gateway.api_secret || ''),
+        api_key: isEasebuzz ? 'FQABLVIEYC' : (gateway.api_key || ''),
+        api_secret: isEasebuzz ? 'QECGU7UHNT' : (gateway.api_secret || ''),
         webhook_secret: gateway.webhook_secret || '',
         client_id: gateway.client_id || '',
         api_id: gateway.api_id || '',
@@ -114,8 +116,8 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       setFormData(prev => ({
         ...prev,
         provider: value,
-        api_key: import.meta.env.VITE_EASEBUZZ_KEY || '',
-        api_secret: import.meta.env.VITE_EASEBUZZ_SALT || '',
+        api_key: 'FQABLVIEYC',
+        api_secret: 'QECGU7UHNT',
         webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz'
       }));
       
@@ -185,6 +187,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       toast.success('✅ Gateway configuration saved successfully!');
       onClose();
       onSuccess?.();
+      onSave?.(formData);
     } catch (error: any) {
       console.error('❌ Gateway update error:', error);
       

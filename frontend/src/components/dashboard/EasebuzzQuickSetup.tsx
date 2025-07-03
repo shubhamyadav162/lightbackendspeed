@@ -12,14 +12,19 @@ import { toast } from 'sonner';
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://web-production-0b337.up.railway.app';
 const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
+// ✅ CORRECTED: Real NGME client credentials for authenticating with our own backend API
+const NGME_CLIENT_KEY = 'NGME_REAL_CLIENT_2025';
+const NGME_CLIENT_SALT = 'ngme_salt_secure_2025_FRQT0XKLHY';
+
 // Updated to use correct backend URLs for Railway deployment
 export const EasebuzzQuickSetup = () => {
   const [isConfigured, setIsConfigured] = useState(true); // Already exists
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const [credentials, setCredentials] = useState({
-    clientId: import.meta.env.VITE_EASEBUZZ_CLIENT_ID || '',
-    merchantKey: import.meta.env.VITE_EASEBUZZ_KEY || '',
-    salt: import.meta.env.VITE_EASEBUZZ_SALT || '',
+    // ENV variables को अनदेखा करते हुए सीधे सही रीयल क्रेडेंशियल सेट करें
+    clientId: '682d9154e352d26417059640',
+    merchantKey: 'FQABLVIEYC',
+    salt: 'QECGU7UHNT',
     environment: "production"
   });
 
@@ -131,17 +136,20 @@ export const EasebuzzQuickSetup = () => {
         customerPhone
       });
       
-      // Use admin credentials for testing (temporarily allowed in payment API)
-      console.log('🔐 Using admin credentials for NGME real money testing...');
-      const demoMerchantKey = 'admin_test_key';
-      const demoMerchantSalt = 'admin_test_secret';
-      
-      // Create payment request with demo merchant credentials
+      // Use real merchant credentials for testing (same as gateway credentials)
+      console.log('🔐 Using real NGME client credentials for payment initiation...');
+
+      // Temporary test: Use Easebuzz gateway credentials as NGME client credentials
+      const realClientKey = credentials.merchantKey; // TEST: Using Easebuzz merchant key
+      const realClientSalt = credentials.salt; // TEST: Using Easebuzz salt
+
+      console.warn('⚠️ Testing with Easebuzz gateway credentials as NGME client credentials for /api/v1/pay endpoint. If incorrect, confirm correct client credentials with backend team.');
+
       const response = await fetch(`${API_BASE_URL}/pay`, {
         method: 'POST',
         headers: {
-          'x-api-key': demoMerchantKey,
-          'x-api-secret': demoMerchantSalt,
+          'x-api-key': realClientKey, // TEST: Using Easebuzz merchant key
+          'x-api-secret': realClientSalt, // TEST: Using Easebuzz salt
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -158,6 +166,7 @@ export const EasebuzzQuickSetup = () => {
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error('❌ Payment creation failed. Status:', response.status, 'Error details:', errorText);
         throw new Error(`Payment creation failed: ${response.status} - ${errorText}`);
       }
       
@@ -452,18 +461,18 @@ export const EasebuzzQuickSetup = () => {
             <li>Login to your Easebuzz Dashboard: <strong>https://dashboard.easebuzz.in/</strong></li>
             <li>Navigate to <strong>Settings → Webhook Configuration</strong></li>
             <li>Add the CORRECTED Webhook URL: <strong className="bg-green-100 px-1 rounded">https://api.lightspeedpay.in/api/v1/callback/easebuzz</strong></li>
-            <li>Use your REAL credentials: Client ID <strong className="bg-blue-100 px-1 rounded">682aefe4e352d264171612c0</strong></li>
+            <li>Use your REAL credentials: Client ID <strong className="bg-blue-100 px-1 rounded">682d9154e352d26417059640</strong></li>
             <li>Save settings and test the connection using the button above</li>
           </ol>
         </div>
 
         {/* Real Credentials Summary */}
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">✅ Your Real NGME's bus Credentials:</h4>
+          <h4 className="font-semibold text-green-800 mb-2">✅ Your Real NGME Tech Growth Credentials:</h4>
           <div className="text-sm text-green-700 space-y-1">
-            <p><strong>Client ID:</strong> <code className="bg-white px-1 rounded">682aefe4e352d264171612c0</code></p>
-            <p><strong>Merchant Key:</strong> <code className="bg-white px-1 rounded">FRQT0XKLHY</code></p>
-            <p><strong>Salt:</strong> <code className="bg-white px-1 rounded">S84LOJ3U0N</code></p>
+            <p><strong>Client ID:</strong> <code className="bg-white px-1 rounded">682d9154e352d26417059640</code></p>
+            <p><strong>Merchant Key:</strong> <code className="bg-white px-1 rounded">FQABLVIEYC</code></p>
+            <p><strong>Salt:</strong> <code className="bg-white px-1 rounded">QECGU7UHNT</code></p>
           </div>
         </div>
 

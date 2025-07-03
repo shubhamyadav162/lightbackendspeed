@@ -27,10 +27,10 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
   async initiatePayment(request: PaymentRequest): Promise<PaymentResponse> {
     try {
       const txnid = LightSpeedWrapper.generateTransactionId();
-      const amount = (request.amount / 100).toFixed(2); // Convert paisa to rupees
+      const amount = (request.amount / 100).toFixed(2); // Convert paisa to rupees with exactly 2 decimals
 
       // Generate hash for Easebuzz (SHA-512)
-      // Hash format: key|txnid|amount|productinfo|firstname|email|||||||salt
+      // Hash format: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|salt
       const hashString = [
         this.credentials.api_key,
         txnid,
@@ -38,7 +38,8 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         request.description || 'Payment',
         request.customer_info?.name || 'Customer',
         request.customer_info?.email || '',
-        '', '', '', '', '', '', '', // UDF fields (empty)
+        '', '', '', '', '',  // UDF1-5
+        '', '', '', '', '',  // UDF6-10
         this.credentials.api_secret
       ].join('|');
 
@@ -52,9 +53,19 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         firstname: request.customer_info?.name || 'Customer',
         email: request.customer_info?.email || '',
         phone: request.customer_info?.phone || '',
-        surl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp',
-        furl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp',
-        hash: hash
+        surl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz',
+        furl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz',
+        hash: hash,
+        udf1: '',
+        udf2: '',
+        udf3: '',
+        udf4: '',
+        udf5: '',
+        udf6: '',
+        udf7: '',
+        udf8: '',
+        udf9: '',
+        udf10: ''
       };
 
       const apiUrl = this.isTestMode 
@@ -186,7 +197,6 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
    */
   async processWebhook(payload: any, signature?: string): Promise<WebhookResponse> {
     try {
-      // Easebuzz webhook verification
       const {
         status,
         txnid,
@@ -199,11 +209,11 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
       } = payload;
 
       // Verify hash - Easebuzz uses reverse hash for webhook
-      // Reverse hash format: salt|status|||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+      // Reverse hash format: salt|status|udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
       const hashString = [
         this.credentials.api_secret,
         status || '',
-        '', '', '', '', '', '', '', // UDF fields (empty in reverse)
+        '', '', '', '', '',  // Exactly 5 empty fields for UDF5-UDF1
         email || '',
         firstname || '',
         productinfo || '',
@@ -238,12 +248,11 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
           paymentStatus = 'PENDING';
       }
 
-      // Return sanitized webhook response with LightSpeed branding
       const sanitizedResponse = LightSpeedWrapper.sanitizeWebhookResponse({
         success: true,
         transaction_id: txnid,
         status: paymentStatus,
-        amount: parseFloat(amount) * 100, // Convert to paisa
+        amount: parseFloat(amount) * 100,
         gateway_response: payload
       }, txnid, parseFloat(amount) * 100);
 

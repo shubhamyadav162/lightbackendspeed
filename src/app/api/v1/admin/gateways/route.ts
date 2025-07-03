@@ -165,6 +165,17 @@ export async function POST(request: NextRequest) {
         webhook_secret,
         ...(additional_headers && { additional_headers: JSON.parse(additional_headers) }),
       };
+    } else if (provider === 'payu') {
+      // Special handling for PayU gateway
+      gatewayCredentials = {
+        provider: 'payu',
+        api_key,
+        api_secret,
+        client_id,
+        client_secret: body.client_secret || credentials?.client_secret,
+        webhook_secret,
+        ...(auth_header && { auth_header }),
+      };
     } else {
       gatewayCredentials = {
         ...gatewayCredentials,

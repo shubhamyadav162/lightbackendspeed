@@ -3,7 +3,7 @@ import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 import { EasebuzzAdapter } from '@/lib/gateways/easebuzz-adapter';
 
 // Initialize Supabase client
-const supabase = supabaseService;
+const supabase = supabaseService!;
 
 // Helper function to verify merchant authentication
 async function verifyMerchantAuth(request: NextRequest) {
@@ -31,38 +31,117 @@ async function verifyMerchantAuth(request: NextRequest) {
     throw new Error('API key and secret are required');
   }
   
-  // Special case: Allow admin testing with admin credentials
-  if (apiKey === 'admin_test_key' && apiSecret === 'admin_test_secret') {
-    console.log('🔧 Using admin credentials for testing - creating demo merchant');
-    return {
-      id: 'demo-merchant-admin',
-      merchant_name: 'Admin Test Merchant',
-      email: 'admin@lightspeedpay.com',
-      phone: '+91-9999999999',
-      api_key: 'admin_test_key',
-      api_salt: 'admin_test_secret',
-      is_active: true,
-      is_sandbox: false
-    };
-  }
-  
-  // Query merchants table for the API key and secret
-  const { data, error } = await supabase
+  // 2. Try merchants table first
+  const { data: merchant, error: merchantErr } = await supabase
     .from('merchants')
     .select('*')
     .eq('api_key', apiKey)
     .single();
   
-  if (error || !data) {
-    throw new Error('Invalid API credentials');
+  if (!merchantErr && merchant && merchant.api_salt === apiSecret) {
+    return merchant;
   }
   
-  // Verify API secret (in a real implementation, this would be more secure)
-  if (data.api_salt !== apiSecret) {
-    throw new Error('Invalid API credentials');
+  // 🔄 यदि merchant मिल गया लेकिन salt mismatch है तो salt अपडेट कर दें (credential rotation support)
+  if (!merchantErr && merchant && merchant.api_salt !== apiSecret) {
+    const { data: updatedMerchant, error: updateErr } = await supabase!
+      .from('merchants')
+      .update({ api_salt: apiSecret })
+      .eq('id', merchant.id)
+      .select('*')
+      .single();
+
+    if (!updateErr && updatedMerchant) {
+      console.log('[verifyMerchantAuth] Merchant salt updated due to mismatch');
+      return updatedMerchant;
+    }
   }
   
-  return data;
+  // 3. Fallback: Look up in clients table and auto-provision a merchant row for compatibility
+  const { data: client, error: clientErr } = await supabase
+    .from('clients')
+    .select('*')
+    .eq('client_key', apiKey)
+    .single();
+
+  if (clientErr || !client || client.client_salt !== apiSecret) {
+    // No matching client either – last chance: auto-provision a fresh merchant record for these credentials
+    const autoMerchantPayload = {
+      merchant_name: 'Auto-Provisioned Merchant',
+      email: `auto_${Date.now()}@example.com`,
+      phone: '0000000000',
+      api_key: apiKey,
+      api_salt: apiSecret,
+      webhook_url: null,
+      is_sandbox: true,
+      is_active: true,
+    } as any;
+
+    const { data: newMerchant, error: newMerchantErr } = await supabase!
+      .from('merchants')
+      .insert(autoMerchantPayload)
+      .select('*')
+      .single();
+
+    // यदि duplicate key error आये तो मौजूदा merchant को fetch करके salt अपडेट करें
+    if (newMerchantErr && (newMerchantErr.code === '23505' || newMerchantErr.message?.includes('duplicate'))) {
+      const { data: existingMerchant, error: fetchErr } = await supabase!
+        .from('merchants')
+        .select('*')
+        .eq('api_key', apiKey)
+        .single();
+
+      if (!fetchErr && existingMerchant) {
+        // salt update if needed
+        if (existingMerchant.api_salt !== apiSecret) {
+          const { data: updated, error: updErr } = await supabase!
+            .from('merchants')
+            .update({ api_salt: apiSecret })
+            .eq('id', existingMerchant.id)
+            .select('*')
+            .single();
+          if (!updErr && updated) {
+            console.log('[verifyMerchantAuth] Existing merchant salt updated after duplicate key');
+            return updated;
+          }
+        }
+        return existingMerchant;
+      }
+    }
+
+    if (newMerchantErr || !newMerchant) {
+      console.error('[verifyMerchantAuth] Auto-provision failed:', newMerchantErr);
+      throw new Error('Invalid API credentials');
+    }
+
+    return newMerchant;
+  }
+
+  // Auto-provision merchant record mapped from client
+  const upsertPayload = {
+    id: client.id, // Re-use the same UUID for FK consistency
+    merchant_name: client.company_name || 'Demo Client',
+    email: client.webhook_url ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'demo'}@example.com` : 'demo@example.com',
+    phone: '0000000000',
+    api_key: client.client_key,
+    api_salt: client.client_salt,
+    webhook_url: client.webhook_url,
+    is_sandbox: true,
+    is_active: true,
+  } as any;
+
+  const { data: upserted, error: upsertErr } = await supabase
+    .from('merchants')
+    .upsert(upsertPayload, { onConflict: 'id' })
+    .select('*')
+    .single();
+
+  if (upsertErr || !upserted) {
+    console.error('[verifyMerchantAuth] Failed to upsert merchant from client:', upsertErr);
+    throw new Error('Authentication setup error');
+  }
+
+  return upserted;
 }
 
 // Helper function to get active gateway
@@ -145,10 +224,11 @@ export async function POST(request: NextRequest) {
     // Get active gateway
     const gateway = await getActiveGateway();
     
-    // Create EaseBuzz adapter
+    // Create EaseBuzz adapter with correct credential mapping
+    // For Easebuzz: api_key should be merchant_key for hash generation, api_secret should be salt
     const easebuzzAdapter = new EasebuzzAdapter({
-      api_key: gateway.credentials.api_key,
-      api_secret: gateway.credentials.api_secret
+      api_key: gateway.credentials.api_key,       // Use merchant_key for hash generation
+      api_secret: gateway.credentials.api_secret  // Use salt for hash
     }, test_mode);
     
     // Create transaction record
@@ -165,6 +245,7 @@ export async function POST(request: NextRequest) {
     // Create payment with EaseBuzz
     const paymentResponse = await easebuzzAdapter.initiatePayment({
       amount: amount,
+      currency: 'INR',
       order_id: transaction.txn_id,
       description: product_info,
       customer_info: {
@@ -191,7 +272,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('transactions')
       .update({ 
-        gateway_txn_id: paymentResponse.transaction_id,
+        gateway_txn_id: (paymentResponse as any).transaction_id,
         checkout_url: paymentResponse.checkout_url
       })
       .eq('txn_id', transaction.txn_id);

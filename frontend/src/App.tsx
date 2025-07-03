@@ -9,6 +9,7 @@ import NotFound from './pages/NotFound';
 import { testBackendConnection } from './services/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, RefreshCw, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { EasebuzzQuickSetup } from '@/components/dashboard/EasebuzzQuickSetup';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,6 +221,8 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/dashboard/*" element={<Index />} />
+              <Route path="/dashboard/admin/easebuzz" element={<EasebuzzQuickSetup />} />
+              <Route path="/dashboard/admin/aesbus" element={<EasebuzzQuickSetup />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

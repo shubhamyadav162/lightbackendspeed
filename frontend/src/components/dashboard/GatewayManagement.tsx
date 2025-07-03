@@ -17,6 +17,7 @@ import { GatewayConfigurationModal } from './GatewayConfigurationModal';
 import { DraggableGatewayList } from './DraggableGatewayList';
 import { EasebuzzQuickSetup } from './EasebuzzQuickSetup';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface Gateway {
   id: string;
@@ -34,6 +35,12 @@ interface Gateway {
   api_secret?: string;
   monthly_limit?: number;
   is_active?: boolean;
+  client_id?: string;
+  client_secret?: string;
+  webhook_url?: string;
+  success_url?: string;
+  failed_url?: string;
+  environment?: string;
 }
 
 export const GatewayManagement = () => {
@@ -115,29 +122,33 @@ export const GatewayManagement = () => {
         console.log('🚀 Auto-adding PayU gateway...');
         
         try {
-          const payuCredentials = {
+          const payuData = {
             name: 'PayU Money Production',
             provider: 'payu',
-            api_key: 'xKLUxQ',
-            api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
-            client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
-            client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+            credentials: {
+              api_key: 'xKLUxQ',
+              api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+              client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
+              client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+              provider: 'payu'
+            },
             environment: 'production',
             webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',
             success_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/success',
             failed_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/failed',
-            commission_type: 'percentage',
-            commission_value: 2.5,
             priority: 2,
             is_active: true
           };
           
-          await handleSavePayUGateway(payuCredentials);
+          await apiService.createGateway(payuData);
           
           toast.success('✅ PayU Gateway Automatically Added!', {
             description: 'PayU Money credentials को automatically configure कर दिया गया है',
             duration: 5000
           });
+          
+          // Refetch gateways after adding
+          refetch();
           
         } catch (error) {
           console.error('Failed to auto-add PayU gateway:', error);
@@ -149,7 +160,7 @@ export const GatewayManagement = () => {
     if (!isLoading && gateways.length >= 0) {
       autoAddPayU();
     }
-  }, [gateways, isLoading]); // Re-run when gateways change
+  }, [gateways, isLoading, refetch]); // Include refetch in dependencies
 
   // Subscribe to real-time health metrics - only once
   useEffect(() => {
@@ -165,9 +176,8 @@ export const GatewayManagement = () => {
     
     return () => {
       try {
-        if (subscription && typeof subscription === 'function') {
-          subscription();
-        }
+        // subscription is a cleanup function returned by subscribeToGatewayHealth
+        subscription?.();
       } catch (error) {
         console.warn('Error cleaning up gateway health subscription:', error);
       }
@@ -258,14 +268,14 @@ export const GatewayManagement = () => {
 
   // Remove the direct refetch calls to prevent infinite loop
   const handleAddGatewaySuccess = useCallback(() => {
-    // React Query will automatically refetch due to invalidation in useCreateGateway
     console.log('✅ Gateway added successfully - data will auto-refresh');
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const handleConfigGatewaySuccess = useCallback(() => {
-    // React Query will automatically refetch due to invalidation in useUpdateGateway
     console.log('✅ Gateway configured successfully - data will auto-refresh');
-  }, []);
+    refetch();
+  }, [refetch]);
 
   const openConfigModal = useCallback((gateway: Gateway) => {
     setConfigGateway(gateway);
@@ -429,16 +439,17 @@ export const GatewayManagement = () => {
       
       // Use demo client credentials for testing
       console.log('🔐 Using REAL NGME client credentials for payment...');
-      const realClientKey = 'NGME_REAL_CLIENT_2025';
-      const realClientSalt = 'ngme_salt_secure_2025_FRQT0XKLHY';
+      const realClientKey = 'FQABLVIEYC';
+      const realClientSalt = 'QECGU7UHNT';
       
       // Create payment request with demo client credentials
-      const response = await fetch('https://web-production-0b337.up.railway.app/api/v1/pay', {
+      const response = await fetch('https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/create-ngme-payment-v4', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'x-api-key': realClientKey,
           'x-api-secret': realClientSalt,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk'}`
         },
         body: JSON.stringify({
           amount: amount,
@@ -447,7 +458,6 @@ export const GatewayManagement = () => {
           customer_phone: customerPhone,
           order_id: orderId,
           description: `Real Money Test Payment - ₹${amount}`,
-          payment_method: 'upi',
           test_mode: false // Set to false for real money
         })
       });
@@ -460,10 +470,10 @@ export const GatewayManagement = () => {
       
       const paymentData = await response.json();
       
-      if (paymentData.success && paymentData.payment_url) {
+      if (paymentData.success && paymentData.checkout_url) {
         console.log('🎉 Payment link created successfully!');
-        console.log('💳 Payment URL:', paymentData.payment_url);
-        console.log('🆔 Transaction ID:', paymentData.transaction_id);
+        console.log('💳 Payment URL:', paymentData.checkout_url);
+        console.log('🆔 Transaction ID:', paymentData.payment?.transaction_id);
         console.log('📱 Order ID:', orderId);
         
         // Success toast with action
@@ -472,7 +482,7 @@ export const GatewayManagement = () => {
           duration: 8000,
           action: {
             label: 'Open Payment',
-            onClick: () => window.open(paymentData.payment_url, '_blank')
+            onClick: () => window.open(paymentData.checkout_url, '_blank')
           }
         });
         
@@ -480,19 +490,19 @@ export const GatewayManagement = () => {
         setTimeout(() => {
           const shouldOpen = confirm(
             `✅ Real payment link created for ₹${amount}!\n\n` +
-            `Transaction ID: ${paymentData.transaction_id}\n` +
+            `Transaction ID: ${paymentData.payment?.transaction_id}\n` +
             `Order ID: ${orderId}\n\n` +
             `Open payment page now to complete with UPI?`
           );
           
           if (shouldOpen) {
-            window.open(paymentData.payment_url, '_blank');
+            window.open(paymentData.checkout_url, '_blank');
           }
         }, 500);
         
         // Copy to clipboard if available
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(paymentData.payment_url);
+          navigator.clipboard.writeText(paymentData.checkout_url);
           setTimeout(() => {
             toast.info('📋 Payment URL copied to clipboard!', { duration: 3000 });
           }, 1000);
@@ -500,8 +510,8 @@ export const GatewayManagement = () => {
         
         return {
           success: true,
-          payment_url: paymentData.payment_url,
-          transaction_id: paymentData.transaction_id,
+          payment_url: paymentData.checkout_url,
+          transaction_id: paymentData.payment?.transaction_id,
           order_id: orderId,
           amount: amount
         };
@@ -605,8 +615,7 @@ export const GatewayManagement = () => {
       apiService.updateGateway(primaryGateway.id, updatedGateway)
         .then(response => {
           toast.success('Easebuzz Gateway updated successfully');
-          // Assuming a function to refresh gateway list exists
-          if (typeof refreshGateways === 'function') refreshGateways();
+          refetch();
         })
         .catch(error => {
           toast.error('Failed to update Easebuzz Gateway: ' + error.message);
@@ -632,7 +641,7 @@ export const GatewayManagement = () => {
       apiService.createGateway(newGateway)
         .then(response => {
           toast.success('Easebuzz Gateway added successfully');
-          if (typeof refreshGateways === 'function') refreshGateways();
+          refetch();
         })
         .catch(error => {
           toast.error('Failed to add Easebuzz Gateway: ' + error.message);
@@ -658,7 +667,7 @@ export const GatewayManagement = () => {
       apiService.updateGateway(payuGateway.id, newPayUCreds)
         .then(response => {
           toast.success('PayU Money Gateway updated successfully');
-          if (typeof refreshGateways === 'function') refreshGateways();
+          refetch();
         })
         .catch(error => {
           toast.error('Failed to update PayU Money Gateway: ' + error.message);
@@ -668,7 +677,7 @@ export const GatewayManagement = () => {
       apiService.createGateway(newPayUCreds)
         .then(response => {
           toast.success('PayU Money Gateway added successfully');
-          if (typeof refreshGateways === 'function') refreshGateways();
+          refetch();
         })
         .catch(error => {
           toast.error('Failed to add PayU Money Gateway: ' + error.message);
@@ -695,29 +704,42 @@ export const GatewayManagement = () => {
       is_active: true
     };
     
-    handleSavePayUGateway(payuCredentials);
+    setShowPayUModal(true);
   };
 
-  const handleSavePayUGateway = (formData: any) => {
-    const newGateway = {
-      name: formData.name || 'PayU Money - Next Gen Techno Ventures',
-      provider: 'payu',
-      api_key: formData.api_key || 'xKLUxQ',
-      api_secret: formData.api_secret || 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
-      is_active: true,
-      priority: parseInt(formData.priority, 10) || 1,
-      monthly_limit: parseInt(formData.monthly_limit, 10) || 1000000,
-    };
-
-    apiService.createGateway(newGateway)
-      .then(() => {
-        toast.success('PayU Money Gateway added successfully');
-        fetchGateways();
-        setShowPayUModal(false);
-      })
-      .catch((error) => {
-        toast.error(`Failed to add PayU Gateway: ${error.message}`);
+  const handleSavePayUGateway = async (formData: any) => {
+    try {
+      const gatewayData = {
+        name: formData.name,
+        provider: formData.provider,
+        credentials: {
+          api_key: formData.api_key,
+          api_secret: formData.api_secret,
+          client_id: formData.client_id,
+          client_secret: formData.client_secret,
+          provider: formData.provider
+        },
+        environment: formData.environment,
+        webhook_url: formData.webhook_url,
+        success_url: formData.success_url,
+        failed_url: formData.failed_url,
+        commission_type: formData.commission_type,
+        commission_value: formData.commission_value,
+        priority: formData.priority,
+        is_active: formData.is_active
+      };
+      
+      await apiService.createGateway(gatewayData);
+      setShowPayUModal(false);
+      refetch(); // React Query will auto-refetch due to invalidation
+    } catch (error: any) {
+      console.error('Failed to save PayU gateway:', error);
+      toast.error('❌ PayU Gateway Save Failed', {
+        description: error.message || 'Unknown error occurred',
+        duration: 5000
       });
+      throw error; // Re-throw to ensure caller knows about the failure
+    }
   };
 
   if (isLoading) {
@@ -784,6 +806,26 @@ export const GatewayManagement = () => {
             >
               <Plus className="w-4 h-4 mr-2" />
               Add PayU Gateway
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="bg-cyan-50 border-cyan-200 hover:bg-cyan-100"
+            >
+              <Link href="/dashboard/admin/easebuzz" className="inline-flex items-center gap-2">
+                🚀 Easebuzz Page
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="bg-amber-50 border-amber-200 hover:bg-amber-100"
+            >
+              <Link href="/dashboard/admin/aesbus" className="inline-flex items-center gap-2">
+                🚀 AES Bus Page
+              </Link>
             </Button>
           </div>
         </div>
@@ -969,7 +1011,28 @@ export const GatewayManagement = () => {
           isOpen={showPayUModal}
           onClose={() => setShowPayUModal(false)}
           onSave={handleSavePayUGateway}
-          gateway={{ provider: 'payu' }}
+          gateway={{
+            id: '',
+            name: 'PayU Money',
+            provider: 'payu',
+            status: 'inactive',
+            priority: 2,
+            successRate: 0,
+            dailyLimit: 0,
+            currentUsage: 0,
+            responseTime: 0,
+            fees: 2.5,
+            region: 'PROD',
+            api_key: 'xKLUxQ',
+            api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+            client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
+            client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
+            webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',
+            success_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/success',
+            failed_url: 'https://api.lightspeedpay.in/api/v1/callback/payu/failed',
+            is_active: true,
+            environment: 'production'
+          }}
         />
       )}
     </Card>

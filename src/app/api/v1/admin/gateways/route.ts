@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
+// Force dynamic rendering to prevent static generation timeout
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/admin/gateways
  * Returns a list of all payment gateways with metadata / health indicators.

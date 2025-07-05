@@ -10,23 +10,58 @@ const DEFAULT_TTL = (() => {
 
 // Lazy-init singleton
 let client: Redis | null = null;
+let connectionAttempted = false;
 
 export function getRedis(): Redis | null {
-  if (!redisUrl) return null;
-  if (!client) {
-    client = new Redis(redisUrl, {
-      maxRetriesPerRequest: 1,
-      enableAutoPipelining: true,
-    });
+  if (!redisUrl) {
+    if (!connectionAttempted) {
+      console.warn('⚠️ Redis not configured (REDIS_URL missing) - running without cache');
+      connectionAttempted = true;
+    }
+    return null;
   }
+  
+  if (!client && !connectionAttempted) {
+    try {
+      client = new Redis(redisUrl, {
+        maxRetriesPerRequest: 1,
+        enableAutoPipelining: true,
+        connectTimeout: 5000,
+        lazyConnect: true,
+      });
+      
+      // Handle connection errors gracefully
+      client.on('error', (err) => {
+        console.warn('⚠️ Redis connection error:', err.message);
+        client = null;
+      });
+      
+      client.on('connect', () => {
+        console.log('✅ Redis connected successfully');
+      });
+      
+      connectionAttempted = true;
+    } catch (error) {
+      console.warn('⚠️ Redis initialization failed:', error);
+      client = null;
+      connectionAttempted = true;
+    }
+  }
+  
   return client;
 }
 
 export async function getCached<T>(key: string): Promise<T | null> {
   const redis = getRedis();
   if (!redis) return null;
-  const cached = await redis.get(key);
-  return cached ? (JSON.parse(cached) as T) : null;
+  
+  try {
+    const cached = await redis.get(key);
+    return cached ? (JSON.parse(cached) as T) : null;
+  } catch (error) {
+    console.warn('⚠️ Redis get error:', error);
+    return null;
+  }
 }
 
 /**
@@ -39,5 +74,34 @@ export async function getCached<T>(key: string): Promise<T | null> {
 export async function setCached<T>(key: string, value: T, ttlSeconds: number = DEFAULT_TTL): Promise<void> {
   const redis = getRedis();
   if (!redis) return;
-  await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+  
+  try {
+    await redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+  } catch (error) {
+    console.warn('⚠️ Redis set error:', error);
+    // Gracefully continue without caching
+  }
+}
+
+/**
+ * Check if Redis is available
+ */
+export function isRedisAvailable(): boolean {
+  return getRedis() !== null;
+}
+
+/**
+ * Get Redis connection status
+ */
+export function getRedisStatus(): { available: boolean; url?: string; error?: string } {
+  if (!redisUrl) {
+    return { available: false, error: 'REDIS_URL not configured' };
+  }
+  
+  const redis = getRedis();
+  return {
+    available: redis !== null,
+    url: redisUrl,
+    error: redis ? undefined : 'Connection failed'
+  };
 } 

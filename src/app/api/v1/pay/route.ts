@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 import { EasebuzzAdapter } from '@/lib/gateways/easebuzz-adapter';
 
+// Force dynamic rendering to prevent static generation timeout
+export const dynamic = 'force-dynamic';
+
 // Initialize Supabase client
 const supabase = supabaseService!;
 

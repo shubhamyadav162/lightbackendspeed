@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+// Force dynamic rendering to prevent static generation timeout
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/admin/rotation
  * Get rotation configuration for all clients or specific client
@@ -105,6 +108,12 @@ export async function POST(request: NextRequest) {
         error: 'client_id and gateway_ids array required' 
       }, { status: 400 });
     }
+
+    // Create Supabase client at runtime
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     // Update client rotation mode
     const { error: clientError } = await supabase

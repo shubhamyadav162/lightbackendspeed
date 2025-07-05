@@ -322,6 +322,7 @@ export async function POST(request: NextRequest) {
     
     // Get active gateway
     const gateway = await getActiveGateway();
+    console.log('[POST /api/v1/pay] 🎯 Selected gateway:', { id: gateway.id, code: gateway.code, priority: gateway.priority });
     
     // Create EaseBuzz adapter with correct credential mapping
     // For Easebuzz: api_key should be merchant_key for hash generation, api_secret should be salt
@@ -331,6 +332,7 @@ export async function POST(request: NextRequest) {
     }, test_mode);
     
     // Create transaction record
+    console.log('[POST /api/v1/pay] 🎯 Creating transaction with gateway ID:', gateway.id);
     const transaction = await createTransaction({
       merchantId: merchant.id,
       gatewayId: gateway.id, // Add gateway ID
@@ -341,6 +343,7 @@ export async function POST(request: NextRequest) {
       paymentMethod: payment_method || 'upi',
       testMode: test_mode
     });
+    console.log('[POST /api/v1/pay] 🎯 Transaction created:', { id: transaction.id, txn_id: transaction.txn_id, gateway_id: transaction.gateway_id });
     
     // Create payment with EaseBuzz
     const paymentResponse = await easebuzzAdapter.initiatePayment({

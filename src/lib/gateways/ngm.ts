@@ -44,14 +44,14 @@ export class NGMGateway {
 
   private async forwardToEaseBuzz(paymentData: any) {
     try {
-      // EaseBuzz gateway को call करें
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3100';
+      // EaseBuzz gateway को call करें - Use actual credentials
+      const baseUrl = 'https://web-production-0b337.up.railway.app';
       const response = await fetch(`${baseUrl}/api/v1/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': process.env.EASEBUZZ_API_KEY || 'FQABLVIEYC',
-          'x-api-secret': process.env.EASEBUZZ_API_SECRET || 'QECGU7UHNT',
+          'x-api-key': this.config.clientKey,      // Use NGM Client Key
+          'x-api-secret': this.config.clientSalt,  // Use NGM Client Salt
         },
         body: JSON.stringify({
           amount: paymentData.amount,

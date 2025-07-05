@@ -13,8 +13,8 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://web-production-
 const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 // ✅ CORRECTED: Real NGME client credentials for authenticating with our own backend API
-const NGME_CLIENT_KEY = 'NGME_REAL_CLIENT_2025';
-const NGME_CLIENT_SALT = 'ngme_salt_secure_2025_FRQT0XKLHY';
+const NGME_CLIENT_KEY = 'FQABLVIEYC';
+const NGME_CLIENT_SALT = 'QECGU7UHNT';
 
 // Updated to use correct backend URLs for Railway deployment
 export const EasebuzzQuickSetup = () => {
@@ -136,20 +136,20 @@ export const EasebuzzQuickSetup = () => {
         customerPhone
       });
       
-      // Use real merchant credentials for testing (same as gateway credentials)
-      console.log('🔐 Using real NGME client credentials for payment initiation...');
+      // ✅ FIXED: Use correct NGME client credentials for authentication
+      console.log('🔐 Using correct NGME client credentials for payment initiation...');
 
-      // Temporary test: Use Easebuzz gateway credentials as NGME client credentials
-      const realClientKey = credentials.merchantKey; // TEST: Using Easebuzz merchant key
-      const realClientSalt = credentials.salt; // TEST: Using Easebuzz salt
+      // ✅ CORRECTED: Use actual NGME client credentials from database
+      const realClientKey = 'FQABLVIEYC'; // NGM client key from database
+      const realClientSalt = 'QECGU7UHNT'; // NGM client salt from database
 
-      console.warn('⚠️ Testing with Easebuzz gateway credentials as NGME client credentials for /api/v1/pay endpoint. If incorrect, confirm correct client credentials with backend team.');
+      console.log('✅ Using NGME client credentials:', { realClientKey, realClientSalt });
 
       const response = await fetch(`${API_BASE_URL}/pay`, {
         method: 'POST',
         headers: {
-          'x-api-key': realClientKey, // TEST: Using Easebuzz merchant key
-          'x-api-secret': realClientSalt, // TEST: Using Easebuzz salt
+          'x-api-key': realClientKey, // ✅ FIXED: Using correct NGM client key
+          'x-api-secret': realClientSalt, // ✅ FIXED: Using correct NGM client salt
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -172,9 +172,9 @@ export const EasebuzzQuickSetup = () => {
       
       const paymentData = await response.json();
       
-      if (paymentData.success && paymentData.payment_url) {
+      if (paymentData.success && paymentData.checkout_url) {
         console.log('🎉 NGME Payment link created successfully!');
-        console.log('💳 Payment URL:', paymentData.payment_url);
+        console.log('💳 Payment URL:', paymentData.checkout_url);
         console.log('🆔 Transaction ID:', paymentData.transaction_id);
         console.log('📱 Order ID:', orderId);
         
@@ -184,7 +184,7 @@ export const EasebuzzQuickSetup = () => {
           duration: 8000,
           action: {
             label: 'Open Payment',
-            onClick: () => window.open(paymentData.payment_url, '_blank')
+            onClick: () => window.open(paymentData.checkout_url, '_blank')
           }
         });
         
@@ -199,13 +199,13 @@ export const EasebuzzQuickSetup = () => {
           );
           
           if (shouldOpen) {
-            window.open(paymentData.payment_url, '_blank');
+            window.open(paymentData.checkout_url, '_blank');
           }
         }, 500);
         
         // Copy to clipboard if available
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(paymentData.payment_url);
+          navigator.clipboard.writeText(paymentData.checkout_url);
           setTimeout(() => {
             toast.info('📋 Payment URL copied to clipboard!', { duration: 3000 });
           }, 1000);
@@ -213,7 +213,7 @@ export const EasebuzzQuickSetup = () => {
         
         return {
           success: true,
-          payment_url: paymentData.payment_url,
+          payment_url: paymentData.checkout_url,
           transaction_id: paymentData.transaction_id,
           order_id: orderId,
           amount: amount

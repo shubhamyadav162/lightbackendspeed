@@ -27,23 +27,31 @@ async function verifyMerchantAuth(request: NextRequest) {
   const apiKey = request.headers.get('x-api-key');
   const apiSecret = request.headers.get('x-api-secret');
   
+  console.log('[verifyMerchantAuth] Headers received:', { apiKey, apiSecret });
+  
   if (!apiKey || !apiSecret) {
+    console.error('[verifyMerchantAuth] Missing API credentials');
     throw new Error('API key and secret are required');
   }
   
   // 2. Try merchants table first
+  console.log('[verifyMerchantAuth] Looking up in merchants table...');
   const { data: merchant, error: merchantErr } = await supabase
     .from('merchants')
     .select('*')
     .eq('api_key', apiKey)
     .single();
   
+  console.log('[verifyMerchantAuth] Merchants table lookup result:', { merchant, merchantErr });
+  
   if (!merchantErr && merchant && merchant.api_salt === apiSecret) {
+    console.log('[verifyMerchantAuth] ✅ Merchant found and authenticated');
     return merchant;
   }
   
   // 🔄 यदि merchant मिल गया लेकिन salt mismatch है तो salt अपडेट कर दें (credential rotation support)
   if (!merchantErr && merchant && merchant.api_salt !== apiSecret) {
+    console.log('[verifyMerchantAuth] Merchant found but salt mismatch, updating...');
     const { data: updatedMerchant, error: updateErr } = await supabase!
       .from('merchants')
       .update({ api_salt: apiSecret })
@@ -58,13 +66,19 @@ async function verifyMerchantAuth(request: NextRequest) {
   }
   
   // 3. Fallback: Look up in clients table and auto-provision a merchant row for compatibility
+  console.log('[verifyMerchantAuth] Looking up in clients table...');
   const { data: client, error: clientErr } = await supabase
     .from('clients')
     .select('*')
     .eq('client_key', apiKey)
     .single();
 
+  console.log('[verifyMerchantAuth] Clients table lookup result:', { client, clientErr });
+
   if (clientErr || !client || client.client_salt !== apiSecret) {
+    console.log('[verifyMerchantAuth] ❌ Client not found or salt mismatch. Attempting auto-provision...');
+    console.log('[verifyMerchantAuth] Client details:', { found: !!client, saltMatch: client?.client_salt === apiSecret });
+    
     // No matching client either – last chance: auto-provision a fresh merchant record for these credentials
     const autoMerchantPayload = {
       merchant_name: 'Auto-Provisioned Merchant',
@@ -77,14 +91,18 @@ async function verifyMerchantAuth(request: NextRequest) {
       is_active: true,
     } as any;
 
+    console.log('[verifyMerchantAuth] Creating auto-provisioned merchant...');
     const { data: newMerchant, error: newMerchantErr } = await supabase!
       .from('merchants')
       .insert(autoMerchantPayload)
       .select('*')
       .single();
 
+    console.log('[verifyMerchantAuth] Auto-provision result:', { newMerchant, newMerchantErr });
+
     // यदि duplicate key error आये तो मौजूदा merchant को fetch करके salt अपडेट करें
     if (newMerchantErr && (newMerchantErr.code === '23505' || newMerchantErr.message?.includes('duplicate'))) {
+      console.log('[verifyMerchantAuth] Duplicate key detected, fetching existing merchant...');
       const { data: existingMerchant, error: fetchErr } = await supabase!
         .from('merchants')
         .select('*')
@@ -114,10 +132,12 @@ async function verifyMerchantAuth(request: NextRequest) {
       throw new Error('Invalid API credentials');
     }
 
+    console.log('[verifyMerchantAuth] ✅ Auto-provisioned merchant created successfully');
     return newMerchant;
   }
 
   // Auto-provision merchant record mapped from client
+  console.log('[verifyMerchantAuth] ✅ Client found and authenticated, creating merchant record...');
   const upsertPayload = {
     id: client.id, // Re-use the same UUID for FK consistency
     merchant_name: client.company_name || 'Demo Client',
@@ -130,17 +150,21 @@ async function verifyMerchantAuth(request: NextRequest) {
     is_active: true,
   } as any;
 
+  console.log('[verifyMerchantAuth] Upserting merchant with payload:', upsertPayload);
   const { data: upserted, error: upsertErr } = await supabase
     .from('merchants')
     .upsert(upsertPayload, { onConflict: 'id' })
     .select('*')
     .single();
 
+  console.log('[verifyMerchantAuth] Upsert result:', { upserted, upsertErr });
+
   if (upsertErr || !upserted) {
     console.error('[verifyMerchantAuth] Failed to upsert merchant from client:', upsertErr);
     throw new Error('Authentication setup error');
   }
 
+  console.log('[verifyMerchantAuth] ✅ Merchant successfully created from client');
   return upserted;
 }
 
@@ -202,6 +226,13 @@ async function createTransaction(params: {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[POST /api/v1/pay] 🚀 Payment request received');
+    console.log('[POST /api/v1/pay] Request headers:', {
+      'x-api-key': request.headers.get('x-api-key'),
+      'x-api-secret': request.headers.get('x-api-secret'),
+      'content-type': request.headers.get('content-type')
+    });
+    
     // Verify merchant authentication
     const merchant = await verifyMerchantAuth(request);
     

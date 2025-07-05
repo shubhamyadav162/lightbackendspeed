@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       
       // Get Girth1Payment gateway configuration from database
       const { data: gateway, error: gatewayError } = await supabase
-        .from('gateways')
+        .from('payment_gateways')
         .select('*')
         .eq('provider', 'girth1payment')
         .eq('is_active', true)

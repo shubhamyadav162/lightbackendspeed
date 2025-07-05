@@ -2,8 +2,9 @@ import { BaseGatewayAdapter, GatewayCredentials } from './base-adapter';
 import { RazorpayAdapter } from './razorpay-adapter';
 import { PayUAdapter } from './payu-adapter';
 import { EasebuzzAdapter } from './easebuzz-adapter';
+import { Girth1PaymentAdapter } from './girth1payment-adapter';
 
-export type SupportedProvider = 'razorpay' | 'payu' | 'easebuzz' | 'cashfree' | 'paytm' | 'phonepe' | 'custom';
+export type SupportedProvider = 'razorpay' | 'payu' | 'easebuzz' | 'girth1payment' | 'cashfree' | 'paytm' | 'phonepe' | 'custom';
 
 export class GatewayFactory {
   private static instance: GatewayFactory;
@@ -30,6 +31,9 @@ export class GatewayFactory {
       
       case 'easebuzz':
         return new EasebuzzAdapter(this.validateEasebuzzCredentials(credentials), isTestMode);
+      
+      case 'girth1payment':
+        return new Girth1PaymentAdapter(this.validateGirth1PaymentCredentials(credentials));
       
       // Add more cases as adapters are implemented
       // case 'cashfree':
@@ -98,6 +102,23 @@ export class GatewayFactory {
   }
 
   /**
+   * Validate and structure Girth1Payment credentials
+   */
+  private validateGirth1PaymentCredentials(credentials: GatewayCredentials) {
+    const { partner_id, project_id, api_secret } = credentials;
+    
+    if (!partner_id || !project_id || !api_secret) {
+      throw new Error('Girth1Payment requires partner_id, project_id, and api_secret');
+    }
+
+    return {
+      partner_id: partner_id as string,
+      project_id: project_id as string,
+      api_secret: api_secret as string
+    };
+  }
+
+  /**
    * Validate and structure Cashfree credentials  
    */
   private validateCashfreeCredentials(credentials: GatewayCredentials) {
@@ -137,7 +158,7 @@ export class GatewayFactory {
    * Get supported providers list
    */
   public getSupportedProviders(): SupportedProvider[] {
-    return ['razorpay', 'payu', 'easebuzz', 'cashfree', 'paytm', 'phonepe', 'custom'];
+    return ['razorpay', 'payu', 'easebuzz', 'girth1payment', 'cashfree', 'paytm', 'phonepe', 'custom'];
   }
 
   /**
@@ -153,6 +174,9 @@ export class GatewayFactory {
       
       case 'easebuzz':
         return ['api_key', 'api_secret']; // api_key = merchant key, api_secret = salt
+      
+      case 'girth1payment':
+        return ['partner_id', 'project_id', 'api_secret'];
       
       case 'cashfree':
         return ['app_id', 'secret_key'];
@@ -183,6 +207,9 @@ export class GatewayFactory {
         return ['auth_header'];
       
       case 'easebuzz':
+        return ['webhook_secret'];
+      
+      case 'girth1payment':
         return ['webhook_secret'];
       
       case 'cashfree':

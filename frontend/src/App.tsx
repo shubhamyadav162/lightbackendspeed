@@ -10,6 +10,7 @@ import { testBackendConnection } from './services/api';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, RefreshCw, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { EasebuzzQuickSetup } from '@/components/dashboard/EasebuzzQuickSetup';
+import NGMPayment from './pages/NGMPayment';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -223,6 +224,7 @@ const App = () => {
               <Route path="/dashboard/*" element={<Index />} />
               <Route path="/dashboard/admin/easebuzz" element={<EasebuzzQuickSetup />} />
               <Route path="/dashboard/admin/aesbus" element={<EasebuzzQuickSetup />} />
+              <Route path="/ngm" element={<NGMPayment />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

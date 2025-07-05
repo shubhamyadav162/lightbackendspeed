@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseService } from '@/lib/supabase/server';
 import { Girth1PaymentAdapter } from '../../../../../lib/gateways/girth1payment-adapter';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTM3ODkzNCwiZXhwIjoyMDY0OTU0OTM0fQ.jh5ZT1vYwcQl1DmSCKcBZqKd9rg9CKHB1dHJkRr0Zw4'
-);
 
 export async function POST(request: NextRequest) {
   try {
     console.log('💳 Admin Create Payment Request Received');
+    
+    // Get Supabase client
+    const supabase = getSupabaseService();
     
     // Get request body
     const body = await request.json();
@@ -70,22 +67,18 @@ export async function POST(request: NextRequest) {
       const adapter = new Girth1PaymentAdapter(gateway.credentials);
       
       // Create payment using adapter's initiatePayment method
-      const paymentResult = await adapter.initiatePayment(
-        amount,
-        currency,
-        order_id,
-        {
+      const paymentResult = await adapter.initiatePayment({
+        amount: amount,
+        currency: currency,
+        order_id: order_id,
+        customer_info: {
           name: customer_name,
           email: customer_email,
           phone: customer_phone
         },
-        {
-          description: description || `Payment for ${order_id}`,
-          return_url: return_url || 'https://lightspeedpay.in/success',
-          success_url: return_url || 'https://lightspeedpay.in/success',
-          fail_url: 'https://lightspeedpay.in/failed'
-        }
-      );
+        description: description || `Payment for ${order_id}`,
+        return_url: return_url || 'https://lightspeedpay.in/success'
+      });
       
       if (paymentResult.success) {
         console.log('🎉 1Payment created successfully!');
@@ -105,7 +98,7 @@ export async function POST(request: NextRequest) {
             customer_phone: customer_phone,
             gateway_transaction_id: paymentResult.payment_id,
             metadata: {
-              payment_url: paymentResult.payment_url,
+              payment_url: paymentResult.checkout_url,
               gateway_provider: 'girth1payment',
               description: description
             }
@@ -122,7 +115,7 @@ export async function POST(request: NextRequest) {
         
         return NextResponse.json({
           success: true,
-          payment_url: paymentResult.payment_url,
+          payment_url: paymentResult.checkout_url,
           transaction_id: paymentResult.payment_id,
           gateway_transaction_id: paymentResult.payment_id,
           order_id: order_id,

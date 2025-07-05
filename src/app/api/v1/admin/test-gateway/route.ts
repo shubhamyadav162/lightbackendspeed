@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseService } from '@/lib/supabase/server';
 import { Girth1PaymentAdapter } from '../../../../../lib/gateways/girth1payment-adapter';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL || 'https://trmqbpnnboyoneyfleux.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0OTM3ODkzNCwiZXhwIjoyMDY0OTU0OTM0fQ.jh5ZT1vYwcQl1DmSCKcBZqKd9rg9CKHB1dHJkRr0Zw4'
-);
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🧪 Admin Test Gateway Request Received');
+    
+    // Get Supabase client
+    const supabase = getSupabaseService();
     
     // Get request body
     const body = await request.json();
@@ -53,22 +50,18 @@ export async function POST(request: NextRequest) {
         const adapter = new Girth1PaymentAdapter(gateway.credentials);
         
         // Test payment initiation with minimal data to check API connectivity
-        const testResult = await adapter.initiatePayment(
-          1, // 1 unit for testing
-          'INR',
-          `TEST_${Date.now()}`,
-          {
+        const testResult = await adapter.initiatePayment({
+          amount: 1, // 1 unit for testing
+          currency: 'INR',
+          order_id: `TEST_${Date.now()}`,
+          customer_info: {
             name: 'Test User',
             email: 'test@lightspeedpay.com',
             phone: '+919999999999'
           },
-          {
-            description: 'API Connection Test',
-            return_url: 'https://lightspeedpay.in/test',
-            success_url: 'https://lightspeedpay.in/test',
-            fail_url: 'https://lightspeedpay.in/test'
-          }
-        );
+          description: 'API Connection Test',
+          return_url: 'https://lightspeedpay.in/test'
+        });
         
         if (testResult.success) {
           console.log('✅ 1Payment API connection successful');
@@ -80,7 +73,7 @@ export async function POST(request: NextRequest) {
             test_details: {
               response_time: 'Available',
               api_status: 'Active',
-              payment_url_generated: !!testResult.payment_url
+              payment_url_generated: !!testResult.checkout_url
             }
           });
         } else {

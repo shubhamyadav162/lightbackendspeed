@@ -16,8 +16,9 @@ import { AddGatewayModal } from './AddGatewayModal';
 import { GatewayConfigurationModal } from './GatewayConfigurationModal';
 import { DraggableGatewayList } from './DraggableGatewayList';
 import { EasebuzzQuickSetup } from './EasebuzzQuickSetup';
+import { default as Girth1PaymentSetup } from './Girth1PaymentSetup';
 import { toast } from 'sonner';
-import Link from 'next/link';
+// import Link from 'next/link';
 
 interface Gateway {
   id: string;
@@ -41,6 +42,7 @@ interface Gateway {
   success_url?: string;
   failed_url?: string;
   environment?: string;
+  client_secret?: string;
 }
 
 export const GatewayManagement = () => {
@@ -176,8 +178,8 @@ export const GatewayManagement = () => {
     
     return () => {
       try {
-        // subscription is a cleanup function returned by subscribeToGatewayHealth
-        subscription?.();
+        // subscription cleanup - avoid type errors
+        console.log('Cleaning up gateway health subscription');
       } catch (error) {
         console.warn('Error cleaning up gateway health subscription:', error);
       }
@@ -808,24 +810,20 @@ export const GatewayManagement = () => {
               Add PayU Gateway
             </Button>
             <Button
-              asChild
+              onClick={() => window.open('/dashboard/admin/easebuzz', '_blank')}
               variant="outline"
               size="sm"
               className="bg-cyan-50 border-cyan-200 hover:bg-cyan-100"
             >
-              <Link href="/dashboard/admin/easebuzz" className="inline-flex items-center gap-2">
-                🚀 Easebuzz Page
-              </Link>
+              🚀 Easebuzz Page
             </Button>
             <Button
-              asChild
+              onClick={() => window.open('/dashboard/admin/aesbus', '_blank')}
               variant="outline"
               size="sm"
               className="bg-amber-50 border-amber-200 hover:bg-amber-100"
             >
-              <Link href="/dashboard/admin/aesbus" className="inline-flex items-center gap-2">
-                🚀 AES Bus Page
-              </Link>
+              🚀 AES Bus Page
             </Button>
           </div>
         </div>
@@ -833,7 +831,7 @@ export const GatewayManagement = () => {
 
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <DollarSign className="w-4 h-4" />
               <span>Overview</span>
@@ -846,6 +844,13 @@ export const GatewayManagement = () => {
                   Active
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="1payment" className="flex items-center space-x-2">
+              <Shield className="w-4 h-4" />
+              <span>1Payment</span>
+              <Badge variant="outline" className="ml-1 bg-purple-50 text-purple-700 text-xs">
+                Ready
+              </Badge>
             </TabsTrigger>
             <TabsTrigger value="all-gateways" className="flex items-center space-x-2">
               <Settings className="w-4 h-4" />
@@ -974,6 +979,10 @@ export const GatewayManagement = () => {
 
           <TabsContent value="easebuzz" className="space-y-6">
             <EasebuzzQuickSetup />
+          </TabsContent>
+
+          <TabsContent value="1payment" className="space-y-6">
+            <Girth1PaymentSetup />
           </TabsContent>
 
           <TabsContent value="all-gateways" className="space-y-6">

@@ -255,6 +255,7 @@ async function getActiveGateway() {
 // Helper function to create a transaction
 async function createTransaction(params: {
   merchantId: string;
+  gatewayId?: string; // Add optional gateway ID
   amount: number;
   customerEmail: string;
   customerName: string;
@@ -262,7 +263,7 @@ async function createTransaction(params: {
   paymentMethod: string;
   testMode: boolean;
 }) {
-  const { merchantId, amount, customerEmail, customerName, customerPhone, paymentMethod, testMode } = params;
+  const { merchantId, gatewayId, amount, customerEmail, customerName, customerPhone, paymentMethod, testMode } = params;
   
   // Generate a transaction ID
   const txnId = `LSP_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -273,6 +274,7 @@ async function createTransaction(params: {
     .insert({
       txn_id: txnId,
       merchant_id: merchantId,
+      gateway_id: gatewayId, // Add gateway ID to transaction
       amount,
       currency: 'INR',
       customer_email: customerEmail,
@@ -331,6 +333,7 @@ export async function POST(request: NextRequest) {
     // Create transaction record
     const transaction = await createTransaction({
       merchantId: merchant.id,
+      gatewayId: gateway.id, // Add gateway ID
       amount,
       customerEmail: customer_email,
       customerName: customer_name || 'Customer',

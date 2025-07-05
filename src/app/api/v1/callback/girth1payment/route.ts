@@ -252,13 +252,13 @@ export async function GET(request: NextRequest) {
     
     // For GET callbacks, redirect to success/failure page
     const redirectUrl = verificationResult.success 
-      ? 'https://pay.lightspeedpay.com/success'
-      : 'https://pay.lightspeedpay.com/failed';
+      ? 'https://web-production-0b337.up.railway.app/success'
+      : 'https://web-production-0b337.up.railway.app/failed';
     
     return NextResponse.redirect(redirectUrl);
 
   } catch (error) {
     console.error('❌ Girth1Payment GET callback error:', error);
-    return NextResponse.redirect('https://pay.lightspeedpay.com/failed');
+    return NextResponse.redirect('https://web-production-0b337.up.railway.app/failed');
   }
 } 

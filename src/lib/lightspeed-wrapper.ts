@@ -27,7 +27,7 @@ export interface LightSpeedWebhookResponse {
 
 export class LightSpeedWrapper {
   private static readonly BRAND_NAME = 'LightSpeed Payment Gateway';
-  private static readonly CHECKOUT_BASE_URL = process.env.LIGHTSPEED_CHECKOUT_URL || 'https://pay.lightspeedpay.com';
+  private static readonly CHECKOUT_BASE_URL = process.env.LIGHTSPEED_CHECKOUT_URL || 'https://web-production-0b337.up.railway.app';
 
   /**
    * Generate LightSpeed branded transaction ID

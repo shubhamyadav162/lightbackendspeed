@@ -22,7 +22,7 @@ class LightSpeedWrapper {
   }
 
   static generateCheckoutUrl(txnId: string): string {
-    return `https://pay.lightspeedpay.com/checkout/${txnId}`;
+    return `https://web-production-0b337.up.railway.app/checkout/${txnId}`;
   }
 
   static sanitizePaymentResponse(originalResponse: any, transactionId: string, amount: number) {

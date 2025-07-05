@@ -46,7 +46,7 @@ async function createOrder(
       const json = await res.json();
       const gateway_txn_id = json.id;
       // Return LightSpeed branded checkout URL instead of Razorpay's
-      const checkout_url = `https://pay.lightspeedpay.com/checkout/${payload.transaction_id}`;
+      const checkout_url = `https://web-production-0b337.up.railway.app/checkout/${payload.transaction_id}`;
       return { gateway_txn_id, checkout_url };
     }
     case "payu": {
@@ -104,7 +104,7 @@ async function createOrder(
 
       // Store PayU URL internally but return LightSpeed branded URL to client
       const payuUrl = `https://secure.payu.in/_payment?${formParams.toString()}`;
-      const checkout_url = `https://pay.lightspeedpay.com/checkout/${payload.transaction_id}`;
+      const checkout_url = `https://web-production-0b337.up.railway.app/checkout/${payload.transaction_id}`;
       const gateway_txn_id = txnid; // PayU uses our txnid as reference
       
       // Store the real PayU URL for internal processing

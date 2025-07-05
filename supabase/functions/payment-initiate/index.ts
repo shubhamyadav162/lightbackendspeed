@@ -24,7 +24,7 @@ function generateLightSpeedTxnId(): string {
 }
 
 function generateLightSpeedCheckoutUrl(txnId: string): string {
-  return `https://pay.lightspeedpay.com/checkout/${txnId}`;
+  return `https://web-production-0b337.up.railway.app/checkout/${txnId}`;
 }
 
 interface PaymentRequest {

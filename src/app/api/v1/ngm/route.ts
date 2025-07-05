@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { NGMGateway } from '@/lib/gateways/ngm';
 
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
+
 const ngmGateway = new NGMGateway({
   merchantId: process.env.NGM_MERCHANT_ID || '',
   clientKey: process.env.NGM_CLIENT_KEY || '',

@@ -35,6 +35,18 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Webpack configuration to handle Redis during build
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      // Don't resolve Redis on client side
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        ioredis: false,
+      };
+    }
+    return config;
+  },
+
   // Railway-specific optimizations
   poweredByHeader: false,
   compress: true

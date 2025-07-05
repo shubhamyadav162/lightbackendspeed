@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 import { getCached, setCached } from '@/lib/redis';
+import { getPgPool } from '@/lib/pgPool';
+
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
 
 // Singleton service-role Supabase client
 const supabase = supabaseService;

@@ -1,3 +1,5 @@
+'use client';
+
 export default function FailedPage() {
   return (
     <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">

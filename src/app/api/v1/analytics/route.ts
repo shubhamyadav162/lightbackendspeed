@@ -6,6 +6,9 @@ import { getPgPool } from '@/lib/pgPool';
 // Shared service-role Supabase client
 const supabase = supabaseService;
 
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/v1/analytics
  *

@@ -1,6 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getSupabaseService } from '@/lib/supabase/server';
 
+// Force dynamic rendering to prevent static generation
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: { txnId: string };
 }

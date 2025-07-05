@@ -138,10 +138,14 @@ async function verifyMerchantAuth(request: NextRequest) {
 
   // Auto-provision merchant record mapped from client
   console.log('[verifyMerchantAuth] ✅ Client found and authenticated, creating merchant record...');
+  
+  // Generate a new UUID for merchant instead of reusing client ID
+  const merchantId = crypto.randomUUID();
+  
   const upsertPayload = {
-    id: client.id, // Re-use the same UUID for FK consistency
-    merchant_name: client.company_name || 'Demo Client',
-    email: client.webhook_url ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'demo'}@example.com` : 'demo@example.com',
+    id: merchantId, // Use new UUID
+    merchant_name: client.company_name || 'NGME Demo Client',
+    email: client.webhook_url ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'ngme'}@example.com` : 'ngme@example.com',
     phone: '0000000000',
     api_key: client.client_key,
     api_salt: client.client_salt,
@@ -150,22 +154,42 @@ async function verifyMerchantAuth(request: NextRequest) {
     is_active: true,
   } as any;
 
-  console.log('[verifyMerchantAuth] Upserting merchant with payload:', upsertPayload);
-  const { data: upserted, error: upsertErr } = await supabase
+  console.log('[verifyMerchantAuth] Inserting merchant with payload:', upsertPayload);
+  
+  // Try INSERT first, then UPDATE if exists
+  const { data: inserted, error: insertErr } = await supabase
     .from('merchants')
-    .upsert(upsertPayload, { onConflict: 'id' })
+    .insert(upsertPayload)
     .select('*')
     .single();
 
-  console.log('[verifyMerchantAuth] Upsert result:', { upserted, upsertErr });
+  console.log('[verifyMerchantAuth] Insert result:', { inserted, insertErr });
 
-  if (upsertErr || !upserted) {
-    console.error('[verifyMerchantAuth] Failed to upsert merchant from client:', upsertErr);
-    throw new Error('Authentication setup error');
+  if (insertErr) {
+    if (insertErr.code === '23505') {
+      // Duplicate key - try to fetch existing merchant
+      console.log('[verifyMerchantAuth] Duplicate key, fetching existing merchant...');
+      const { data: existing, error: fetchErr } = await supabase
+        .from('merchants')
+        .select('*')
+        .eq('api_key', client.client_key)
+        .single();
+
+      if (fetchErr || !existing) {
+        console.error('[verifyMerchantAuth] Failed to fetch existing merchant:', fetchErr);
+        throw new Error('Authentication setup error');
+      }
+
+      console.log('[verifyMerchantAuth] ✅ Using existing merchant');
+      return existing;
+    } else {
+      console.error('[verifyMerchantAuth] Failed to insert merchant:', insertErr);
+      throw new Error('Authentication setup error');
+    }
   }
 
   console.log('[verifyMerchantAuth] ✅ Merchant successfully created from client');
-  return upserted;
+  return inserted;
 }
 
 // Helper function to get active gateway

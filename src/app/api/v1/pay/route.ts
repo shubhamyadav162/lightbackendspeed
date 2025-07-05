@@ -142,14 +142,17 @@ async function verifyMerchantAuth(request: NextRequest) {
   // Generate a new UUID for merchant instead of reusing client ID
   const merchantId = crypto.randomUUID();
   
+  // Clean webhook URL - remove semicolon if present
+  const cleanWebhookUrl = client.webhook_url?.replace(/;$/, '').trim() || null;
+  
   const upsertPayload = {
     id: merchantId, // Use new UUID
     merchant_name: client.company_name || 'NGME Demo Client',
-    email: client.webhook_url ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'ngme'}@example.com` : 'ngme@example.com',
+    email: cleanWebhookUrl ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'ngme'}@example.com` : 'ngme@example.com',
     phone: '0000000000',
     api_key: client.client_key,
     api_salt: client.client_salt,
-    webhook_url: client.webhook_url,
+    webhook_url: cleanWebhookUrl,
     is_sandbox: true,
     is_active: true,
   } as any;
@@ -163,7 +166,13 @@ async function verifyMerchantAuth(request: NextRequest) {
     .select('*')
     .single();
 
-  console.log('[verifyMerchantAuth] Insert result:', { inserted, insertErr });
+  console.log('[verifyMerchantAuth] Insert result:', { 
+    inserted, 
+    insertErr, 
+    errorCode: insertErr?.code, 
+    errorMessage: insertErr?.message,
+    errorDetails: insertErr?.details 
+  });
 
   if (insertErr) {
     if (insertErr.code === '23505') {
@@ -176,14 +185,24 @@ async function verifyMerchantAuth(request: NextRequest) {
         .single();
 
       if (fetchErr || !existing) {
-        console.error('[verifyMerchantAuth] Failed to fetch existing merchant:', fetchErr);
+        console.error('[verifyMerchantAuth] Failed to fetch existing merchant after duplicate key:', { 
+          fetchErr, 
+          existing, 
+          api_key: client.client_key 
+        });
         throw new Error('Authentication setup error');
       }
 
-      console.log('[verifyMerchantAuth] ✅ Using existing merchant');
+      console.log('[verifyMerchantAuth] ✅ Using existing merchant after duplicate key resolution');
       return existing;
     } else {
-      console.error('[verifyMerchantAuth] Failed to insert merchant:', insertErr);
+      console.error('[verifyMerchantAuth] Failed to insert merchant - unknown error:', { 
+        insertErr, 
+        errorCode: insertErr?.code, 
+        errorMessage: insertErr?.message,
+        errorDetails: insertErr?.details,
+        payload: upsertPayload
+      });
       throw new Error('Authentication setup error');
     }
   }

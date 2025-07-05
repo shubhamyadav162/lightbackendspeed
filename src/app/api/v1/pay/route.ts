@@ -82,8 +82,8 @@ async function verifyMerchantAuth(request: NextRequest) {
     // No matching client either – last chance: auto-provision a fresh merchant record for these credentials
     const autoMerchantPayload = {
       merchant_name: 'Auto-Provisioned Merchant',
-      email: `auto_${Date.now()}@example.com`,
-      phone: '0000000000',
+      email: `auto_${apiKey.toLowerCase()}_${Date.now()}@lightspeedpay.com`,
+      phone: '9999999999',
       api_key: apiKey,
       api_salt: apiSecret,
       webhook_url: null,
@@ -145,11 +145,14 @@ async function verifyMerchantAuth(request: NextRequest) {
   // Clean webhook URL - remove semicolon if present
   const cleanWebhookUrl = client.webhook_url?.replace(/;$/, '').trim() || null;
   
+  // Create unique email using client_key to avoid duplicates
+  const uniqueEmail = `merchant_${client.client_key.toLowerCase()}@lightspeedpay.com`;
+  
   const upsertPayload = {
     id: merchantId, // Use new UUID
     merchant_name: client.company_name || 'NGME Demo Client',
-    email: cleanWebhookUrl ? `noreply+${client.company_name?.toLowerCase().replace(/\s+/g, '_') || 'ngme'}@example.com` : 'ngme@example.com',
-    phone: '0000000000',
+    email: uniqueEmail, // Use unique email based on client_key
+    phone: '9999999999', // Use valid phone number
     api_key: client.client_key,
     api_salt: client.client_salt,
     webhook_url: cleanWebhookUrl,
@@ -177,7 +180,7 @@ async function verifyMerchantAuth(request: NextRequest) {
   if (insertErr) {
     if (insertErr.code === '23505') {
       // Duplicate key - try to fetch existing merchant
-      console.log('[verifyMerchantAuth] Duplicate key, fetching existing merchant...');
+      console.log('[verifyMerchantAuth] Duplicate key detected, fetching existing merchant...');
       const { data: existing, error: fetchErr } = await supabase
         .from('merchants')
         .select('*')
@@ -191,6 +194,26 @@ async function verifyMerchantAuth(request: NextRequest) {
           api_key: client.client_key 
         });
         throw new Error('Authentication setup error');
+      }
+
+      // Update salt if different
+      if (existing.api_salt !== client.client_salt) {
+        console.log('[verifyMerchantAuth] Updating existing merchant salt...');
+        const { data: updated, error: updateErr } = await supabase
+          .from('merchants')
+          .update({ api_salt: client.client_salt })
+          .eq('id', existing.id)
+          .select('*')
+          .single();
+
+        if (updateErr) {
+          console.error('[verifyMerchantAuth] Failed to update existing merchant salt:', updateErr);
+          // Still return existing merchant even if update fails
+          return existing;
+        }
+        
+        console.log('[verifyMerchantAuth] ✅ Updated existing merchant salt');
+        return updated;
       }
 
       console.log('[verifyMerchantAuth] ✅ Using existing merchant after duplicate key resolution');
@@ -362,10 +385,15 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Payment initiation error:', error);
+    console.error('[POST /api/v1/pay] Payment initiation error:', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return NextResponse.json({ 
       success: false,
-      error: error.message 
+      error: error.message,
+      timestamp: new Date().toISOString()
     }, { status: 400 });
   }
 } 

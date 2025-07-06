@@ -19,6 +19,10 @@ export async function verifyMerchantAuth(request: NextRequest) {
 
   if (!apiKey || !apiSecret) return null;
 
+  if (!supabase) {
+    throw new Error('Supabase client not available');
+  }
+
   const { data, error } = await supabase
     .from('merchants')
     .select('*')
@@ -48,37 +52,21 @@ export async function verifyMerchantAuth(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // 1. Supabase Auth (preferred)
-    const authCtx = await getAuthContext(request);
-
-    // 2. Fallback legacy header auth (for existing merchant SDKs)
-    let legacyMerchantId: string | null = null;
-    if (!authCtx?.merchantId) {
-      try {
-        const merchant = await verifyMerchantAuth(request);
-        if (merchant) legacyMerchantId = merchant.id;
-      } catch (authErr: any) {
-        // If credentials were supplied but invalid, return 401
-        if (request.headers.has('x-api-key') || request.headers.has('x-api-secret')) {
-          return NextResponse.json({ error: authErr.message }, { status: 401 });
-        }
-      }
+    if (!supabase) {
+      return NextResponse.json({ error: 'Database connection not available' }, { status: 500 });
     }
 
-    // Determine merchant scope
-    let merchantId: string | null = authCtx?.merchantId || legacyMerchantId;
-
-    // Query params (admin override)
+    // Parse query parameters
     const { searchParams } = new URL(request.url);
-    const qpMerchantId = searchParams.get('merchantId');
+    const merchantId = searchParams.get('merchantId');
     const includeLogs = searchParams.get('includeLogs') === 'true';
-    const limitParam = parseInt(searchParams.get('limit') || '20', 10);
-    const limit = isNaN(limitParam) ? 20 : Math.min(limitParam, 100);
-    if (qpMerchantId) merchantId = qpMerchantId;
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
 
-    // --- Attempt Redis cache --
-    const cacheKey = `settlements:${merchantId || 'all'}:${includeLogs ? 'withLogs' : 'noLogs'}:${limit}`;
-    const cached = await getCached<any>(cacheKey);
+    // Build cache key
+    const cacheKey = `settlements:${merchantId || 'all'}:${includeLogs}:${limit}`;
+
+    // Try to get cached response first
+    const cached = await getCached(cacheKey);
     if (cached) {
       return NextResponse.json(cached);
     }
@@ -112,7 +100,12 @@ export async function GET(request: NextRequest) {
     const payload = { settlements, logs };
 
     // Cache response in Redis (TTL configurable via REDIS_TTL_SECS env)
-    await setCached(cacheKey, payload);
+    // Gracefully handle Redis unavailability
+    try {
+      await setCached(cacheKey, payload);
+    } catch (redisError) {
+      console.warn('⚠️ Redis caching failed, continuing without cache:', redisError);
+    }
 
     return NextResponse.json(payload);
   } catch (err: any) {

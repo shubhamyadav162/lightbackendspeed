@@ -13,9 +13,10 @@ let client: Redis | null = null;
 let connectionAttempted = false;
 
 export function getRedis(): Redis | null {
-  if (!redisUrl) {
+  // If no Redis URL or empty URL, return null immediately
+  if (!redisUrl || redisUrl === 'redis://localhost:6379' || redisUrl.trim() === '') {
     if (!connectionAttempted) {
-      console.warn('⚠️ Redis not configured (REDIS_URL missing) - running without cache');
+      console.log('ℹ️ Redis not configured (REDIS_URL missing or localhost) - running without cache');
       connectionAttempted = true;
     }
     return null;
@@ -51,13 +52,19 @@ export function getRedis(): Redis | null {
   return client;
 }
 
+/**
+ * Get a cached value from Redis.
+ *
+ * @param key Cache key
+ * @returns The cached value or null if not found/error
+ */
 export async function getCached<T>(key: string): Promise<T | null> {
   const redis = getRedis();
   if (!redis) return null;
   
   try {
-    const cached = await redis.get(key);
-    return cached ? (JSON.parse(cached) as T) : null;
+    const value = await redis.get(key);
+    return value ? JSON.parse(value) : null;
   } catch (error) {
     console.warn('⚠️ Redis get error:', error);
     return null;
@@ -94,8 +101,8 @@ export function isRedisAvailable(): boolean {
  * Get Redis connection status
  */
 export function getRedisStatus(): { available: boolean; url?: string; error?: string } {
-  if (!redisUrl) {
-    return { available: false, error: 'REDIS_URL not configured' };
+  if (!redisUrl || redisUrl === 'redis://localhost:6379' || redisUrl.trim() === '') {
+    return { available: false, error: 'REDIS_URL not configured or set to localhost' };
   }
   
   const redis = getRedis();

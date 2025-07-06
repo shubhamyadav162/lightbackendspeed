@@ -1,0 +1,8 @@
+{
+  "amount": 1000,
+  "customer_email": "test@example.com",
+  "customer_name": "Test Customer",
+  "customer_phone": "9999999999",
+  "order_id": "TEST_12345",
+  "description": "Simple Test Payment"
+} 

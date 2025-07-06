@@ -11,6 +11,8 @@ interface EasebuzzCredentials {
 export class EasebuzzAdapter extends BaseGatewayAdapter {
   constructor(credentials: GatewayCredentials, isTestMode = false) {
     super(credentials, isTestMode);
+    console.log('🔍 [EasebuzzAdapter] Constructor called with credentials:', JSON.stringify(credentials, null, 2));
+    console.log('🔍 [EasebuzzAdapter] Test mode:', isTestMode);
   }
 
   protected getTestBaseUrl(): string {
@@ -26,8 +28,28 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
    */
   async initiatePayment(request: PaymentRequest): Promise<PaymentResponse> {
     try {
+      console.log('🔍 [EasebuzzAdapter] initiatePayment called');
+      console.log('🔍 [EasebuzzAdapter] Request:', JSON.stringify(request, null, 2));
+      console.log('🔍 [EasebuzzAdapter] Credentials available:', {
+        api_key: this.credentials.api_key ? 'SET' : 'NOT SET',
+        api_secret: this.credentials.api_secret ? 'SET' : 'NOT SET'
+      });
+
+      // Check if required credentials are available
+      if (!this.credentials.api_key || !this.credentials.api_secret) {
+        console.error('❌ [EasebuzzAdapter] Missing required credentials');
+        return LightSpeedWrapper.sanitizePaymentResponse({
+          success: false,
+          status: 'failed',
+          error: 'API key and secret are required'
+        }, request.order_id, request.amount);
+      }
+
       const txnid = LightSpeedWrapper.generateTransactionId();
       const amount = (request.amount / 100).toFixed(2); // Convert paisa to rupees with exactly 2 decimals
+
+      console.log('🔍 [EasebuzzAdapter] Generated transaction ID:', txnid);
+      console.log('🔍 [EasebuzzAdapter] Amount (₹):', amount);
 
       // Generate hash for Easebuzz (SHA-512)
       // Hash format: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|salt
@@ -43,7 +65,10 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         this.credentials.api_secret
       ].join('|');
 
+      console.log('🔍 [EasebuzzAdapter] Hash string:', hashString);
+
       const hash = crypto.createHash('sha512').update(hashString).digest('hex');
+      console.log('🔍 [EasebuzzAdapter] Generated hash:', hash);
 
       const paymentData = {
         key: this.credentials.api_key,
@@ -72,6 +97,9 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         ? 'https://testpay.easebuzz.in/payment/initiateLink'
         : 'https://pay.easebuzz.in/payment/initiateLink';
 
+      console.log('🔍 [EasebuzzAdapter] API URL:', apiUrl);
+      console.log('🔍 [EasebuzzAdapter] Payment data:', JSON.stringify(paymentData, null, 2));
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -80,10 +108,15 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         body: new URLSearchParams(paymentData).toString()
       });
 
+      console.log('🔍 [EasebuzzAdapter] Response status:', response.status);
+      console.log('🔍 [EasebuzzAdapter] Response headers:', Object.fromEntries(response.headers.entries()));
+
       const result = await response.json();
+      console.log('🔍 [EasebuzzAdapter] Response result:', JSON.stringify(result, null, 2));
 
       if (result.status === 1) {
         // Success response - return LightSpeed branded response
+        console.log('✅ [EasebuzzAdapter] Payment initiation successful');
         return LightSpeedWrapper.sanitizePaymentResponse({
           success: true,
           transaction_id: txnid,
@@ -92,6 +125,7 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
           gateway_response: result
         }, txnid, request.amount);
       } else {
+        console.error('❌ [EasebuzzAdapter] Payment initiation failed:', result);
         return LightSpeedWrapper.sanitizePaymentResponse({
           success: false,
           status: 'failed',
@@ -100,6 +134,7 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
       }
 
     } catch (error) {
+      console.error('❌ [EasebuzzAdapter] Exception during payment initiation:', error);
       return LightSpeedWrapper.sanitizePaymentResponse({
         success: false,
         status: 'failed',

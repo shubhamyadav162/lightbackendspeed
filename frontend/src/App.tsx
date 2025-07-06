@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { X, RefreshCw, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { EasebuzzQuickSetup } from '@/components/dashboard/EasebuzzQuickSetup';
 import NGMPayment from './pages/NGMPayment';
+import RealtimeDemo from './components/RealtimeDemo';
+import NgmePaymentTest from './components/NgmePaymentTest';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -225,11 +227,15 @@ const App = () => {
               <Route path="/dashboard/admin/easebuzz" element={<EasebuzzQuickSetup />} />
               <Route path="/dashboard/admin/aesbus" element={<EasebuzzQuickSetup />} />
               <Route path="/ngm" element={<NGMPayment />} />
+              <Route path="/ngme-test" element={<NgmePaymentTest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
           
           <Toaster position="top-right" richColors />
+          
+          {/* Realtime Demo Component */}
+          <RealtimeDemo />
         </Router>
       </QueryClientProvider>
     </GlobalErrorBoundary>

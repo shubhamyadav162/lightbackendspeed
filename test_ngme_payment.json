@@ -1,0 +1,8 @@
+{
+  "amount": 1000,
+  "customer_email": "test@example.com",
+  "customer_name": "Test User",
+  "test_mode": true,
+  "client_key": "FQABLVIEYC",
+  "client_salt": "QECGU7UHNT"
+} 

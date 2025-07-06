@@ -4,16 +4,17 @@ import axios, { AxiosHeaders } from 'axios';
 const API_KEY = import.meta.env.VITE_API_KEY || 'admin_test_key';
 
 /**
- * Simple backend URL resolution:
- * 1. Use VITE_API_BASE_URL if provided
- * 2. Use VITE_BACKEND_URL + /api/v1 if provided  
- * 3. Development: localhost:3100
- * 4. Production: Railway URL
+ * Smart backend URL resolution with proxy support:
+ * 1. Development: Use proxy path /api/v1 (avoids CORS issues)
+ * 2. Production: Use VITE_API_BASE_URL if provided
+ * 3. Fallback: Use VITE_BACKEND_URL + /api/v1 if provided  
+ * 4. Final fallback: Railway URL for production
  */
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-  (import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api/v1` : null) ||
-  (import.meta.env.PROD ? 'https://web-production-0b337.up.railway.app/api/v1' : null) ||
-  'http://localhost:3100/api/v1';
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api/v1'  // Use proxy in development mode
+  : import.meta.env.VITE_API_BASE_URL || 
+    (import.meta.env.VITE_BACKEND_URL ? `${import.meta.env.VITE_BACKEND_URL}/api/v1` : null) ||
+    'https://web-production-0b337.up.railway.app/api/v1';
 
 // Log configuration for debugging
 console.log('🔧 API Configuration:', {
@@ -33,10 +34,17 @@ export const apiClient = axios.create({
   withCredentials: false,
 });
 
-// Simple request interceptor - just logging
+// Optimized request interceptor with throttled logging
+let lastLogTime = 0;
+const LOG_THROTTLE_MS = 1000; // Only log once per second per type
+
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    const now = Date.now();
+    if (now - lastLogTime > LOG_THROTTLE_MS) {
+      console.log(`🚀 API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      lastLogTime = now;
+    }
     return config;
   },
   (error) => {
@@ -44,20 +52,27 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Simple response interceptor for error handling
+// Optimized response interceptor with throttled logging and performance improvements
+let lastResponseLogTime = 0;
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+    const now = Date.now();
+    if (now - lastResponseLogTime > LOG_THROTTLE_MS) {
+      console.log(`✅ API Response: ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+      lastResponseLogTime = now;
+    }
     return response;
   },
   (error) => {
-    console.error('❌ API Error:', {
+    // Only log errors, not all responses to reduce console spam
+    const errorDetails = {
       url: error.config?.url,
       method: error.config?.method?.toUpperCase(),
       status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
-    });
+      message: error.message
+    };
+    
+    console.error('❌ API Error:', errorDetails);
     
     if (error.message === 'Network Error' && !error.response) {
       console.error('🚫 Network/CORS Error - Check backend connection');

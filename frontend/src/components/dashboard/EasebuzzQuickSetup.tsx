@@ -136,37 +136,40 @@ export const EasebuzzQuickSetup = () => {
         customerPhone
       });
       
-      // ✅ FIXED: Use correct NGME client credentials for authentication
-      console.log('🔐 Using correct NGME client credentials for payment initiation...');
+      // ✅ FIXED: Use correct NGME Edge Function instead of Railway backend
+      console.log('🔐 Using NGME Edge Function for payment initiation...');
 
-      // ✅ CORRECTED: Use actual NGME client credentials from database
+      // ✅ CORRECTED: Use NGME Edge Function with proper headers
       const realClientKey = 'FQABLVIEYC'; // NGM client key from database
       const realClientSalt = 'QECGU7UHNT'; // NGM client salt from database
 
       console.log('✅ Using NGME client credentials:', { realClientKey, realClientSalt });
 
-      const response = await fetch(`${API_BASE_URL}/pay`, {
+      // ✅ FIXED: Use Edge Function URL instead of Railway backend
+      const edgeFunctionUrl = 'https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/easebuzz-payment';
+
+      const response = await fetch(edgeFunctionUrl, {
         method: 'POST',
         headers: {
-          'x-api-key': realClientKey, // ✅ FIXED: Using correct NGM client key
-          'x-api-secret': realClientSalt, // ✅ FIXED: Using correct NGM client salt
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk'}`
         },
         body: JSON.stringify({
-          amount: amount,
+          amount: amount * 100, // Convert to paisa as expected by function
           customer_email: customerEmail,
           customer_name: customerName,
           customer_phone: customerPhone,
           order_id: orderId,
           description: `NGME Real Money Test - ₹${amount} via Easebuzz`,
-          payment_method: 'upi',
-          test_mode: false // Set to false for real money
+          test_mode: false, // Set to false for real money
+          client_key: realClientKey, // ✅ FIXED: Pass client credentials in body
+          client_salt: realClientSalt // ✅ FIXED: Pass client salt in body
         })
       });
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Payment creation failed. Status:', response.status, 'Error details:', errorText);
+        console.error('❌ NGME Edge Function failed. Status:', response.status, 'Error details:', errorText);
         throw new Error(`Payment creation failed: ${response.status} - ${errorText}`);
       }
       
@@ -180,7 +183,7 @@ export const EasebuzzQuickSetup = () => {
         
         // Success toast with action
         toast.success('🎉 NGME Real Payment Link Created!', {
-          description: `₹${amount} • Order: ${orderId} • Via Easebuzz`,
+          description: `₹${amount} • Order: ${orderId} • Via NGME Easebuzz Edge Function`,
           duration: 8000,
           action: {
             label: 'Open Payment',
@@ -194,8 +197,9 @@ export const EasebuzzQuickSetup = () => {
             `✅ NGME real payment link created for ₹${amount}!\n\n` +
             `Transaction ID: ${paymentData.transaction_id}\n` +
             `Order ID: ${orderId}\n\n` +
-            `Open payment page now to complete with UPI?\n` +
-            `This will use your real NGME Easebuzz gateway.`
+            `⚠️ यह REAL MONEY payment है!\n` +
+            `क्या आप payment page खोलना चाहते हैं?\n\n` +
+            `Payment URL automatically clipboard में copy हो जाएगा।`
           );
           
           if (shouldOpen) {

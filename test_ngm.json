@@ -1,0 +1,6 @@
+{
+  "action": "initiate",
+  "amount": 10,
+  "customerEmail": "test@ngme.in",
+  "customerName": "NGME Test User"
+} 

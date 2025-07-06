@@ -1,0 +1,16 @@
+{
+  "code": "easebuzz_working",
+  "name": "Easebuzz Working Gateway",
+  "provider": "easebuzz",
+  "credentials": {
+    "api_key": "D4SS5CFXKV",
+    "api_secret": "HRQ1A10K7J",
+    "webhook_secret": "optional_webhook_secret"
+  },
+  "webhook_url": "https://api.lightspeedpay.in/api/v1/callback/easebuzz",
+  "environment": "test",
+  "priority": 0,
+  "monthly_limit": 1000000,
+  "success_rate": 95.0,
+  "is_active": true
+} 

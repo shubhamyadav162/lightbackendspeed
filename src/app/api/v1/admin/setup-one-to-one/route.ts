@@ -59,10 +59,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (clientError) {
-      console.log('❌ Client creation error:', clientError)
+      console.error('❌ Supabase client creation error:', clientError)
       return NextResponse.json({
         success: false,
-        error: 'Client creation में error आया'
+        error: 'Client creation में error आया',
+        details: clientError.message
       }, { status: 500 })
     }
 
@@ -90,14 +91,15 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (gatewayError) {
-      console.log('❌ Gateway creation error:', gatewayError)
+      console.error('❌ Supabase gateway creation error:', gatewayError)
       
       // Rollback: Delete the client
       await supabase.from('clients').delete().eq('id', clientData.id)
       
       return NextResponse.json({
         success: false,
-        error: 'Gateway creation में error आया'
+        error: 'Gateway creation में error आया',
+        details: gatewayError.message
       }, { status: 500 })
     }
 
@@ -117,7 +119,7 @@ export async function POST(req: NextRequest) {
       })
 
     if (assignmentError) {
-      console.log('❌ Assignment creation error:', assignmentError)
+      console.error('❌ Supabase assignment creation error:', assignmentError)
       
       // Rollback: Delete client and gateway
       await supabase.from('clients').delete().eq('id', clientData.id)
@@ -125,7 +127,8 @@ export async function POST(req: NextRequest) {
       
       return NextResponse.json({
         success: false,
-        error: '1:1 mapping creation में error आया'
+        error: '1:1 mapping creation में error आया',
+        details: assignmentError.message
       }, { status: 500 })
     }
 
@@ -141,7 +144,7 @@ export async function POST(req: NextRequest) {
       })
 
     if (walletError) {
-      console.log('⚠️ Wallet creation error (non-critical):', walletError)
+      console.warn('⚠️ Wallet creation error (non-critical):', walletError.message)
       // Don't rollback for wallet error, it's not critical
     } else {
       console.log('✅ Commission wallet created')
@@ -194,11 +197,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(response, { status: 201 })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ One-to-One Setup Error:', error)
     return NextResponse.json({
       success: false,
-      error: 'Internal server error occurred'
+      error: 'Internal server error occurred',
+      details: error.message
     }, { status: 500 })
   }
 }

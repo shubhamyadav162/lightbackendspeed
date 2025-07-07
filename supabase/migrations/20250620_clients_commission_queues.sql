@@ -184,20 +184,14 @@ CREATE OR REPLACE FUNCTION public.select_gateway_for_amount(p_amount INTEGER)
 RETURNS TABLE(id UUID, name TEXT, priority INTEGER) AS $$
 BEGIN
   RETURN QUERY
-  WITH sel AS (
-    SELECT *
-    FROM public.payment_gateways
-    WHERE is_active = TRUE
-      AND temp_failed = FALSE
-      AND (current_volume + p_amount) < monthly_limit
-    ORDER BY priority DESC, success_rate DESC, last_used_at ASC
-    LIMIT 1
-    FOR UPDATE SKIP LOCKED
-  )
-  UPDATE public.payment_gateways
-  SET last_used_at = NOW(), current_volume = current_volume + p_amount
-  FROM sel WHERE payment_gateways.id = sel.id
-  RETURNING payment_gateways.id, payment_gateways.name, payment_gateways.priority;
+  SELECT id, name, priority
+  FROM public.payment_gateways
+  WHERE is_active = TRUE
+    AND temp_failed = FALSE
+    AND (current_volume + p_amount) < monthly_limit
+  ORDER BY priority DESC, success_rate DESC, last_used_at ASC
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED;
 END;
 $$ LANGUAGE plpgsql;
 

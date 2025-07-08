@@ -20,14 +20,9 @@ function generateCompanyName(merchantId: string): string {
   return `Merchant_${merchantId.substring(0, 8)}`
 }
 
-// Add function to generate unique gateway code
-function generateGatewayCode(): string {
-  return `LSPGW_${Math.random().toString(36).substring(2, 12).toUpperCase()}`
-}
-
 export async function POST(req: NextRequest) {
   try {
-    console.log('🔧 One-to-One Setup Request Received v2')
+    console.log('🔧 One-to-One Setup Request Received')
     
     const body = await req.json()
     const { merchantId, apiKey, apiSalt, apiUrl = 'https://pay.easebuzz.in/payment/initiateLink' } = body
@@ -41,136 +36,180 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
-    console.log('✅ Processing One-to-One Setup for Merchant:', { merchantId })
+    console.log('✅ Creating One-to-One Setup for:', { merchantId, apiUrl })
 
-    // Step 1: Verify the merchant (client) exists
+    // Generate LightSpeed client credentials
+    const clientKey = generateClientKey()
+    const clientSalt = generateClientSalt()
+    const companyName = generateCompanyName(merchantId)
+
+    // Start database transaction
     const { data: clientData, error: clientError } = await supabase
       .from('clients')
-      .select('id, company_name')
-      .eq('id', merchantId)
-      .single();
+      .insert({
+        client_key: clientKey,
+        client_salt: clientSalt,
+        company_name: companyName,
+        webhook_url: null,
+        fee_percent: 3.50,
+        suspend_threshold: 10000,
+        status: 'active'
+      })
+      .select()
+      .single()
 
-    if (clientError || !clientData) {
-      console.error('❌ Merchant not found:', clientError);
+    if (clientError) {
+      console.log('❌ Client creation error:', clientError)
       return NextResponse.json({
         success: false,
-        error: 'Merchant ID અમાન્ય છે અથવા મળ્યો નથી.',
-        details: clientError?.message
-      }, { status: 404 });
+        error: 'Client creation में error आया'
+      }, { status: 500 })
     }
 
-    console.log('✅ Merchant verified:', clientData.company_name);
+    console.log('✅ Client created:', clientData.id)
 
-    // Step 2: Check for an existing Easebuzz gateway for this merchant
-    const { data: existingGateway, error: existingGatewayError } = await supabase
-        .from('payment_gateways')
-        .select('id')
-        .eq('client_id', merchantId)
-        .eq('provider', 'easebuzz')
-        .maybeSingle();
+    // Create dedicated EaseBuzz gateway for this client
+    const gatewayName = `EaseBuzz_${merchantId}_${Date.now()}`
+    const { data: gatewayData, error: gatewayError } = await supabase
+      .from('payment_gateways')
+      .insert({
+        name: gatewayName,
+        provider: 'easebuzz',
+        api_key: apiKey,
+        api_secret: apiSalt,
+        webhook_url: apiUrl,
+        environment: 'production',
+        monthly_limit: 1000000,
+        current_volume: 0,
+        success_rate: 100.00,
+        priority: 1,
+        is_active: true,
+        temp_failed: false
+      })
+      .select()
+      .single()
 
-    if (existingGatewayError) {
-        console.error('❌ Error checking for existing gateway:', existingGatewayError);
-        // Do not return here, proceed to create if it's a "not found" type error
+    if (gatewayError) {
+      console.log('❌ Gateway creation error:', gatewayError)
+      
+      // Rollback: Delete the client
+      await supabase.from('clients').delete().eq('id', clientData.id)
+      
+      return NextResponse.json({
+        success: false,
+        error: 'Gateway creation में error आया'
+      }, { status: 500 })
     }
 
-    let gatewayData;
+    console.log('✅ Gateway created:', gatewayData.id)
 
-    if (existingGateway) {
-        // Step 3a: Update existing gateway
-        console.log('🔄 Gateway already exists. Updating credentials for gateway ID:', existingGateway.id);
-        const { data: updatedGateway, error: updateError } = await supabase
-            .from('payment_gateways')
-            .update({
-                api_key: apiKey,
-                api_secret: apiSalt,
-                webhook_url: apiUrl,
-                is_active: true
-            })
-            .eq('id', existingGateway.id)
-            .select()
-            .single();
+    // Create 1:1 client-gateway assignment
+    const { error: assignmentError } = await supabase
+      .from('client_gateway_assignments')
+      .insert({
+        client_id: clientData.id,
+        gateway_id: gatewayData.id,
+        rotation_order: 1,
+        is_active: true,
+        weight: 1.00,
+        daily_limit: 1000000,
+        daily_usage: 0
+      })
 
-        if (updateError) {
-            console.error('❌ Supabase gateway update error:', updateError);
-            return NextResponse.json({
-                success: false,
-                error: 'मौजूदा गेटवे को अपडेट करने में त्रुटि हुई।',
-                details: updateError.message
-            }, { status: 500 });
-        }
-        gatewayData = updatedGateway;
-        console.log('✅ Gateway updated successfully.');
-
-    } else {
-        // Step 3b: Create a new gateway
-        console.log('✨ No existing gateway found. Creating a new one.');
-        const gatewayName = `EaseBuzz_${clientData.company_name.replace(/\s+/g, '_')}`;
-        const { data: newGateway, error: gatewayError } = await supabase
-            .from('payment_gateways')
-            .insert({
-                name: gatewayName,
-                provider: 'easebuzz',
-                api_key: apiKey,
-                api_secret: apiSalt,
-                webhook_url: apiUrl,
-                client_id: merchantId, // Associate with the client
-                is_active: true,
-                // Add other necessary default fields
-                monthly_limit: 1000000,
-                priority: 1,
-            })
-            .select()
-            .single();
-
-        if (gatewayError) {
-            console.error('❌ Supabase gateway creation error:', gatewayError);
-            return NextResponse.json({
-                success: false,
-                error: 'Gateway creation में error आया',
-                details: gatewayError.message
-            }, { status: 500 });
-        }
-        gatewayData = newGateway;
-        console.log('✅ New gateway created successfully:', gatewayData.id);
+    if (assignmentError) {
+      console.log('❌ Assignment creation error:', assignmentError)
+      
+      // Rollback: Delete client and gateway
+      await supabase.from('clients').delete().eq('id', clientData.id)
+      await supabase.from('payment_gateways').delete().eq('id', gatewayData.id)
+      
+      return NextResponse.json({
+        success: false,
+        error: '1:1 mapping creation में error आया'
+      }, { status: 500 })
     }
+
+    console.log('✅ 1:1 Assignment created successfully')
+
+    // Create commission wallet
+    const { error: walletError } = await supabase
+      .from('commission_wallets')
+      .insert({
+        client_id: clientData.id,
+        balance_due: 0,
+        warn_threshold: 5000
+      })
+
+    if (walletError) {
+      console.log('❌ Wallet creation error:', walletError)
+      // Rollback: Delete client, gateway, and assignment
+      await supabase.from('clients').delete().eq('id', clientData.id)
+      await supabase.from('payment_gateways').delete().eq('id', gatewayData.id)
+      await supabase.from('client_gateway_assignments').delete().eq('client_id', clientData.id)
+
+      return NextResponse.json({
+        success: false,
+        error: 'Wallet creation में error आया'
+      }, { status: 500 })
+    }
+
+    console.log('✅ Commission wallet created')
     
-    // Step 4: Ensure wallet exists (optional, based on your logic)
-    // You might want to add a check here to create a wallet if one doesn't exist for the client
-
-    const response = {
+    // Return all created data
+    return NextResponse.json({
       success: true,
-      data: {
-        gateway: {
-          id: gatewayData.id,
-          name: gatewayData.name,
-          provider: 'easebuzz',
-          status: 'active'
-        },
-      },
-      message: 'Easebuzz gateway configuration saved successfully!'
-    }
+      message: 'One-to-One setup completed successfully!',
+      client: clientData,
+      gateway: gatewayData
+    })
 
-    return NextResponse.json(response, { status: 200 })
-
-  } catch (error: any) {
-    console.error('❌ One-to-One Setup Error:', error)
+  } catch (err: any) {
+    console.error('❌ One-to-One Setup Error:', err.message)
     return NextResponse.json({
       success: false,
-      error: 'Internal server error occurred',
-      details: error.message
+      error: 'An unexpected error occurred.',
+      details: err.message
     }, { status: 500 })
   }
 }
 
+// Optional: Add GET handler to check status
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const merchantId = searchParams.get('merchantId')
+
+  if (!merchantId) {
+    return NextResponse.json({
+      success: false,
+      error: 'Merchant ID is required as a query parameter'
+    }, { status: 400 })
+  }
+
+  // Check client, gateway, assignment, and wallet
+  const { data: client, error: clientErr } = await supabase
+    .from('clients')
+    .select('id, company_name, client_key, status')
+    .eq('id', merchantId)
+    .single()
+  
+  const { data: gateway, error: gwErr } = await supabase
+    .from('payment_gateways')
+    .select('id, name, provider, is_active')
+    .eq('client_id', merchantId)
+    .eq('provider', 'easebuzz')
+    .single()
+
+  if (clientErr || !client) {
+    return NextResponse.json({ success: false, message: 'Merchant not found' }, { status: 404 })
+  }
+  if (gwErr || !gateway) {
+    return NextResponse.json({ success: false, message: 'Gateway for merchant not found', client })
+  }
+  
   return NextResponse.json({
     success: true,
-    message: 'One-to-One Setup API is working',
-    endpoints: {
-      POST: 'Create one-to-one client-gateway mapping',
-      required_fields: ['merchantId', 'apiKey', 'apiSalt'],
-      optional_fields: ['apiUrl']
-    }
+    message: 'Merchant and Gateway are configured.',
+    client,
+    gateway
   })
 } 

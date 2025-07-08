@@ -1,10 +1,11 @@
 import { BaseGatewayAdapter, GatewayCredentials, PaymentRequest, PaymentResponse, PaymentStatusResponse, WebhookResponse } from './base-adapter';
 import { LightSpeedWrapper } from '../lightspeed-wrapper';
 import crypto from 'crypto';
+import { supabase } from '@/lib/supabase/client';
 
 interface EasebuzzCredentials {
-  api_key: string;      // Merchant Key (D4SS5CFXKV)
-  api_secret: string;   // Salt (HRQ1A10K7J)
+  api_key: string;      // Merchant Key
+  api_secret: string;   // Salt
   webhook_secret?: string;
 }
 
@@ -350,4 +351,14 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
       return false;
     }
   }
-} 
+}
+
+// उदाहरण:
+const credentials = {
+  api_key: 'FRQT0XKLHY',    // nextgen_techno_ventures.key
+  api_secret: 'S84LOJ3U0N', // nextgen_techno_ventures.salt
+  merchant_id: '682aefe4e352d264171612c0' // nextgen_techno_ventures.merchant_id
+};
+
+// उदाहरण:
+const easebuzz = new EasebuzzAdapter(credentials, true); // true = test mode 

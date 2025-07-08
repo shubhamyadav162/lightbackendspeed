@@ -3,7 +3,114 @@ import { simpleAuth, simpleError, simpleResponse } from '@/lib/simple-auth';
 import { getSupabaseService } from '@/lib/supabase/server';
 import { EasebuzzAdapter } from '@/lib/gateways/easebuzz-adapter';
 
+<<<<<<< HEAD
 // Simple payment processing without complex authentication
+=======
+// Initialize Supabase client
+const supabase = supabaseService;
+
+// Helper function to verify merchant authentication
+async function verifyMerchantAuth(request: NextRequest) {
+  // 1. Prefer Supabase Auth
+  const authCtx = await getAuthContext(request);
+  if (authCtx?.role === 'merchant' && authCtx.merchantId) {
+    // Fetch merchant by ID
+    const { data, error } = await supabase
+      .from('merchants')
+      .select('*')
+      .eq('id', authCtx.merchantId)
+      .single();
+
+    if (error || !data) {
+      throw new Error('Merchant account inactive or not found');
+    }
+
+    return data;
+  }
+
+  const apiKey = request.headers.get('x-api-key');
+  const apiSecret = request.headers.get('x-api-secret');
+  
+  if (!apiKey) {
+    throw new Error('API key is required');
+  }
+  
+  // Query merchants table for the API key
+  const { data, error } = await supabase
+    .from('merchants')
+    .select('*')
+    .eq('api_key', apiKey)
+    .single();
+  
+  if (error || !data) {
+    throw new Error('Invalid API credentials');
+  }
+  
+  // Verify API secret only if provided (temporary for testing)
+  if (apiSecret && data.api_salt !== apiSecret) {
+    throw new Error('Invalid API secret');
+  }
+  
+  return data;
+}
+
+// Helper function to get active gateway
+async function getActiveGateway() {
+  const { data, error } = await supabase
+    .from('payment_gateways')
+    .select('*')
+    .eq('is_active', true)
+    .eq('provider', 'easebuzz')
+    .order('priority', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    throw new Error('No active Easebuzz gateway found');
+  }
+
+  return data;
+}
+
+// Helper function to create a transaction
+async function createTransaction(params: {
+  merchantId: string;
+  amount: number;
+  customerEmail: string;
+  customerName: string;
+  customerPhone: string;
+  paymentMethod: string;
+  testMode: boolean;
+}) {
+  const { merchantId, amount, customerEmail, customerName, customerPhone, paymentMethod, testMode } = params;
+  
+  // Generate a transaction ID
+  const txnId = `LSP_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  
+  // Create the transaction record
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert({
+      txn_id: txnId,
+      merchant_id: merchantId,
+      amount,
+      currency: 'INR',
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
+      status: 'PENDING',
+      is_sandbox: testMode,
+    })
+    .select()
+    .single();
+  
+  if (error) {
+    throw new Error(`Failed to create transaction: ${error.message}`);
+  }
+  
+  return data;
+}
+
+>>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
 export async function POST(request: NextRequest) {
   try {
     console.log('💰 [PAY] === PAYMENT REQUEST START ===');
@@ -24,6 +131,7 @@ export async function POST(request: NextRequest) {
     if (!body.amount || !body.customer_email) {
       return simpleError('Amount and customer_email are required', 400);
     }
+<<<<<<< HEAD
 
     // Generate transaction ID
     const transactionId = `LSP_${Date.now()}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -44,6 +152,39 @@ export async function POST(request: NextRequest) {
       if (gatewayError || !gateways || gateways.length === 0) {
         console.log('❌ [PAY] No active gateways found:', gatewayError);
         return simpleError('No payment gateway available', 503);
+=======
+    
+    // Get active gateway
+    const gateway = await getActiveGateway();
+    
+    // Create EaseBuzz adapter with correct credential mapping  
+    // For Easebuzz: api_key should be merchant_key for hash generation, api_secret should be salt
+    const easebuzzAdapter = new EasebuzzAdapter({
+      api_key: gateway.credentials.api_key,       // Use merchant_key for hash generation
+      api_secret: gateway.credentials.api_secret  // Use salt for hash
+    }, test_mode);
+    
+    // Create transaction record
+    const transaction = await createTransaction({
+      merchantId: merchant.id,
+      amount,
+      customerEmail: customer_email,
+      customerName: customer_name || 'Customer',
+      customerPhone: customer_phone || '9999999999',
+      paymentMethod: payment_method || 'upi',
+      testMode: test_mode
+    });
+    
+    // Create payment with EaseBuzz
+    const paymentResponse = await easebuzzAdapter.initiatePayment({
+      amount: amount,
+      order_id: transaction.txn_id,
+      description: product_info,
+      customer_info: {
+        name: customer_name || 'Customer',
+        email: customer_email,
+        phone: customer_phone || '9999999999'
+>>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
       }
 
       console.log('🔍 [PAY] Found', gateways.length, 'active gateways');

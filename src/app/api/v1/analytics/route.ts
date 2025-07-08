@@ -17,11 +17,7 @@ export const dynamic = 'force-dynamic';
  *   to         - ISO 8601 date string, end of the date range
  *   timezone   - IANA timezone string (e.g., 'Asia/Kolkata'), defaults to UTC
  *
-<<<<<<< HEAD
- * If 'from' and 'to' are not provided, it defaults to the last 7 days.
-=======
  * If 'from' and 'to' are not provided, it defaults to the last 30 days.
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
  *
  * Response shape:
  *   {
@@ -62,11 +58,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const qpMerchantId = searchParams.get('merchantId');
-<<<<<<< HEAD
-
-=======
     
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
     // Date range and timezone handling
     const timezone = searchParams.get('timezone') || 'UTC';
     let from = searchParams.get('from');
@@ -74,33 +66,18 @@ export async function GET(request: NextRequest) {
 
     if (!from || !to) {
       const today = new Date();
-<<<<<<< HEAD
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(today.getDate() - 7);
-      to = today.toISOString();
-      from = sevenDaysAgo.toISOString();
-=======
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(today.getDate() - 30);
       to = today.toISOString();
       from = thirtyDaysAgo.toISOString();
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
     }
 
     if (qpMerchantId) merchantId = qpMerchantId;
 
-<<<<<<< HEAD
     // More robust date validation
     const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
     if (!iso8601Regex.test(from) || !iso8601Regex.test(to)) {
       return NextResponse.json({ error: 'Invalid date format provided for "from" or "to". Please use ISO 8601 format.' }, { status: 400 });
-=======
-    // Validate dates
-    if (isNaN(new Date(from).getTime()) || isNaN(new Date(to).getTime())) {
-      return NextResponse.json({ 
-        error: 'Invalid date format provided for "from" or "to". Please use ISO 8601 format.' 
-      }, { status: 400 });
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
     }
 
     //------------------------------------------------------------------
@@ -161,11 +138,8 @@ export async function GET(request: NextRequest) {
       // Fallback: Query Supabase view `transaction_stats` --------------
       //------------------------------------------------------------------
       console.warn('[Analytics API] pgPool not available, using Supabase fallback. This is less performant.');
-<<<<<<< HEAD
-=======
       if (!supabase) throw new Error('Supabase client not initialized');
       
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
       let statsQuery = supabase
         .from('transaction_stats')
         .select('*')
@@ -221,13 +195,9 @@ export async function GET(request: NextRequest) {
       stack: err.stack,
       error: err,
     });
-<<<<<<< HEAD
-    return NextResponse.json({ error: 'Failed to fetch analytics data.', message: err.message }, { status: 400 });
-=======
     return NextResponse.json({ 
       error: 'Failed to fetch analytics data.', 
       message: err.message 
     }, { status: 400 });
->>>>>>> 0a30f02217ea5d68237b758e85f96e951aa95360
   }
 } 

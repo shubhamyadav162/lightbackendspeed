@@ -17,6 +17,10 @@ export async function GET(request: NextRequest) {
     const status = url.searchParams.get('status');
     const search = url.searchParams.get('search');
 
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service not available' }, { status: 500 });
+    }
+
     let query = supabaseService
       .from('clients')
       .select(`
@@ -116,6 +120,10 @@ export async function POST(request: NextRequest) {
 
     if (!company_name) {
       return NextResponse.json({ error: 'Company name is required' }, { status: 400 });
+    }
+
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service not available' }, { status: 500 });
     }
 
     // Generate unique client key and salt

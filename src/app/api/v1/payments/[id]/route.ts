@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createHmac } from 'crypto';
 
@@ -35,7 +35,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseService();
     const transactionId = params.id;
 
     if (!transactionId) {

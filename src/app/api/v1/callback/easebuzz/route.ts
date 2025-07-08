@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/server';
 import crypto from 'crypto';
+import { isWhitelistedIp } from '@/lib/ip-whitelist';
 
 // POST /api/v1/callback/easebuzz - Easebuzz production webhook callback (NextGen Techno)
 export async function POST(request: NextRequest) {

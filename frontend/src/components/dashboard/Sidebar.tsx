@@ -8,7 +8,9 @@ import {
   FileText, 
   Bell, 
   Shield,
-  Code
+  Code,
+  TestTube,
+  TrendingUp
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -23,7 +25,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeScreen, onScreenChange }
     { id: 'wallets', label: 'Wallets', icon: Wallet },
     { id: 'monitoring', label: 'Monitoring', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'one-to-one', label: 'One to One', icon: TestTube },
     { id: 'reports', label: 'Reports', icon: FileText },
+    { id: 'analytics', label: 'Analytics', icon: TrendingUp },
     { id: 'alerts', label: 'Alert Center', icon: Bell },
     { id: 'developer', label: 'Developer Tools', icon: Code },
     { id: 'security', label: 'Security', icon: Shield },

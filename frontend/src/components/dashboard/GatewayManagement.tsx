@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertTriangle, Settings, Zap, DollarSign, Globe, Shield, Plus, CreditCard } from 'lucide-react';
 import { apiService } from '@/services/api';
-import { useGateways, useUpdateGateway } from '@/hooks/useApi';
+import { useGateways, useUpdateGateway, useMerchantCredentials } from '@/hooks/useApi';
 import { subscribeToGatewayHealth } from '@/services/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { AddGatewayModal } from './AddGatewayModal';
@@ -19,6 +19,15 @@ import { EasebuzzQuickSetup } from './EasebuzzQuickSetup';
 import { default as Girth1PaymentSetup } from './Girth1PaymentSetup';
 import { toast } from 'sonner';
 // import Link from 'next/link';
+// Dropdown menu components
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 
 interface Gateway {
   id: string;
@@ -35,7 +44,7 @@ interface Gateway {
   api_key?: string;
   api_secret?: string;
   monthly_limit?: number;
-  is_active?: boolean;
+  is_active: boolean;
   client_id?: string;
   client_secret?: string;
   webhook_url?: string;
@@ -46,8 +55,19 @@ interface Gateway {
 }
 
 export const GatewayManagement = () => {
+  // TEMPORARY FIX: Hardcode a test merchant ID to resolve the 401 error.
+  // A proper solution would involve a UI element to select the merchant.
+  const testMerchantId = 'c8691c56-5714-4f80-943a-cd4862cc91d6'; 
+  const { data: credentialsData } = useMerchantCredentials(testMerchantId);
+  const credentials = credentialsData?.data;
+  
+  // Use clientId from credentials if available, otherwise it might be undefined
+  const clientId = credentials?.clientId;
+
   // Use React Query data directly - no local state copy needed
-  const { data: apiGateways = [], isLoading, refetch, error } = useGateways();
+  const { data: apiGateways, isLoading, refetch, error } = useGateways(clientId);
+  // Array validation और fallback
+  const safeGateways = Array.isArray(apiGateways?.data) ? apiGateways.data : [];
   const updateGatewayMutation = useUpdateGateway();
   
   const [selectedGateway, setSelectedGateway] = useState<string | null>(null);
@@ -63,15 +83,15 @@ export const GatewayManagement = () => {
     console.log('🔍 Gateway Management Debug:', {
       isLoading,
       error: error?.message,
-      apiGateways: apiGateways,
-      apiGatewaysCount: apiGateways.length,
-      apiGatewaysTypes: apiGateways.map(g => g.provider)
+      apiGateways: safeGateways,
+      apiGatewaysCount: safeGateways.length,
+      apiGatewaysTypes: safeGateways.map(g => g.provider)
     });
-  }, [apiGateways, isLoading, error]);
+  }, [safeGateways, isLoading, error]);
 
   // Memoize processed gateways
   const gateways = useMemo(() => {
-    const processed = apiGateways.map(gateway => ({
+    const processed = safeGateways.map(gateway => ({
       ...gateway,
       ...healthMetrics[gateway.id] // Apply health metrics if available
     }));
@@ -86,7 +106,7 @@ export const GatewayManagement = () => {
     });
     
     return processed;
-  }, [apiGateways, healthMetrics]);
+  }, [safeGateways, healthMetrics]);
 
   // Check if Easebuzz gateway exists
   const easebuzzGateway = useMemo(() => {
@@ -187,19 +207,24 @@ export const GatewayManagement = () => {
   }, []);
 
   // Toggle gateway status - optimistic update
-  const toggleGatewayStatus = useCallback(async (id: string) => {
+  const toggleGatewayStatus = useCallback(async (id: string, currentStatus: boolean) => {
     const gateway = gateways.find(g => g.id === id);
-    if (!gateway) return;
+    if (!gateway) {
+      toast.error("Gateway not found!");
+      return;
+    }
 
-    const newStatus = gateway.status === 'active' ? 'inactive' : 'active';
-    
+    const newIsActive = !currentStatus;
+
     try {
-      await updateGatewayMutation.mutateAsync({ 
-        id, 
-        updates: { status: newStatus } 
+      await updateGatewayMutation.mutateAsync({
+        id,
+        updates: { is_active: newIsActive },
       });
+      // The useUpdateGateway hook already shows a toast and invalidates queries.
     } catch (e) {
       console.error('Failed to toggle status:', e);
+      toast.error('Failed to update gateway status. Please try again.');
     }
   }, [gateways, updateGatewayMutation]);
 
@@ -441,7 +466,7 @@ export const GatewayManagement = () => {
       
       // Use demo client credentials for testing
       console.log('🔐 Using REAL NGME client credentials for payment...');
-      const realClientKey = 'FQABLVIEYC';
+      const realClientKey = 'c8691c56-5714-4f80-943a-cd4862cc91d6';
       const realClientSalt = 'QECGU7UHNT';
       
       // Create payment request with demo client credentials
@@ -449,8 +474,8 @@ export const GatewayManagement = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': realClientKey,
-          'x-api-secret': realClientSalt,
+          'x-api-key': '2a4a4437-440f-4bd4-82b4-88cdcf8a468a',
+          'x-api-secret': 'QECGU7UHNT',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRybXFicG5uYm95b25leWZsZXV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzg5MzQsImV4cCI6MjA2NDk1NDkzNH0.sAremnjIHwHnzdxxuXl-GMNTyRVpZaQUVxxSgYcXhLk'}`
         },
         body: JSON.stringify({
@@ -744,6 +769,17 @@ export const GatewayManagement = () => {
     }
   };
 
+  // Error handling UI
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-red-700">
+        <h2 className="text-lg font-bold mb-2">Gateway Error</h2>
+        <div>गेटवे डेटा लोड करने में समस्या आई है। कृपया बाद में पुनः प्रयास करें।</div>
+        <div className="text-xs mt-2">{error.message || 'Unknown error'}</div>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-10">
@@ -763,38 +799,33 @@ export const GatewayManagement = () => {
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
-            {/* Add temporary test button */}
-            <Button
-              onClick={testRealBackendAPI}
-              variant="outline"
-              size="sm"
-              className="bg-orange-50 border-orange-200 hover:bg-orange-100"
-            >
-              🧪 Test Real API
-            </Button>
-            <Button
-              onClick={runCompleteDiagnostic}
-              variant="outline"
-              size="sm"
-              className="bg-purple-50 border-purple-200 hover:bg-purple-100"
-            >
-              🔍 Debug Easebuzz
-            </Button>
-            <Button
-              onClick={quickFixNGMEName}
-              variant="outline"
-              size="sm"
-              className="bg-blue-50 border-blue-200 hover:bg-blue-100"
-            >
-              🔧 Fix NGME Name
-            </Button>
-            <Button
-              onClick={createRealPaymentTest}
-              size="sm"
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              💰 Real Money Test (₹10)
-            </Button>
+            {/* Quick Actions Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-gray-50 border-gray-200 hover:bg-gray-100"
+                >
+                  ⚡ Quick Actions
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel>Diagnostics</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => testRealBackendAPI()}>🧪 Test Real API</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => runCompleteDiagnostic()}>🔍 Debug Easebuzz</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => quickFixNGMEName()}>🔧 Fix NGME Name</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Payments</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => createRealPaymentTest()}>💰 Real Money Test (₹10)</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Pages</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => window.open('/dashboard/admin/easebuzz', '_blank')}>🚀 Easebuzz Page</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.open('/dashboard/admin/aesbus', '_blank')}>🚀 AES Bus Page</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Primary actions remain visible */}
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700"
@@ -808,22 +839,6 @@ export const GatewayManagement = () => {
             >
               <Plus className="w-4 h-4 mr-2" />
               Add PayU Gateway
-            </Button>
-            <Button
-              onClick={() => window.open('/dashboard/admin/easebuzz', '_blank')}
-              variant="outline"
-              size="sm"
-              className="bg-cyan-50 border-cyan-200 hover:bg-cyan-100"
-            >
-              🚀 Easebuzz Page
-            </Button>
-            <Button
-              onClick={() => window.open('/dashboard/admin/aesbus', '_blank')}
-              variant="outline"
-              size="sm"
-              className="bg-amber-50 border-amber-200 hover:bg-amber-100"
-            >
-              🚀 AES Bus Page
             </Button>
           </div>
         </div>
@@ -989,7 +1004,7 @@ export const GatewayManagement = () => {
             {/* Gateway List - Draggable for Priority */}
             <DraggableGatewayList
               gateways={gateways}
-              onToggleStatus={toggleGatewayStatus}
+              onToggleStatus={(id) => toggleGatewayStatus(id, gateways.find(g => g.id === id)?.is_active ?? false)}
               onTestConnection={testConnection}
               onConfigure={openConfigModal}
             />
@@ -1032,8 +1047,8 @@ export const GatewayManagement = () => {
             responseTime: 0,
             fees: 2.5,
             region: 'PROD',
-            api_key: 'xKLUxQ',
-            api_secret: 'OhIeWQdMjtR4K7w1alV6c2emB6RnKXWA',
+            api_key: '2a4a4437-440f-4bd4-82b4-88cdcf8a468a',
+            api_secret: 'QECGU7UHNT',
             client_id: 'caf72985a7761ab9938a202da34bfd79fc91eae257a9c400de08670f690aa41b',
             client_secret: '5055b162f2ebe71fb814e5cf36ebbf4d32f0b5c7e6bfd3f70da415bbe1a993ff',
             webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/payu',

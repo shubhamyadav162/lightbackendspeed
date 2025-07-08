@@ -21,9 +21,9 @@ interface SimpleClient {
 // Known test clients for immediate testing
 const TEST_CLIENTS: SimpleClient[] = [
   {
-    id: 'test_client_1',
+    id: 'c8691c56-5714-4f80-943a-cd4862cc91d6',
     name: 'Test Client 1',
-    api_key: 'FQABLVIEYC',
+    api_key: '2a4a4437-440f-4bd4-82b4-88cdcf8a468a',
     api_salt: 'QECGU7UHNT',
     is_active: true,
     environment: 'test'
@@ -67,17 +67,27 @@ export async function simpleAuth(request: NextRequest): Promise<SimpleClient | n
     // For production, check database
     try {
       const supabase = getSupabaseService();
-      const { data: client, error } = await supabase
+      const { data: dbClient, error } = await supabase
         .from('clients')
-        .select('id, name, api_key, api_salt, is_active, environment')
-        .eq('api_key', apiKey)
-        .eq('is_active', true)
+        .select('id, company_name, client_key, client_salt, status, environment')
+        .eq('client_key', apiKey)
+        .eq('status', 'active')
         .single();
 
-      if (error || !client) {
+      if (error || !dbClient) {
         console.log('[SimpleAuth] Database client not found:', error?.message);
         return null;
       }
+
+      // Map database fields to SimpleClient interface
+      const client: SimpleClient = {
+        id: dbClient.id,
+        name: dbClient.company_name,
+        api_key: dbClient.client_key,
+        api_salt: dbClient.client_salt,
+        is_active: dbClient.status === 'active',
+        environment: dbClient.environment || 'test'
+      };
 
       // Verify API secret if provided
       if (apiSecret && client.api_salt !== apiSecret) {
@@ -126,16 +136,26 @@ export async function getClientByApiKey(apiKey: string): Promise<SimpleClient | 
   // Check database
   try {
     const supabase = getSupabaseService();
-    const { data: client, error } = await supabase
+    const { data: dbClient, error } = await supabase
       .from('clients')
-      .select('id, name, api_key, api_salt, is_active, environment')
-      .eq('api_key', apiKey)
-      .eq('is_active', true)
+      .select('id, company_name, client_key, client_salt, status, environment')
+      .eq('client_key', apiKey)
+      .eq('status', 'active')
       .single();
 
-    if (error || !client) {
+    if (error || !dbClient) {
       return null;
     }
+
+    // Map database fields to SimpleClient interface
+    const client: SimpleClient = {
+      id: dbClient.id,
+      name: dbClient.company_name,
+      api_key: dbClient.client_key,
+      api_salt: dbClient.client_salt,
+      is_active: dbClient.status === 'active',
+      environment: dbClient.environment || 'test'
+    };
 
     return client;
   } catch (error) {

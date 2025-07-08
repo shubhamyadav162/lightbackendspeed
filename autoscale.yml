@@ -1,0 +1,32 @@
+services:
+  queue-action-processor:
+    minInstances: 1
+    maxInstances: 5
+    targetCPUPercent: 70
+    targetMemoryPercent: 80
+    scaleDownDelay: 300 # 5 minutes
+    scaleUpDelay: 60 # 1 minute
+
+  gateway-health-collector:
+    minInstances: 1
+    maxInstances: 3
+    targetCPUPercent: 60
+    targetMemoryPercent: 70
+    scaleDownDelay: 300
+    scaleUpDelay: 60
+
+  webhook-processor:
+    minInstances: 1
+    maxInstances: 3
+    targetCPUPercent: 60
+    targetMemoryPercent: 70
+    scaleDownDelay: 300
+    scaleUpDelay: 60
+
+  transaction-monitor:
+    minInstances: 1
+    maxInstances: 2
+    targetCPUPercent: 50
+    targetMemoryPercent: 60
+    scaleDownDelay: 300
+    scaleUpDelay: 60 

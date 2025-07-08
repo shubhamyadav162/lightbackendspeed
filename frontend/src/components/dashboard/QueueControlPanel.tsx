@@ -53,7 +53,8 @@ interface QueueAction {
 }
 
 export const QueueControlPanel: React.FC = () => {
-  const { data: queueStats = [], refetch } = useQueueStats();
+  const { data: rawQueueStats, refetch } = useQueueStats();
+  const queueStats = Array.isArray(rawQueueStats) ? rawQueueStats : [];
   const [selectedAction, setSelectedAction] = useState<QueueAction | null>(null);
   
   // Use optimistic mutation hooks

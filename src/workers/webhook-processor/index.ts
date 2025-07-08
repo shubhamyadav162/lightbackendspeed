@@ -20,8 +20,16 @@ function parseWebhook(data: any): { transaction_id: string; status: string } {
   }
 
   // PayU example structure
-  if (data?.txnid) {
+  if (data?.txnid && data?.mihpayid) { // Check for a field unique to PayU
     return {
+      transaction_id: data.txnid,
+      status: (data.status ?? "failed").toLowerCase() === "success" ? "paid" : "failed",
+    };
+  }
+  
+  // Easebuzz example structure (POST request body)
+  if (data?.txnid && data?.easepayid) { // Check for a field unique to Easebuzz
+     return {
       transaction_id: data.txnid,
       status: (data.status ?? "failed").toLowerCase() === "success" ? "paid" : "failed",
     };
@@ -29,7 +37,7 @@ function parseWebhook(data: any): { transaction_id: string; status: string } {
 
   // Fallback
   return {
-    transaction_id: data.transaction_id ?? "",
+    transaction_id: data.transaction_id ?? data.txnid ?? "",
     status: data.status ?? "failed",
   };
 }

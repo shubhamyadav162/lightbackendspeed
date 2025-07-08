@@ -234,39 +234,22 @@ export class PaymentService {
   }
 
   /**
-   * Select best gateway using round-robin rotation logic
+   * Select best gateway (strict 1:1 mapping)
    */
   private async selectBestGateway(clientId: string, amount: number): Promise<any> {
-    // Use the enhanced round-robin stored procedure
-    const { data, error } = await this.supabase
-      .rpc('select_gateway_for_client_round_robin', { 
-        p_client_id: clientId, 
-        p_amount: amount 
-      });
-
-    if (error || !data || data.length === 0) {
-      console.log('No available gateway for round-robin rotation:', error);
-      return null;
-    }
-
-    const selectedGateway = data[0];
-    
-    // Get full gateway configuration with credentials
-    const { data: gateway } = await this.supabase
+    // Strict 1:1 mapping: सिर्फ़ पहला active gateway (priority DESC) चुनो
+    const { data: gateways, error } = await this.supabase
       .from('payment_gateways')
       .select('*')
-      .eq('id', selectedGateway.gateway_id)
-      .single();
+      .eq('is_active', true)
+      .order('priority', { ascending: false })
+      .limit(1);
 
-    // Add rotation info to gateway response
-    if (gateway) {
-      gateway.rotation_info = {
-        current_position: selectedGateway.rotation_position,
-        next_position: selectedGateway.next_position
-      };
+    if (error || !gateways || gateways.length === 0) {
+      console.log('No available gateway for strict 1:1 mapping:', error);
+      return null;
     }
-
-    return gateway;
+    return gateways[0];
   }
 
   /**

@@ -4,12 +4,23 @@
 import { Queue, QueueScheduler } from 'bullmq';
 import pg from 'pg';
 import dotenv from 'dotenv';
+import { parse } from 'redis-url-parser';
 
 dotenv.config();
 
-const redisOpts = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+const redisUrl = process.env.REDIS_URL;
+
+if (!redisUrl) {
+  throw new Error('REDIS_URL is not set');
+}
+
+const redisOpts = parse(redisUrl);
+
+const connectionOptions = {
+  host: redisOpts.host || 'localhost',
+  port: redisOpts.port || 6379,
+  password: redisOpts.password,
+  db: redisOpts.database || 0,
 };
 
 const POSTGRES_URL = process.env.DATABASE_URL!;
@@ -27,11 +38,11 @@ const QUEUE_NAMES = [
 ];
 
 // Ensure a QueueScheduler exists for each queue so BullMQ metrics are available
-QUEUE_NAMES.forEach((name) => new QueueScheduler(name, { connection: redisOpts }));
+QUEUE_NAMES.forEach((name) => new QueueScheduler(name, { connection: connectionOptions }));
 
 async function collectMetrics() {
   for (const name of QUEUE_NAMES) {
-    const queue = new Queue(name, { connection: redisOpts });
+    const queue = new Queue(name, { connection: connectionOptions });
     const counts = await queue.getJobCounts('waiting', 'active', 'completed', 'failed');
 
     await pgPool.query(

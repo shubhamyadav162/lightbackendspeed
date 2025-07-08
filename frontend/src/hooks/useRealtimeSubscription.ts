@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '../services/supabase';
+import { supabase } from '../lib/supabase';
 import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 export interface RealtimeSubscriptionOptions {

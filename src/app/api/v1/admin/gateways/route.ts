@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { simpleAdminAuth, simpleError, simpleResponse } from '@/lib/simple-auth';
 import { getSupabaseService } from '@/lib/supabase/server';
+import { encryptSensitiveFields } from '@/lib/gateway-crypto';
 
 // Force dynamic rendering to prevent static generation timeout
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
     
     // Simple admin authentication
     const isAuthorized = await simpleAdminAuth(request);
+    console.log('🔑 [ADMIN] Authorization check passed:', isAuthorized);
     if (!isAuthorized) {
       return simpleError('Unauthorized - Invalid admin API key', 401);
     }
@@ -24,13 +26,17 @@ export async function GET(request: NextRequest) {
       .from('payment_gateways')
       .select('*')
       .order('priority', { ascending: true });
+    
+    console.log('🔍 [ADMIN] Supabase query executed.');
 
     if (error) {
-      console.error('❌ [ADMIN] Failed to fetch gateways:', error);
+      console.error('❌ [ADMIN] Failed to fetch gateways from Supabase:', error);
       return simpleError('Failed to fetch gateways', 500);
     }
 
-    console.log('✅ [ADMIN] Found', gateways.length, 'gateways');
+    console.log('✅ [ADMIN] Found', gateways.length, 'gateways from DB.');
+    console.log('📦 [ADMIN] Sending gateways to frontend:', JSON.stringify(gateways.map(g => ({id: g.id, name: g.name, provider: g.provider})), null, 2));
+
     return simpleResponse({ success: true, data: gateways });
 
   } catch (error) {
@@ -81,13 +87,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseService();
     
+    // Encrypt credentials before saving
+    const encryptedCreds = encryptSensitiveFields(body.credentials || {});
+
     // Create gateway
     const { data: gateway, error } = await supabase
       .from('payment_gateways')
       .insert({
         name: body.name,
         provider: body.provider,
-        credentials: body.credentials || {},
+        credentials: encryptedCreds,
         is_active: body.is_active || true,
         priority: body.priority || 1,
         webhook_url: body.webhook_url,

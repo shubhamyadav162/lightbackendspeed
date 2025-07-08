@@ -176,98 +176,55 @@ https://api.lightspeedpay.in/api/v1/callback/easebuzzp
 
 --- 
 
-# Active Context
+# Active Context - LightSpeedPay
 
-## Current Work Focus
-**✅ COMPLETED: Gateway Configuration System Overhaul**
-
-### Recently Completed (2025-01-21)
-
-#### 🎯 Gateway Configuration Modal Improvements
-**Issue**: Gateway modals were in Hindi and lacked comprehensive credential support
-**Solution**: Complete modernization with English UI and full webhook support
-
-**Files Updated:**
-- `frontend/src/components/dashboard/AddGatewayModal.tsx` ✅
-- `frontend/src/components/dashboard/GatewayConfigurationModal.tsx` ✅  
-- `src/app/api/v1/admin/gateways/route.ts` ✅
-- `src/app/api/v1/admin/gateways/[id]/route.ts` ✅
-- `supabase/migrations/20250121_add_webhook_fields_to_gateways.sql` ✅
-
-#### 🌟 New Features Added:
-
-1. **Complete English UI**
-   - All text converted from Hindi to English
-   - Professional, consistent terminology
-   - Clear field descriptions and help text
-
-2. **Webhook Configuration**
-   - Webhook URL field for payment notifications
-   - Webhook secret for signature verification
-   - Database schema updated with new fields
-
-3. **Provider-Specific Credentials**
-   - **Razorpay**: api_key, api_secret, webhook_secret
-   - **PayU**: api_key, api_secret, auth_header, webhook_secret
-   - **PhonePe**: api_key, api_secret, environment, webhook_secret
-   - **Paytm**: api_key, api_secret, channel_id, webhook_secret
-   - **Cashfree**: api_key, api_secret, environment, webhook_secret
-   - **Easebuzz**: api_key, api_secret, webhook_secret
-   - **Custom**: client_id, api_id, api_secret, api_endpoint_url, additional_headers, webhook_secret
-
-4. **Enhanced Field Validation**
-   - Required field indicators (*)
-   - Dynamic field visibility based on provider
-   - JSON validation for additional headers
-   - URL validation for endpoints and webhooks
-
-5. **Professional UI Design**
-   - Organized sections with icons
-   - Color-coded sections (Gateway Info, Credentials, Webhooks, Settings)
-   - Responsive grid layout
-   - Improved spacing and visual hierarchy
-
-#### 🔧 Backend Improvements:
-
-1. **API Endpoint Enhancement**
-   - Multi-API-key authentication support
-   - Comprehensive credential handling
-   - Provider-specific field mapping
-   - JSON parsing for complex fields
-
-2. **Database Schema**
-   - Added webhook_url, webhook_secret fields
-   - Added environment, channel_id, auth_header fields
-   - Added additional_headers JSONB field
-   - Added client_id, api_id for custom providers
-   - Proper indexing for webhook queries
-
-#### 🎯 Current Status:
-**✅ All Issues Resolved:**
-- English UI implementation: COMPLETE
-- Webhook URL support: COMPLETE
-- Comprehensive credential handling: COMPLETE
-- Provider-specific field validation: COMPLETE
-- Database schema updates: COMPLETE
-- Backend API enhancements: COMPLETE
-
-## Next Steps
-1. **Test complete gateway configuration flow**
-2. **Verify webhook functionality**
-3. **Test all provider types (Razorpay, PayU, PhonePe, Paytm, Custom)**
-4. **Document webhook integration guide**
-
-## Active Decisions
-- **UI Language**: English (completed transition from Hindi)
-- **Credential Storage**: Both credentials JSONB and individual fields for flexibility
-- **Webhook Support**: Full webhook URL and secret support for all providers
-- **Field Validation**: Provider-specific dynamic field visibility
+## Current Focus
+- Implementing security and performance improvements for payment processing
+- Enhancing gateway management and monitoring
+- Improving system reliability and observability
 
 ## Recent Changes
-- Gateway configuration modals completely modernized
-- Database migration for webhook fields deployed
-- API endpoints enhanced for comprehensive credential support
-- Professional English UI with clear user guidance 
+1. Added merchant_config table with encryption for sensitive data
+2. Updated payment-initiate edge function to use service role JWT
+3. Implemented RLS policies for settlements table
+4. Added BullMQ rate limiter to queue-action-processor
+5. Set up Railway autoscaling for workers
+6. Added SWR cache invalidation for gateway updates
+7. Updated Grafana alert thresholds
+8. Added comprehensive integration tests
+
+## Next Steps
+1. Monitor system performance with new rate limits
+2. Validate encryption implementation in production
+3. Test autoscaling behavior under load
+4. Review and update documentation
+
+## Active Decisions
+- Using service role JWT for edge functions to ensure proper access
+- Implementing rate limiting at queue level for better back-pressure
+- Centralizing sensitive data in merchant_config table
+- Setting worker minInstances=1 to prevent cold starts
+
+## Technical Considerations
+- Need to monitor memory usage with new worker configurations
+- Watch for any performance impact from encryption
+- Consider implementing circuit breakers for gateway calls
+- Plan for key rotation strategy for merchant_config encryption
+
+## Security Notes
+- All sensitive data now encrypted at rest
+- Service role JWT properly scoped with RLS
+- Rate limiting prevents DoS scenarios
+- Proper access controls on settlements table
+
+## Performance Metrics
+- Queue depth alert threshold: 1200
+- Worker autoscale targets: 70% CPU, 80% memory
+- Gateway health check interval: 30s
+- SWR cache TTL: 30s
+
+## Known Issues
+None at present - all critical issues addressed in recent updates.
 
 ## 2025-01-22 (REALTIME FUNCTIONALITY COMPLETE!)
 
@@ -1035,3 +992,12 @@ requestAnimationFrame(() => {
 **आपका LightSpeedPay system अब completely stable और error-free है! सभी major issues professionally resolve हो गए हैं। 🚀✨**
 
 ---
+
+# Active Context (Rolling)
+
+- Strict 1:1 gateway-to-merchant mapping enforced (no rotation, no assignment logic active)
+- Existing frontend rotation/assignment UI untouched, लेकिन नया SingleGatewayMapping component add किया गया है (admin/gateways page पर)
+- Backend, Edge Function, और DB सभी जगह सिर्फ़ पहला active gateway (priority DESC) चुना जाता है
+- select_gateway_for_amount SQL function भी सिर्फ़ पहला active gateway देता है
+- कोई accidental rotation/assignment trigger नहीं हो सकता
+- Documentation और API docs update in progress

@@ -15,7 +15,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // ✅ ENHANCED: NGME Test Credentials Fallback
 const NGME_TEST_CREDENTIALS = {
-  api_key: "FQABLVIEYC",
+  api_key: "2a4a4437-440f-4bd4-82b4-88cdcf8a468a",
   api_secret: "QECGU7UHNT",
   client_id: "682d9154e352d26417059640"
 };
@@ -236,7 +236,7 @@ serve(async (req) => {
       key: easebuzzCredentials.api_key,
       txnid: lightspeedTxnId,
       amount: amount,
-      productinfo: body.description || 'LightSpeed Payment',
+      productinfo: 'Online Payment',
       firstname: body.customer_name || 'Customer',
       email: body.customer_email,
       phone: body.customer_phone || '9999999999',

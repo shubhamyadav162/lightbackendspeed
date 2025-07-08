@@ -82,10 +82,10 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       setFormData({
         name: gateway.name || '',
         provider: gateway.provider || '',
-        api_key: isEasebuzz ? 'FQABLVIEYC' : (gateway.api_key || ''),
-        api_secret: isEasebuzz ? 'QECGU7UHNT' : (gateway.api_secret || ''),
+        api_key: isEasebuzz ? 'G46URJ0A3O' : (gateway.api_key || ''),
+        api_secret: isEasebuzz ? '84OE8CS7PVI' : (gateway.api_secret || ''),
         webhook_secret: gateway.webhook_secret || '',
-        client_id: gateway.client_id || '',
+        client_id: isEasebuzz ? '66465af54653c90fde1d6d9f' : (gateway.client_id || ''),
         api_id: gateway.api_id || '',
         api_endpoint_url: gateway.api_endpoint_url || '',
         webhook_url: isEasebuzz ? 'https://api.lightspeedpay.in/api/v1/callback/easebuzz' : (gateway.webhook_url || ''),
@@ -116,8 +116,9 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
       setFormData(prev => ({
         ...prev,
         provider: value,
-        api_key: 'FQABLVIEYC',
-        api_secret: 'QECGU7UHNT',
+        api_key: 'G46URJ0A3O',
+        api_secret: '84OE8CS7PVI',
+        client_id: '66465af54653c90fde1d6d9f',
         webhook_url: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz'
       }));
       
@@ -157,6 +158,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
           ...(formData.provider === 'easebuzz' && { environment: formData.environment }),
           ...(formData.provider === 'paytm' && { channel_id: formData.channel_id }),
           ...(formData.provider === 'payu' && { auth_header: formData.auth_header }),
+          ...(formData.provider === 'easebuzz' && { client_id: formData.client_id }),
         })
       };
 
@@ -293,7 +295,7 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                     <SelectItem value="phonepe">PhonePe</SelectItem>
                     <SelectItem value="paytm">Paytm</SelectItem>
                     <SelectItem value="cashfree">Cashfree</SelectItem>
-                    <SelectItem value="easebuzz">Easebuzz</SelectItem>
+                    <SelectItem value="easebuzz">Easebuzz (Girth1Payment)</SelectItem>
                     <SelectItem value="custom">Custom Provider</SelectItem>
                   </SelectContent>
                 </Select>
@@ -374,24 +376,25 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="api_key">API Key</Label>
+                  <Label htmlFor="api_key">API Key (Client Key)</Label>
                   <Input
                     id="api_key"
                     type="password"
                     placeholder="e.g., rzp_test_... or rzp_live_..."
                     value={formData.api_key}
                     onChange={(e) => handleInputChange('api_key', e.target.value)}
+                    required
                     className={formData.provider === 'easebuzz' ? 'border-green-500 bg-green-50' : ''}
                   />
                   {formData.provider === 'easebuzz' && (
                     <p className="text-xs text-green-600">
-                      ✅ Auto-filled with NGME credentials
+                      ✅ Auto-filled with Girth1Payment Live Key
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="api_secret">API Secret</Label>
+                  <Label htmlFor="api_secret">API Secret (Client Salt)</Label>
                   <Input
                     id="api_secret"
                     type="password"
@@ -402,10 +405,26 @@ export const GatewayConfigurationModal: React.FC<GatewayConfigurationModalProps>
                   />
                   {formData.provider === 'easebuzz' && (
                     <p className="text-xs text-green-600">
-                      ✅ Auto-filled with NGME salt key
+                      ✅ Auto-filled with Girth1Payment Live Salt
                     </p>
                   )}
                 </div>
+
+                {formData.provider === 'easebuzz' && (
+                   <div className="space-y-2">
+                     <Label htmlFor="client_id">Merchant ID</Label>
+                     <Input
+                       id="client_id"
+                       placeholder="Easebuzz Merchant ID"
+                       value={formData.client_id}
+                       onChange={(e) => handleInputChange('client_id', e.target.value)}
+                       className='border-green-500 bg-green-50'
+                     />
+                     <p className="text-xs text-green-600">
+                      ✅ Auto-filled with Girth1Payment Merchant ID
+                    </p>
+                   </div>
+                )}
 
                 {showEnvironment && (
                   <div className="space-y-2">

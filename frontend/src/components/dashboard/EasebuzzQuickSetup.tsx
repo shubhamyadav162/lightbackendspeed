@@ -13,7 +13,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://web-production-
 const API_BASE_URL = `${BACKEND_URL}/api/v1`;
 
 // ✅ CORRECTED: Real NGME client credentials for authenticating with our own backend API
-const NGME_CLIENT_KEY = 'FQABLVIEYC';
+const NGME_CLIENT_KEY = 'c8691c56-5714-4f80-943a-cd4862cc91d6';
 const NGME_CLIENT_SALT = 'QECGU7UHNT';
 
 // Updated to use correct backend URLs for Railway deployment
@@ -23,7 +23,7 @@ export const EasebuzzQuickSetup = () => {
   const [credentials, setCredentials] = useState({
     // ENV variables को अनदेखा करते हुए सीधे सही रीयल क्रेडेंशियल सेट करें
     clientId: '682d9154e352d26417059640',
-    merchantKey: 'FQABLVIEYC',
+    merchantKey: '2a4a4437-440f-4bd4-82b4-88cdcf8a468a',
     salt: 'QECGU7UHNT',
     environment: "production"
   });
@@ -139,11 +139,11 @@ export const EasebuzzQuickSetup = () => {
       // ✅ FIXED: Use correct NGME Edge Function instead of Railway backend
       console.log('🔐 Using NGME Edge Function for payment initiation...');
 
-      // ✅ CORRECTED: Use NGME Edge Function with proper headers
-      const realClientKey = 'FQABLVIEYC'; // NGM client key from database
-      const realClientSalt = 'QECGU7UHNT'; // NGM client salt from database
+      // ✅ CORRECTED: Use the correct credentials from the component's state
+      const realClientKey = credentials.merchantKey; 
+      const realClientSalt = credentials.salt;
 
-      console.log('✅ Using NGME client credentials:', { realClientKey, realClientSalt });
+      console.log('✅ Using NGME client credentials from state:', { realClientKey, realClientSalt });
 
       // ✅ FIXED: Use Edge Function URL instead of Railway backend
       const edgeFunctionUrl = 'https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/easebuzz-payment';
@@ -162,8 +162,8 @@ export const EasebuzzQuickSetup = () => {
           order_id: orderId,
           description: `NGME Real Money Test - ₹${amount} via Easebuzz`,
           test_mode: false, // Set to false for real money
-          client_key: realClientKey, // ✅ FIXED: Pass client credentials in body
-          client_salt: realClientSalt // ✅ FIXED: Pass client salt in body
+          client_key: realClientKey, // ✅ FIXED: Pass correct client key from state
+          client_salt: realClientSalt // ✅ FIXED: Pass correct client salt from state
         })
       });
       
@@ -475,7 +475,7 @@ export const EasebuzzQuickSetup = () => {
           <h4 className="font-semibold text-green-800 mb-2">✅ Your Real NGME Tech Growth Credentials:</h4>
           <div className="text-sm text-green-700 space-y-1">
             <p><strong>Client ID:</strong> <code className="bg-white px-1 rounded">682d9154e352d26417059640</code></p>
-            <p><strong>Merchant Key:</strong> <code className="bg-white px-1 rounded">FQABLVIEYC</code></p>
+            <p><strong>Merchant Key:</strong> <code className="bg-white px-1 rounded">2a4a4437-440f-4bd4-82b4-88cdcf8a468a</code></p>
             <p><strong>Salt:</strong> <code className="bg-white px-1 rounded">QECGU7UHNT</code></p>
           </div>
         </div>

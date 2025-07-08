@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/server';
 import crypto from 'crypto';
+import { isWhitelistedIp } from '@/lib/ip-whitelist';
 
 // Force dynamic rendering to prevent static generation timeout
 export const dynamic = 'force-dynamic';
@@ -9,6 +10,11 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     console.log('🔔 Easebuzz webhook received');
+
+    const allowedIps = (process.env.EASEBUZZ_WEBHOOK_IPS || '').split(',').map(i=>i.trim()).filter(Boolean);
+    if (!isWhitelistedIp(request, allowedIps)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Parse the webhook payload
     const payload = await request.json();

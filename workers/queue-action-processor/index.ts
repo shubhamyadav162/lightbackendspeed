@@ -1,51 +1,65 @@
 import { Worker, Queue } from 'bullmq';
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+import { parse } from 'redis-url-parser';
 
-dotenv.config();
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+const redisUrl = process.env.REDIS_URL;
+if (!redisUrl) {
+  throw new Error('REDIS_URL is not set for queue-action-processor');
+}
+const redisOpts = parse(redisUrl);
+const connectionOptions = {
+  host: redisOpts.host || 'localhost',
+  port: redisOpts.port || 6379,
+  password: redisOpts.password,
+  db: redisOpts.database || 0,
+};
 
-async function processAuditLog(id: string) {
-  const { data, error } = await supabase
-    .from('audit_logs')
-    .select('*')
-    .eq('id', id)
-    .single();
+const queueName = 'queue-actions';
 
-  if (error || !data) return;
+// This worker processes actions for the queues, like draining.
+// It's a simple example and can be expanded.
 
-  const { action, new_data } = data;
-  const { queueName, jobIds, olderThan } = new_data as any;
+const queue = new Queue(queueName, { connection: connectionOptions });
 
-  const queue = new Queue(queueName, { connection: { host: process.env.REDIS_HOST } });
-
-  switch (action) {
-    case 'RETRY':
-      if (Array.isArray(jobIds)) {
-        await Promise.all(jobIds.map((jid) => queue.getJob(jid).then((j) => j?.retry())));
-      } else {
-        await queue.retryJobs();
-      }
-      break;
-    case 'CLEAN':
-      await queue.clean(olderThan * 3600 * 1000, 1000, 'completed');
-      await queue.clean(olderThan * 3600 * 1000, 1000, 'failed');
-      break;
-    case 'PAUSE':
-      await queue.pause();
-      break;
-    case 'RESUME':
-      await queue.resume();
-      break;
-  }
-
-  await supabase.from('audit_logs').update({ processed: true }).eq('id', id);
+// Function to add a drain job
+export async function drainQueue(queueToDrain: string) {
+  await queue.add('drain', { queueName: queueToDrain });
 }
 
-const worker = new Worker('audit-log-queue-actions', async (job) => {
-  await processAuditLog(job.data.auditLogId);
+// Create a new worker
+const worker = new Worker(
+  queueName,
+  async (job) => {
+    if (job.name === 'drain') {
+      const { queueName: targetQueueName } = job.data;
+      console.log(`Draining queue: ${targetQueueName}`);
+      try {
+        const targetQueue = new Queue(targetQueueName, { connection: connectionOptions });
+        await targetQueue.drain();
+        console.log(`Queue ${targetQueueName} drained successfully.`);
+      } catch (error: any) {
+        console.error(`Error draining queue ${targetQueueName}:`, error.message);
+        throw error;
+      }
+    }
+  },
+  {
+    connection: connectionOptions,
+    concurrency: 5,
+  }
+);
+
+worker.on('completed', (job) => {
+  console.log(`Job ${job.id} of type ${job.name} completed successfully`);
 });
 
-worker.on('completed', (job) => console.log(`processed audit log ${job.id}`));
-worker.on('failed', (job, err) => console.error(`failed ${job?.id}`, err)); 
+worker.on('failed', (job, err) => {
+  console.error(`Job ${job?.id} of type ${job?.name} failed with error: ${err.message}`);
+});
+
+console.log(`Worker for queue "${queueName}" started.`); 

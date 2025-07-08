@@ -1,14 +1,39 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiService, subscribeToTransactions, subscribeToAlerts, subscribeToAuditLogs } from '../services/api';
+import { apiService, subscribeToTransactions } from '../services/api';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import useSWR, { mutate } from 'swr';
+import { supabase } from '../lib/supabase';
+import { isValidISODate } from '../lib/dateUtils';
 
 // Gateway Management Hooks
 export const useGateways = () => {
   return useQuery({
     queryKey: ['gateways'],
-    queryFn: apiService.getGateways,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    queryFn: () => apiService.getGateways(),
+  });
+};
+
+export const useToggleGateway = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const response = await fetch(`/api/v1/admin/gateways/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'admin_test_key' // TODO: Replace with secure API key management
+        },
+        body: JSON.stringify({ is_active: active })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to update gateway status');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gateways'] });
+    },
   });
 };
 
@@ -59,27 +84,12 @@ export const useUpdateGateway = () => {
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: any }) =>
       apiService.updateGateway(id, updates),
-    onMutate: async ({ id, updates }) => {
-      await queryClient.cancelQueries({ queryKey: ['gateways'] });
-      
-      const previousGateways = queryClient.getQueryData(['gateways']);
-      
-      // Optimistically update
-      queryClient.setQueryData(['gateways'], (old: any[]) =>
-        old?.map(gateway => gateway.id === id ? { ...gateway, ...updates } : gateway) || []
-      );
-      
-      return { previousGateways };
-    },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(['gateways'], context?.previousGateways);
-      toast.error('Gateway update में विफल - कनेक्शन चेक करें');
-    },
     onSuccess: () => {
-      toast.success('✅ Gateway सफलतापूर्वक update किया गया');
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['gateways'] });
+      toast.success('✅ Gateway successfully updated');
+    },
+    onError: () => {
+      toast.error('Failed to update gateway');
     },
   });
 };
@@ -119,46 +129,22 @@ export const useBulkUpdateGatewayPriority = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: apiService.bulkUpdateGatewayPriority,
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: ['gateways'] });
-      
-      const previousGateways = queryClient.getQueryData(['gateways']);
-      
-      // Optimistically update priorities
-      queryClient.setQueryData(['gateways'], (old: any[]) => {
-        const updated = [...(old || [])];
-        payload.priorities.forEach(({ id, priority }) => {
-          const index = updated.findIndex(g => g.id === id);
-          if (index >= 0) {
-            updated[index] = { ...updated[index], priority };
-          }
-        });
-        return updated.sort((a, b) => a.priority - b.priority);
-      });
-      
-      toast.info('Priorities save हो रही हैं...', { duration: 1000 });
-      
-      return { previousGateways };
-    },
-    onError: (err, payload, context) => {
-      queryClient.setQueryData(['gateways'], context?.previousGateways);
-      toast.error('Priority update में विफल - कनेक्शन चेक करें');
-    },
     onSuccess: () => {
-      toast.success('🔄 Gateway priorities सफलतापूर्वक update किए गए');
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['gateways'] });
+      toast.success('🔄 Gateway priorities successfully updated');
+    },
+    onError: () => {
+      toast.error('Failed to update priorities');
     },
   });
 };
 
-// Queue Management Hooks with Enhanced Optimistic Updates
+// Queue Management Hooks
 export const useQueueStats = () => {
   return useQuery({
     queryKey: ['queue-stats'],
     queryFn: apiService.getQueueSystemStats,
-    refetchInterval: 5000, // Refetch every 5 seconds
+    refetchInterval: 5000,
   });
 };
 
@@ -208,38 +194,15 @@ export const usePauseQueue = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: apiService.pauseQueue,
-    onMutate: async (payload) => {
-      await queryClient.cancelQueries({ queryKey: ['queue-stats'] });
-      
-      const previousStats = queryClient.getQueryData(['queue-stats']);
-      
-      // Optimistically update queue status
-      queryClient.setQueryData(['queue-stats'], (old: any[]) => {
-        return old?.map(queue => {
-          if (queue.name === payload.queue) {
-            return { ...queue, paused: payload.pause };
-          }
-          return queue;
-        }) || [];
-      });
-      
-      const action = payload.pause ? 'pause' : 'resume';
-      toast.info(`Queue ${action} हो रहा है...`, { duration: 1000 });
-      
-      return { previousStats };
-    },
-    onError: (err, payload, context) => {
-      queryClient.setQueryData(['queue-stats'], context?.previousStats);
-      toast.error(`Queue ${payload.pause ? 'pause' : 'resume'} में विफल - सर्वर error`);
-    },
     onSuccess: (data, payload) => {
+      queryClient.invalidateQueries({ queryKey: ['queue-stats'] });
       const action = payload.pause ? 'paused' : 'resumed';
       const emoji = payload.pause ? '⏸️' : '▶️';
-      toast.success(`${emoji} Queue ${action} सफलतापूर्वक`);
+      toast.success(`${emoji} Queue ${action} successfully`);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['queue-stats'] });
-    },
+    onError: (err, payload) => {
+       toast.error(`Failed to ${payload.pause ? 'pause' : 'resume'} queue`);
+    }
   });
 };
 
@@ -281,122 +244,12 @@ export const useCleanQueues = () => {
   });
 };
 
-// Enhanced Transaction Management with Real-time
+// Transaction Management Hooks
 export const useTransactions = (params?: any) => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
+  return useQuery({
     queryKey: ['transactions', params],
     queryFn: () => apiService.getTransactions(params),
-    refetchInterval: 10000, // Refetch every 10 seconds
-  });
-
-  // Subscribe to real-time updates
-  useEffect(() => {
-    const subscription = subscribeToTransactions((payload) => {
-      console.log('Transaction update:', payload);
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      
-      // Show toast for new transactions
-      if (payload.status === 'success') {
-        toast.success(`💰 नया payment success: ₹${payload.amount}`);
-      } else if (payload.status === 'failed') {
-        toast.error(`❌ Payment failed: ₹${payload.amount}`);
-      }
-    });
-
-    return () => {
-      try {
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscription.unsubscribe();
-        }
-      } catch (error) {
-        console.warn('Error cleaning up transaction subscription:', error);
-      }
-    };
-  }, [queryClient]);
-
-  return query;
-};
-
-// Enhanced Wallet Management
-export const useWallets = () => {
-  return useQuery({
-    queryKey: ['wallets'],
-    queryFn: apiService.getWallets,
-    refetchInterval: 15000, // Refetch every 15 seconds
-  });
-};
-
-export const useUpdateClient = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: any }) =>
-      apiService.updateClient(id, updates),
-    onMutate: async ({ id, updates }) => {
-      await queryClient.cancelQueries({ queryKey: ['wallets'] });
-      await queryClient.cancelQueries({ queryKey: ['clients'] });
-      
-      const previousWallets = queryClient.getQueryData(['wallets']);
-      const previousClients = queryClient.getQueryData(['clients']);
-      
-      // Optimistically update clients
-      queryClient.setQueryData(['clients'], (old: any[]) =>
-        old?.map(client => client.id === id ? { ...client, ...updates } : client) || []
-      );
-      
-      toast.info('Client update हो रहा है...', { duration: 1000 });
-      
-      return { previousWallets, previousClients };
-    },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(['wallets'], context?.previousWallets);
-      queryClient.setQueryData(['clients'], context?.previousClients);
-      toast.error('Client update में विफल - डेटा validation error');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('👤 Client सफलतापूर्वक update किया गया');
-    },
-  });
-};
-
-export const useCreateClient = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: apiService.createClient,
-    onMutate: async (newClient) => {
-      await queryClient.cancelQueries({ queryKey: ['wallets'] });
-      await queryClient.cancelQueries({ queryKey: ['clients'] });
-      
-      const previousWallets = queryClient.getQueryData(['wallets']);
-      const previousClients = queryClient.getQueryData(['clients']);
-      
-      // Optimistically add new client
-      const optimisticClient = {
-        ...newClient,
-        id: `temp_${Date.now()}`,
-        status: 'active',
-        created_at: new Date().toISOString()
-      };
-      
-      queryClient.setQueryData(['clients'], (old: any[]) => [...(old || []), optimisticClient]);
-      
-      toast.info('नया client जोड़ा जा रहा है...', { duration: 1000 });
-      
-      return { previousWallets, previousClients };
-    },
-    onError: (err, newClient, context) => {
-      queryClient.setQueryData(['wallets'], context?.previousWallets);
-      queryClient.setQueryData(['clients'], context?.previousClients);
-      toast.error('Client जोड़ने में विफल - API key conflict हो सकता है');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['wallets'] });
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('🎉 नया client सफलतापूर्वक जोड़ा गया');
-    },
+    refetchInterval: 10000,
   });
 };
 
@@ -405,155 +258,280 @@ export const useSystemStatus = () => {
   return useQuery({
     queryKey: ['system-status'],
     queryFn: apiService.getSystemStatus,
-    refetchInterval: 5000, // Refetch every 5 seconds for system status
+    refetchInterval: 30000,
   });
 };
 
-// Alert Management Hooks
-export const useAlerts = () => {
-  const queryClient = useQueryClient();
+// Helper to check valid ISO 8601 date string
+/*
+function isValidISODate(dateStr?: string) {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  return !isNaN(d.getTime()) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z?$/.test(dateStr);
+}
+*/
 
-  const query = useQuery({
-    queryKey: ['alerts'],
-    queryFn: apiService.getAlerts,
-    refetchInterval: 10000, // Refetch every 10 seconds
-  });
-
-  // Subscribe to real-time updates
-  useEffect(() => {
-    const subscription = subscribeToAlerts((payload) => {
-      console.log('Alert update:', payload);
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
-      
-      // Show toast for critical alerts
-      if (payload.severity === 'critical') {
-        toast.error(`🚨 Critical Alert: ${payload.message}`);
-      } else if (payload.severity === 'warning') {
-        toast.warning(`⚠️ Warning: ${payload.message}`);
-      }
-    });
-
-    return () => {
-      try {
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscription.unsubscribe();
-        }
-      } catch (error) {
-        console.warn('Error cleaning up alerts subscription:', error);
-      }
-    };
-  }, [queryClient]);
-
-  return query;
-};
+function sanitizeAnalyticsParams(params?: { from?: string, to?: string, gateway?: string, merchantId?: string, timezone?: string }) {
+  if (!params) return undefined;
+  const sanitized: any = {};
+  if (params.from && isValidISODate(params.from)) sanitized.from = params.from;
+  if (params.to && isValidISODate(params.to)) sanitized.to = params.to;
+  if (params.gateway) sanitized.gateway = params.gateway;
+  if (params.merchantId) sanitized.merchantId = params.merchantId;
+  if (params.timezone) sanitized.timezone = params.timezone;
+  return sanitized;
+}
 
 // Analytics Hooks
-export const useAnalytics = (params?: any) => {
+export const useAnalytics = (params?: { from?: string, to?: string, gateway?: string, merchantId?: string, timezone?: string }) => {
+  // Default: last 30 days
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const defaultFrom = thirtyDaysAgo.toISOString();
+  const defaultTo = now.toISOString();
+
+  const safeParams = {
+    ...params,
+    from: params?.from && isValidISODate(params.from) ? params.from : defaultFrom,
+    to: params?.to && isValidISODate(params.to) ? params.to : defaultTo,
+  };
+  const sanitizedParams = sanitizeAnalyticsParams(safeParams);
   return useQuery({
-    queryKey: ['analytics', params],
-    queryFn: () => apiService.getAnalytics(params),
-    refetchInterval: 60000, // Refetch every minute
+    queryKey: ['analytics', sanitizedParams],
+    queryFn: () => apiService.getAnalytics(sanitizedParams),
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
 // Dashboard Overview Hook
 export const useDashboardOverview = () => {
   const transactions = useTransactions();
-  const wallets = useWallets();
   const systemStatus = useSystemStatus();
-  const alerts = useAlerts();
   const queueStats = useQueueStats();
 
   return {
     transactions,
-    wallets,
     systemStatus,
-    alerts,
     queueStats,
     isLoading: 
       transactions.isLoading || 
-      wallets.isLoading || 
       systemStatus.isLoading || 
-      alerts.isLoading || 
       queueStats.isLoading,
   };
 };
 
 // Developer Tools Hooks
-export const useMerchantCredentials = () => {
-  const queryClient = useQueryClient();
+export const useCredentialHistory = (merchantId: string | null) => {
   return useQuery({
-    queryKey: ['merchant-credentials'],
-    queryFn: apiService.getMerchantCredentials,
-    refetchInterval: 60000,
+    queryKey: ['credentialHistory', merchantId],
+    queryFn: () => apiService.getCredentialHistory(merchantId!),
+    enabled: !!merchantId,
+    staleTime: 1000 * 60, // 1 minute
+  });
+};
+
+export const useMerchantCredentials = (merchantId: string | null) => {
+  return useQuery({
+    queryKey: ['merchantCredentials', merchantId],
+    queryFn: () => apiService.getMerchantCredentials(merchantId),
+    enabled: !!merchantId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
 export const useRegenerateCredentials = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: apiService.regenerateMerchantCredentials,
-    onMutate: async () => {
-      toast.info('नई credentials generate हो रही हैं...', { duration: 2000 });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['merchant-credentials'] });
-      toast.success('🔑 Credentials सफलतापूर्वक regenerate किए गए');
+    mutationFn: ({ merchantId, label }: { merchantId: string, label: string }) => 
+      apiService.regenerateMerchantCredentials(merchantId, label),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['merchantCredentials', variables.merchantId] });
+      queryClient.invalidateQueries({ queryKey: ['credentialHistory', variables.merchantId] });
+      toast.success('🔑 Credentials successfully regenerated');
     },
     onError: () => {
-      toast.error('Credentials regenerate करने में विफल - सर्वर error');
-    },
+      toast.error('Failed to regenerate credentials');
+    }
   });
 };
 
-export const useMerchantUsage = () => {
+export const useMerchantUsage = (merchantId: string | null) => {
   return useQuery({
-    queryKey: ['merchant-usage'],
-    queryFn: apiService.getMerchantUsage,
-    refetchInterval: 60000,
+    queryKey: ['merchantUsage', merchantId],
+    queryFn: () => apiService.getMerchantUsage(merchantId),
+    enabled: !!merchantId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };
 
 export const useTestWebhook = () => {
   return useMutation({
-    mutationFn: apiService.testWebhookEndpoint,
-    onMutate: async () => {
-      toast.info('Webhook test चल रहा है...', { duration: 2000 });
-    },
-    onSuccess: () => {
-      toast.success('✅ Webhook test सफलतापूर्वक completed');
-    },
-    onError: () => {
-      toast.error('Webhook test में विफल - endpoint accessible नहीं');
-    },
+    mutationFn: (params: { url: string, merchantId: string }) => apiService.testWebhook(params),
+     onSuccess: () => {
+       toast.success('✅ Webhook test sent successfully');
+     },
+     onError: () => {
+       toast.error('Failed to send test webhook');
+     },
   });
 };
 
-// Audit Logs Hooks
+/*
+// This hook is currently broken as getAuditLogs is not defined in apiService.
+// Commenting out to resolve build errors until it is implemented.
 export const useAuditLogs = (params?: any) => {
-  const queryClient = useQueryClient();
-
-  const query = useQuery({
-    queryKey: ['audit-logs', params],
+  return useQuery({
+    queryKey: ['auditLogs', params],
     queryFn: () => apiService.getAuditLogs(params),
-    refetchInterval: 15000,
+    staleTime: 1000 * 60 * 1, // 1 minute
+    select: (data) => data.data
+  });
+};
+*/
+
+const fetcher = async (url: string) => {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error('API request failed');
+  }
+  return response.json();
+};
+
+export function useApi<T>(path: string) {
+  const { data, error, isLoading } = useSWR<T>(path, fetcher, {
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    refreshInterval: 30000, // 30 seconds
+    dedupingInterval: 5000 // 5 seconds
   });
 
-  useEffect(() => {
-    const subscription = subscribeToAuditLogs(() => {
-      queryClient.invalidateQueries({ queryKey: ['audit-logs'] });
-    });
-    
-    return () => {
-      try {
-        if (subscription && typeof subscription.unsubscribe === 'function') {
-          subscription.unsubscribe();
-        }
-      } catch (error) {
-        console.warn('Error cleaning up audit logs subscription:', error);
-      }
-    };
-  }, [queryClient]);
+  return {
+    data,
+    error,
+    isLoading,
+    mutate: () => mutate(path)
+  };
+}
 
-  return query;
+export async function createGateway(data: any) {
+  const { error } = await supabase
+    .from('payment_gateways')
+    .insert(data);
+  
+  if (error) throw error;
+  
+  // Invalidate gateway list cache
+  await mutate('/api/gateways');
+  await mutate('/api/gateway-health');
+}
+
+export async function updateGateway(id: string, data: any) {
+  const { error } = await supabase
+    .from('payment_gateways')
+    .update(data)
+    .eq('id', id);
+  
+  if (error) throw error;
+  
+  // Invalidate gateway list and health caches
+  await mutate('/api/gateways');
+  await mutate('/api/gateway-health');
+  await mutate(`/api/gateways/${id}`);
+}
+
+export async function deleteGateway(id: string) {
+  const { error } = await supabase
+    .from('payment_gateways')
+    .delete()
+    .eq('id', id);
+  
+  if (error) throw error;
+  
+  // Invalidate gateway list cache
+  await mutate('/api/gateways');
+  await mutate('/api/gateway-health');
+}
+
+// --- Queue Monitoring Hooks ---
+
+export const useQueueMetrics = () => {
+  return useQuery({
+    queryKey: ['queue-metrics'],
+    queryFn: async () => {
+      // TODO: Replace with secure API key management
+      const response = await fetch('/api/v1/admin/queues', {
+        headers: { 'x-api-key': 'admin_test_key' }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch queue metrics');
+      }
+      return response.json();
+    },
+    refetchInterval: 5000 // Refetch every 5 seconds
+  });
+};
+
+// --- Commission Ledger Hooks ---
+
+export const useCommissionData = () => {
+  return useQuery({
+    queryKey: ['commission-ledger'],
+    queryFn: async () => {
+      // TODO: Replace with secure API key management
+      const response = await fetch('/api/v1/admin/commission/ledger', {
+        headers: { 'x-api-key': 'admin_test_key' }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch commission ledger data');
+      }
+      return response.json();
+    }
+  });
+};
+
+// --- WhatsApp Log Hooks ---
+
+export const useWhatsAppLog = (page: number = 1) => {
+  return useQuery({
+    queryKey: ['whatsapp-log', page],
+    queryFn: async () => {
+      const response = await fetch(`/api/v1/admin/whatsapp?page=${page}`, {
+        headers: { 'x-api-key': 'admin_test_key' }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch WhatsApp log data');
+      }
+      return response.json();
+    }
+  });
+};
+
+// --- Merchant Integration Hooks ---
+
+export const useIntegrationDetails = () => {
+  return useQuery({
+    queryKey: ['integration-details'],
+    queryFn: async () => {
+      // The API Gateway will derive client_id from the JWT token.
+      const response = await fetch('/api/v1/merchant/integration', {
+        headers: {
+          'x-api-key': 'admin_test_key' // This key might need to be different for merchant roles
+        }
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch integration details');
+      }
+      return response.json();
+    },
+    staleTime: 1000 * 60 * 60, // Stale after 1 hour
+  });
+};
+
+// Admin hooks
+export const useMerchants = () => {
+  return useQuery({
+    queryKey: ['merchants'],
+    queryFn: apiService.getMerchants,
+    staleTime: 1000 * 60 * 15, // 15 minutes
+  });
 }; 

@@ -13,6 +13,9 @@ import { EasebuzzQuickSetup } from '@/components/dashboard/EasebuzzQuickSetup';
 import NGMPayment from './pages/NGMPayment';
 import RealtimeDemo from './components/RealtimeDemo';
 import NgmePaymentTest from './components/NgmePaymentTest';
+import Checkout from './pages/Checkout';
+import Success from './pages/Success';
+import Failed from './pages/Failed';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -228,6 +231,9 @@ const App = () => {
               <Route path="/dashboard/admin/aesbus" element={<EasebuzzQuickSetup />} />
               <Route path="/ngm" element={<NGMPayment />} />
               <Route path="/ngme-test" element={<NgmePaymentTest />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
+              <Route path="/success" element={<Success />} />
+              <Route path="/failed" element={<Failed />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

@@ -1,17 +1,21 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, Loader2 } from 'lucide-react';
 import { useTransactions, useAnalytics, useQueueStats } from '../../hooks/useApi';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Info, AlertTriangle, CheckCircle } from 'lucide-react';
 
 export const TransactionMetrics = () => {
   const { data: transactions, isLoading: transactionsLoading } = useTransactions();
-  const { data: analytics, isLoading: analyticsLoading } = useAnalytics();
+  const { data: analytics, isLoading: analyticsLoading } = useAnalytics('c8691c56-5714-4f80-943a-cd4862cc91d6');
   const { data: queueStats, isLoading: queueLoading } = useQueueStats();
 
   const isLoading = transactionsLoading || analyticsLoading || queueLoading;
 
   // Calculate metrics from real data
   const getMetrics = () => {
-    if (!transactions || !analytics) {
+    // Array check और fallback []
+    const safeTransactions = Array.isArray(transactions) ? transactions : [];
+    if (!safeTransactions || !analytics) {
       return [
         { label: 'Live Transactions', value: '0', change: '0%', trend: 'up', icon: CreditCard, color: 'blue' },
         { label: 'Today\'s Volume', value: '$0', change: '0%', trend: 'up', icon: DollarSign, color: 'green' },
@@ -21,18 +25,18 @@ export const TransactionMetrics = () => {
     }
 
     // Calculate total transactions
-    const totalTransactions = transactions.length || 0;
+    const totalTransactions = safeTransactions.length || 0;
     
     // Calculate today's volume
     const todayVolume = analytics.today_volume || 0;
     const formattedVolume = `$${(todayVolume / 100).toLocaleString()}`;
     
     // Calculate success rate
-    const successfulTransactions = transactions.filter((t: any) => t.status === 'success' || t.status === 'completed').length;
+    const successfulTransactions = safeTransactions.filter((t: any) => t.status === 'success' || t.status === 'completed').length;
     const successRate = totalTransactions > 0 ? ((successfulTransactions / totalTransactions) * 100).toFixed(1) : '0';
     
     // Calculate failed transactions
-    const failedTransactions = transactions.filter((t: any) => t.status === 'failed' || t.status === 'error').length;
+    const failedTransactions = safeTransactions.filter((t: any) => t.status === 'failed' || t.status === 'error').length;
     
     // Get change percentages from analytics if available
     const volumeChange = analytics.volume_change || '+0%';

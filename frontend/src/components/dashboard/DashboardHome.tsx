@@ -3,7 +3,7 @@ import { SystemStatus } from './SystemStatus';
 import { TransactionMetrics } from './TransactionMetrics';
 import { GatewayHealth } from './GatewayHealth';
 import { RevenueChart } from './RevenueChart';
-import { AlertCenter } from './AlertCenter';
+// import { AlertCenter } from './AlertCenter';
 import { QuickActions } from './QuickActions';
 
 export const DashboardHome = () => {
@@ -40,8 +40,8 @@ export const DashboardHome = () => {
         <RevenueChart />
       </div>
 
-      {/* Alert Center */}
-      <AlertCenter />
+      {/* Alert Center - Temporarily removed due to missing hook */}
+      {/* <AlertCenter /> */}
     </div>
   );
 };

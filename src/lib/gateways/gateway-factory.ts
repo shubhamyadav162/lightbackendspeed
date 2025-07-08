@@ -3,6 +3,7 @@ import { RazorpayAdapter } from './razorpay-adapter';
 import { PayUAdapter } from './payu-adapter';
 import { EasebuzzAdapter } from './easebuzz-adapter';
 import { Girth1PaymentAdapter } from './girth1payment-adapter';
+import { decryptSensitiveFields } from '../gateway-crypto';
 
 export type SupportedProvider = 'razorpay' | 'payu' | 'easebuzz' | 'girth1payment' | 'cashfree' | 'paytm' | 'phonepe' | 'custom';
 
@@ -22,18 +23,21 @@ export class GatewayFactory {
    * Create a gateway adapter instance based on provider type
    */
   public createAdapter(provider: SupportedProvider, credentials: GatewayCredentials, isTestMode = false): BaseGatewayAdapter {
+    // Decrypt credentials (idempotent)
+    const safeCredentials = decryptSensitiveFields(credentials as any);
+
     switch (provider) {
       case 'razorpay':
-        return new RazorpayAdapter(this.validateRazorpayCredentials(credentials), isTestMode);
+        return new RazorpayAdapter(this.validateRazorpayCredentials(safeCredentials), isTestMode);
       
       case 'payu':
-        return new PayUAdapter(this.validatePayUCredentials(credentials), isTestMode);
+        return new PayUAdapter(this.validatePayUCredentials(safeCredentials), isTestMode);
       
       case 'easebuzz':
-        return new EasebuzzAdapter(this.validateEasebuzzCredentials(credentials), isTestMode);
+        return new EasebuzzAdapter(this.validateEasebuzzCredentials(safeCredentials), isTestMode);
       
       case 'girth1payment':
-        return new Girth1PaymentAdapter(this.validateGirth1PaymentCredentials(credentials));
+        return new Girth1PaymentAdapter(this.validateGirth1PaymentCredentials(safeCredentials));
       
       // Add more cases as adapters are implemented
       // case 'cashfree':

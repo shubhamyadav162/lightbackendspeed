@@ -7,8 +7,13 @@ import { createClient } from "@supabase/supabase-js";
 const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 export async function selectGateway(amount: number) {
-  // 1. Filter active gateways
-  const { data: gateways, error } = await supabase.rpc("select_gateway_for_amount", { p_amount: amount });
+  // Strict 1:1 mapping: सिर्फ़ पहला active gateway (priority DESC) चुनो
+  const { data: gateways, error } = await supabase
+    .from('payment_gateways')
+    .select('*')
+    .eq('is_active', true)
+    .order('priority', { ascending: false })
+    .limit(1);
 
   if (error) throw new Error(error.message);
   if (!gateways || gateways.length === 0) return null;

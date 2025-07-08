@@ -1,135 +1,133 @@
 // @ts-nocheck
 // deno-lint-ignore-file
-// Edge Function: webhook-handler
-// Universal webhook handler for all payment gateways with LightSpeed wrapper
+// Edge Function: webhook-handler (Refactored)
+// Universal webhook handler for all payment gateways.
+// This function validates the incoming webhook and enqueues it for processing.
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Queue } from "https://esm.sh/bullmq@3";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
-// Environment variables
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const REDIS_URL = Deno.env.get("REDIS_URL")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const webhookQueue = new Queue("webhook-processing", { connection: { url: REDIS_URL } });
 
-// LightSpeed Wrapper utilities
-class LightSpeedWrapper {
-  static sanitizeWebhookResponse(originalPayload: any, transactionId: string, amount: number) {
-    return {
-      transaction_id: transactionId,
-      status: originalPayload.status,
-      amount: amount,
-      currency: 'INR',
-      gateway: 'LightSpeed Payment Gateway',
-      processed_at: new Date().toISOString()
-    };
-  }
+// --- Helper Functions ---
 
-  static sanitizeMessage(message: string): string {
-    if (!message) return '';
-    
-    return message
-      .replace(/easebuzz/gi, 'LightSpeed')
-      .replace(/razorpay/gi, 'LightSpeed')
-      .replace(/payu/gi, 'LightSpeed');
-  }
-}
-
-// EaseBuzz webhook verification
-async function verifyEasebuzzWebhook(payload: any, salt: string): Promise<boolean> {
-  const {
-    status,
-    txnid,
-    amount,
-    email,
-    firstname,
-    productinfo,
-    hash: receivedHash,
-    key
-  } = payload;
-
-  // EaseBuzz reverse hash format
-  const hashString = [
-    salt,
-    status || '',
-    '', '', '', '', '', '', '', // UDF fields (empty in reverse)
-    email || '',
-    firstname || '',
-    productinfo || '',
-    amount || '',
-    txnid || '',
-    key || ''
-  ].join('|');
-
+async function verifyEasebuzzWebhook(payload, salt: string): Promise<boolean> {
+  if (!payload || !salt) return false;
+  const { status, txnid, amount, email, firstname, productinfo, key, hash: receivedHash } = payload;
+  const hashString = `${salt}|${status}|||||||||${email}|${firstname}|${productinfo}|${amount}|${txnid}|${key}`;
+  
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest('SHA-512', encoder.encode(hashString));
-  const expectedHash = Array.from(new Uint8Array(hashBuffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  const data = encoder.encode(hashString);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const expectedHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
   return receivedHash === expectedHash;
 }
 
+async function verifyRazorpayWebhook(rawBody: string, signature: string, secret: string): Promise<boolean> {
+  if (!rawBody || !signature || !secret) return false;
+  try {
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const expectedSignature = await crypto.subtle.sign("HMAC", key, enc.encode(rawBody));
+    const expectedSignatureHex = Array.from(new Uint8Array(expectedSignature)).map(b => b.toString(16).padStart(2, "0")).join('');
+    return expectedSignatureHex === signature;
+  } catch (error) {
+    console.error("Error verifying Razorpay webhook:", error);
+    return false;
+  }
+}
+
+// --- Main Server Logic ---
+
 serve(async (req) => {
-  // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Razorpay-Signature',
   };
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { headers: corsHeaders });
   }
-
-  const url = new URL(req.url);
-  const pathSegments = url.pathname.split('/');
-  const lastSegment = pathSegments.pop() || ''; // success, failed, or client_key
-  const secondLastSegment = pathSegments.pop() || ''; // payu or callback
-
-  let clientKey = '';
-  let webhookType = '';
-
-  // Handle new /api/v1/callback/payu/success|failed structure
-  if (secondLastSegment === 'payu' && (lastSegment === 'success' || lastSegment === 'failed')) {
-    webhookType = lastSegment;
-    // For this structure, we need to extract client_key from the payload if possible
-    // or assume a generic handler. For now, we'll log it.
-    console.log(`Received PayU webhook of type: ${webhookType}`);
-  } else {
-    // Handle existing /webhook/:client_key structure
-    clientKey = lastSegment;
-  }
-
-  // Read raw body for signature verification (cannot use req.json yet)
+  
+  // We need the raw body for signature verification, so we read it as text first.
   const rawBody = await req.text();
-
-  // Signature verification (provider-specific)
-  const verified = await verifySignature(req, rawBody);
-  if (!verified) {
-    return new Response("INVALID_SIGNATURE", { status: 401 });
-  }
-
-  // Parse body JSON after verification
-  let payload: unknown;
+  let payload;
   try {
     payload = JSON.parse(rawBody);
-    // If clientKey is not in the URL, try to get it from the payload
-    if (!clientKey && payload?.client_key) {
-      clientKey = payload.client_key;
-    }
-  } catch (_) {
-    return new Response("Invalid JSON", { status: 400 });
+  } catch (e) {
+    return new Response("Invalid JSON payload", { status: 400, headers: corsHeaders });
   }
 
-  await queue.add("webhook", {
-    client_key: clientKey,
-    webhook_data: payload,
-    webhook_type: webhookType // Pass type to the worker
+  const razorpaySignature = req.headers.get("X-Razorpay-Signature");
+  
+  let gatewayProvider: 'razorpay' | 'easebuzz' | 'payu' | 'unknown' = 'unknown';
+  let isValid = false;
+  let clientTxnId: string | null = null;
+  
+  // 1. Determine the gateway provider and verify signature
+  if (razorpaySignature) {
+    gatewayProvider = 'razorpay';
+    const orderId = payload?.payload?.payment?.entity?.order_id;
+    if (orderId) {
+      const { data: txn } = await supabase
+        .from('client_transactions')
+        .select('gateway_id')
+        .eq('gateway_txn_id', orderId) // Assuming gateway_txn_id stores the Razorpay order_id
+        .single();
+
+      if (txn?.gateway_id) {
+        const { data: gateway } = await supabase
+          .from('payment_gateways')
+          .select('credentials')
+          .eq('id', txn.gateway_id)
+          .single();
+        
+        const secret = gateway?.credentials?.webhook_secret;
+        if (secret) {
+          isValid = await verifyRazorpayWebhook(rawBody, razorpaySignature, secret);
+          clientTxnId = payload?.payload?.payment?.entity?.notes?.lightspeed_txn_id ?? null;
+        }
+      }
+    }
+  } else if (payload.txnid && payload.key && payload.hash) {
+    gatewayProvider = 'easebuzz';
+    clientTxnId = payload.txnid;
+    const { data: gateway } = await supabase
+      .from("payment_gateways")
+      .select("credentials")
+      .eq("credentials->>api_key", payload.key)
+      .single();
+      
+    if (gateway?.credentials?.api_secret) {
+      isValid = await verifyEasebuzzWebhook(payload, gateway.credentials.api_secret);
+    }
+  }
+  // Add PayU logic here if needed
+
+  // 2. If signature is invalid, reject the request.
+  if (!isValid) {
+    return new Response("Webhook signature verification failed.", { status: 401, headers: corsHeaders });
+  }
+  
+  // 3. Enqueue the validated webhook for processing by a worker.
+  await webhookQueue.add("processWebhook", {
+    provider: gatewayProvider,
+    payload: payload,
+    lightspeed_txn_id: clientTxnId, // Pass our internal transaction ID
   });
 
-  return new Response("OK", { status: 200 });
+  // 4. Respond immediately to the gateway.
+  return new Response(JSON.stringify({ status: "queued" }), { status: 200, headers: corsHeaders });
 });
 
 async function processEasebuzzWebhook(payload: any) {

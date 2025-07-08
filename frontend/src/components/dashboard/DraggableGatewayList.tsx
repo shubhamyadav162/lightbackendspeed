@@ -40,6 +40,12 @@ interface Gateway {
   responseTime: number;
   fees: number;
   region: string;
+  api_key?: string;
+  api_secret?: string;
+  client_id?: string;
+  client_secret?: string;
+  credentials?: Record<string, any>;
+  is_active: boolean;
 }
 
 interface DraggableGatewayListProps {
@@ -78,13 +84,8 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-500';
-      case 'inactive': return 'bg-gray-500';
-      case 'maintenance': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
-    }
+  const getStatusColor = (isActive: boolean) => {
+    return isActive ? 'bg-green-500' : 'bg-gray-500';
   };
 
   const getHealthColor = (rate: number) => {
@@ -92,6 +93,21 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
     if (rate >= 95) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  const [showCreds, setShowCreds] = useState(false);
+  const credentialsObj = React.useMemo(() => {
+    const baseCreds: Record<string, any> = gateway.credentials || {};
+    // Fallback to flattened fields if credentials not nested
+    const fallback: Record<string, any> = {
+      api_key: gateway.api_key,
+      api_secret: gateway.api_secret,
+      client_id: gateway.client_id,
+      client_secret: gateway.client_secret,
+    };
+    return Object.fromEntries(
+      Object.entries({ ...fallback, ...baseCreds }).filter(([, v]) => v !== undefined && v !== null)
+    );
+  }, [gateway]);
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -109,8 +125,8 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
               <div>
                 <CardTitle className="text-lg flex items-center gap-2">
                   {gateway.name}
-                  <Badge className={getStatusColor(gateway.status)}>
-                    {gateway.status}
+                  <Badge className={getStatusColor(gateway.is_active)}>
+                    {gateway.is_active ? 'active' : 'inactive'}
                   </Badge>
                   <Badge variant="outline">Priority: {gateway.priority}</Badge>
                 </CardTitle>
@@ -120,7 +136,7 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
               </div>
             </div>
             <Switch
-              checked={gateway.status === 'active'}
+              checked={gateway.is_active}
               onCheckedChange={() => onToggleStatus(gateway.id)}
             />
           </div>
@@ -153,6 +169,28 @@ const SortableGatewayItem: React.FC<SortableGatewayItemProps> = ({
                 <p className="font-medium">₹{(gateway.currentUsage || 0).toLocaleString()}</p>
               </div>
             </div>
+
+            {Object.keys(credentialsObj).length > 0 && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  className="text-xs text-blue-600 hover:underline"
+                  onClick={() => setShowCreds(!showCreds)}
+                >
+                  {showCreds ? 'Hide Credentials' : 'Show Credentials'}
+                </button>
+                {showCreds && (
+                  <div className="mt-2 p-3 bg-gray-50 rounded-md border text-xs space-y-1 max-h-40 overflow-auto">
+                    {Object.entries(credentialsObj).map(([key, value]) => (
+                      <div key={key} className="flex justify-between gap-2">
+                        <span className="font-semibold text-gray-700">{key}</span>
+                        <span className="break-all text-gray-800">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex gap-2 pt-2">
               <Button

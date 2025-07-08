@@ -110,6 +110,82 @@ async function createOrder(
       // Store the real PayU URL for internal processing
       return { gateway_txn_id, checkout_url, internal_url: payuUrl };
     }
+    case "easebuzz": {
+      // Easebuzz Hosted Checkout Integration
+      const txnid = payload.transaction_id;
+      const amountRupees = (payload.amount / 100).toFixed(2);
+      const productinfo = payload.order_id;
+      
+      // TODO: Fetch real customer data later
+      const firstname = "LS Customer";
+      const email = "customer@lightspeed.com";
+      const phone = "9876543210";
+
+      // The surl/furl should point to our own API gateway/webhook handler, which will then notify the merchant.
+      // For now, let's use a placeholder that can be updated.
+      const surl = `https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/webhook-handler/easebuzz_s?txnid=${txnid}`;
+      const furl = `https://trmqbpnnboyoneyfleux.supabase.co/functions/v1/webhook-handler/easebuzz_f?txnid=${txnid}`;
+
+      const hashString = [
+        creds.api_key,
+        txnid,
+        amountRupees,
+        productinfo,
+        firstname,
+        email,
+        '', // udf1
+        '', // udf2
+        '', // udf3
+        '', // udf4
+        '', // udf5
+        '', // udf6
+        '', // udf7
+        '', // udf8
+        '', // udf9
+        '', // udf10
+        creds.api_secret, // salt
+      ].join('|');
+
+      const encoder = new TextEncoder();
+      const data = encoder.encode(hashString);
+      const hashBuffer = await crypto.subtle.digest('SHA-512', data);
+      const hash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      const form = new URLSearchParams({
+        key: creds.api_key,
+        txnid,
+        amount: amountRupees,
+        productinfo,
+        firstname,
+        email,
+        phone,
+        surl,
+        furl,
+        hash,
+      });
+
+      const easebuzzEndpoint = 'https://pay.easebuzz.in/payment/initiateLink';
+      
+      const res = await fetch(easebuzzEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: form.toString(),
+      });
+      
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Easebuzz API Error:", errText);
+        throw new Error(`EASEBUZZ_PAYMENT_INITIATION_FAILED: ${errText}`);
+      }
+      
+      const responseText = await res.text();
+      // The initiateLink API returns an access_key on success, which is used to redirect
+      const access_key = responseText;
+      const checkout_url = `https://pay.easebuzz.in/pay/${access_key}`;
+      const gateway_txn_id = txnid;
+      
+      return { gateway_txn_id, checkout_url };
+    }
     default: {
       throw new Error(`UNSUPPORTED_PROVIDER_${provider}`);
     }

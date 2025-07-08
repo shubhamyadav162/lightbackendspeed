@@ -1,19 +1,21 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { supabaseService } from '@/lib/supabase/server';
+import { simpleAdminAuth } from '@/lib/simple-auth';
 
 /**
  * GET /api/v1/merchant/credentials
  * Returns masked client key + webhook URL + rate limits
+ * Now uses simpleAdminAuth and requires a merchantId query parameter.
  */
 export async function GET(request: NextRequest) {
-  const auth = await getAuthContext(request);
-  if (!auth) {
+  const isAdmin = await simpleAdminAuth(request);
+  if (!isAdmin) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Only merchants can access their credentials, admins can impersonate via header merchantId param
-  const merchantId = auth.role === 'merchant' ? auth.merchantId : request.nextUrl.searchParams.get('merchantId');
+  // Admin must provide the merchantId they want to fetch credentials for.
+  const merchantId = request.nextUrl.searchParams.get('merchantId');
   if (!merchantId) {
     return NextResponse.json({ error: 'merchant_id_required' }, { status: 400 });
   }

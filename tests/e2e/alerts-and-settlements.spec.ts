@@ -18,7 +18,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const admin = createClient(supabaseUrl, supabaseServiceKey);
 
-const TEST_MERCHANT_ID = 'e2e_merchant';
+const TEST_CLIENT_ID = 'e2e_client_test_id';
 
 const failedTxnPoll = async (txnId: string, maxRetries = 15): Promise<boolean> => {
   let retries = maxRetries;
@@ -39,14 +39,15 @@ test.describe('Alerts and Settlements Edge Flows', () => {
   test('failed transaction generates alert row via Edge Function', async () => {
     // 1. Insert failed transaction row directly (simulating gateway failure)
     const txnId = `E2E_FAIL_${crypto.randomUUID().slice(0, 8)}`;
+    const orderId = `E2E_ORDER_${crypto.randomUUID().slice(0, 8)}`;
 
-    const { data: inserted, error } = await admin.from('transactions').insert({
-      merchant_id: TEST_MERCHANT_ID,
-      txn_id: txnId,
-      amount: 123,
+    const { data: inserted, error } = await admin.from('client_transactions').insert({
+      client_id: TEST_CLIENT_ID,
+      lightspeed_txn_id: txnId,
+      order_id: orderId,
+      amount: 12300, // in paisa
       currency: 'INR',
-      status: 'FAILED',
-      payment_method: 'upi',
+      status: 'failed',
     }).select('id').single();
 
     if (error) throw error;
@@ -63,7 +64,7 @@ test.describe('Alerts and Settlements Edge Flows', () => {
     // 1. Insert a due settlement row
     const { error: insertErr } = await admin.from('merchant_settlements').insert({
       id: settlementId,
-      merchant_id: TEST_MERCHANT_ID,
+      client_id: TEST_CLIENT_ID,
       due_amount: 1000,
       settled_amount: 0,
       is_deleted: false,

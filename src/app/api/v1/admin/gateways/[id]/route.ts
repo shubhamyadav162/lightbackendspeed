@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
-import { encrypt } from '@/lib/encryption';
+import { encryptSensitiveFields } from '@/lib/gateway-crypto';
 
 const supabase = getSupabaseService();
 
@@ -100,7 +100,7 @@ export async function PUT(request: NextRequest) {
 
     // Always update credentials if we have credential-related changes
     if (body.api_key || body.api_secret || body.webhook_secret || body.client_id || body.api_id || body.api_endpoint_url) {
-      updateData.credentials = gatewayCredentials;
+      updateData.credentials = encryptSensitiveFields(gatewayCredentials);
     }
 
     // Handle additional_headers JSON parsing for direct column (if it exists)
@@ -226,7 +226,7 @@ export async function PATCH(request: NextRequest) {
 
     // Always update credentials if we have credential-related changes
     if (body.api_key || body.api_secret || body.webhook_secret || body.client_id || body.api_id || body.api_endpoint_url) {
-      updateData.credentials = gatewayCredentials;
+      updateData.credentials = encryptSensitiveFields(gatewayCredentials);
     }
 
     // Handle additional_headers JSON parsing for direct column (if it exists)
@@ -257,10 +257,10 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ 
       gateway: data,
-      message: 'Gateway updated successfully via PATCH'
+      message: 'Gateway updated successfully with comprehensive credential support' 
     });
   } catch (err: any) {
-    console.error('Gateway PATCH update error:', err);
+    console.error('Gateway update error:', err);
     return NextResponse.json({ error: err.message }, { status: 400 });
   }
 }

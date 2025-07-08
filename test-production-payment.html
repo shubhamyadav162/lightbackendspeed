@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightSpeedPay - Production Payment Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+        
+        .test-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .info { background: rgba(33, 150, 243, 0.3); }
+        
+        .endpoint-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border-left: 4px solid #4ECDC4;
+        }
+        
+        .amount-presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 LightSpeedPay</h1>
+        <p class="subtitle">Production Payment Gateway - Live Testing</p>
+        
+        <div class="endpoint-info">
+            <strong>🌐 Production Backend:</strong> https://web-production-0b337.up.railway.app<br>
+            <strong>🔒 Status:</strong> <span id="backendStatus">Checking...</span><br>
+            <strong>⚡ Environment:</strong> Production Live
+        </div>
+
+        <!-- Health Check Section -->
+        <div class="test-form">
+            <h3>🩺 Backend Health Check</h3>
+            <button class="btn" onclick="checkHealth()">Check Backend Health</button>
+            <div id="healthResult"></div>
+        </div>
+
+        <!-- Gateway Status Check -->
+        <div class="test-form">
+            <h3>🔌 Gateway Status</h3>
+            <button class="btn" onclick="checkGateways()">Check Available Gateways</button>
+            <div id="gatewayResult"></div>
+        </div>
+
+        <!-- Real Payment Test -->
+        <div class="test-form">
+            <h3>💳 Real Payment Test</h3>
+            <p><strong>⚠️ Warning:</strong> यह real money transaction है!</p>
+            
+            <div class="form-group">
+                <label>Amount (₹):</label>
+                <div class="amount-presets">
+                    <button class="preset-btn" onclick="setAmount('10')">₹10</button>
+                    <button class="preset-btn" onclick="setAmount('100')">₹100</button>
+                    <button class="preset-btn" onclick="setAmount('500')">₹500</button>
+                </div>
+                <input type="number" id="amount" value="10" min="1" max="100000" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Customer Name:</label>
+                <input type="text" id="customerName" value="Test Customer" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Customer Email:</label>
+                <input type="email" id="customerEmail" value="test@lightspeedpay.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Customer Phone:</label>
+                <input type="tel" id="customerPhone" value="9999999999" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Gateway:</label>
+                <select id="gateway">
+                    <option value="easebuzz">Easebuzz (Live)</option>
+                    <option value="razorpay">Razorpay</option>
+                    <option value="payu">PayU</option>
+                    <option value="auto">Auto-Select (Recommended)</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="initiatePayment()">🚀 Start Real Payment</button>
+            <div id="paymentResult"></div>
+        </div>
+
+        <!-- API Testing -->
+        <div class="test-form">
+            <h3>🧪 API Endpoint Testing</h3>
+            <button class="btn" onclick="testAllAPIs()">Test All Production APIs</button>
+            <div id="apiResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://web-production-0b337.up.railway.app';
+        const CLIENT_KEY = 'FQABLVIEYC';
+        const CLIENT_SECRET = 'QECGU7UHNT';
+
+        // Check backend status on load
+        window.onload = function() {
+            checkHealth();
+        };
+
+        function setAmount(amount) {
+            document.getElementById('amount').value = amount;
+        }
+
+        async function checkHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            const statusSpan = document.getElementById('backendStatus');
+            
+            try {
+                resultDiv.innerHTML = '<p class="status info">⏳ Checking backend health...</p>';
+                
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusSpan.innerHTML = '<span style="color: #4CAF50;">✅ Healthy</span>';
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Backend Health: EXCELLENT</strong><br>
+                            Status: ${data.status}<br>
+                            Uptime: ${data.uptime || 'N/A'}<br>
+                            Environment: ${data.environment || 'production'}<br>
+                            Timestamp: ${new Date(data.timestamp).toLocaleString()}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusSpan.innerHTML = '<span style="color: #F44336;">❌ Error</span>';
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Backend Health Check Failed</strong><br>
+                        Error: ${error.message}<br>
+                        Please check if backend is running
+                    </div>
+                `;
+            }
+        }
+
+        async function checkGateways() {
+            const resultDiv = document.getElementById('gatewayResult');
+            
+            try {
+                resultDiv.innerHTML = '<p class="status info">⏳ Checking gateways...</p>';
+                
+                const response = await fetch(`${API_BASE}/api/v1/admin/gateways`, {
+                    headers: {
+                        'x-api-key': CLIENT_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.gateways) {
+                    const activeGateways = data.gateways.filter(g => g.is_active);
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Gateways Status</strong><br>
+                            Total Gateways: ${data.gateways.length}<br>
+                            Active Gateways: ${activeGateways.length}<br>
+                            Available: ${activeGateways.map(g => g.name).join(', ')}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Failed to fetch gateways');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Gateway Check Failed</strong><br>
+                        Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        async function initiatePayment() {
+            const resultDiv = document.getElementById('paymentResult');
+            
+            const amount = document.getElementById('amount').value;
+            const customerName = document.getElementById('customerName').value;
+            const customerEmail = document.getElementById('customerEmail').value;
+            const customerPhone = document.getElementById('customerPhone').value;
+            const gateway = document.getElementById('gateway').value;
+            
+            if (!amount || !customerName || !customerEmail || !customerPhone) {
+                resultDiv.innerHTML = '<div class="status error">❌ Please fill all fields</div>';
+                return;
+            }
+            
+            try {
+                resultDiv.innerHTML = '<p class="status info">⏳ Initiating payment...</p>';
+                
+                const payload = {
+                    amount: parseFloat(amount),
+                    customer_name: customerName,
+                    customer_email: customerEmail,
+                    customer_phone: customerPhone,
+                    client_key: CLIENT_KEY,
+                    gateway: gateway === 'auto' ? undefined : gateway,
+                    return_url: window.location.href.replace('.html', '_success.html'),
+                    cancel_url: window.location.href.replace('.html', '_failed.html')
+                };
+                
+                const response = await fetch(`${API_BASE}/api/v1/payment/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-api-key': CLIENT_KEY,
+                        'x-api-secret': CLIENT_SECRET
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.payment_url) {
+                    resultDiv.innerHTML = `
+                        <div class="status success">
+                            <strong>✅ Payment Initiated Successfully!</strong><br>
+                            Transaction ID: ${data.transaction_id}<br>
+                            Gateway: ${data.gateway}<br>
+                            Amount: ₹${amount}<br>
+                            <br>
+                            <a href="${data.payment_url}" target="_blank" style="color: #4ECDC4;">
+                                🚀 Complete Payment (Opens in new tab)
+                            </a>
+                        </div>
+                    `;
+                    
+                    // Auto-redirect after 3 seconds
+                    setTimeout(() => {
+                        window.open(data.payment_url, '_blank');
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(data.error || 'Payment initiation failed');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>❌ Payment Failed</strong><br>
+                        Error: ${error.message}<br>
+                        Please check your configuration
+                    </div>
+                `;
+            }
+        }
+
+        async function testAllAPIs() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<p class="status info">⏳ Testing all APIs...</p>';
+            
+            const tests = [
+                { name: 'Health Check', url: '/health', method: 'GET' },
+                { name: 'Gateway List', url: '/api/v1/admin/gateways', method: 'GET' },
+                { name: 'System Status', url: '/api/v1/admin/system/status', method: 'GET' },
+                { name: 'Queue Status', url: '/api/v1/admin/queues', method: 'GET' }
+            ];
+            
+            let results = '<div class="status info"><strong>🧪 API Test Results:</strong><br><br>';
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(`${API_BASE}${test.url}`, {
+                        method: test.method,
+                        headers: {
+                            'x-api-key': CLIENT_KEY,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const status = response.ok ? '✅' : '❌';
+                    results += `${status} ${test.name}: ${response.status}<br>`;
+                } catch (error) {
+                    results += `❌ ${test.name}: Error<br>`;
+                }
+            }
+            
+            results += '</div>';
+            resultDiv.innerHTML = results;
+        }
+    </script>
+</body>
+</html> 

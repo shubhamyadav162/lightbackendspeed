@@ -11,7 +11,9 @@ import { ReportsAnalytics } from '../components/dashboard/ReportsAnalytics';
 import { AlertCenterScreen } from '../components/dashboard/AlertCenterScreen';
 import { DeveloperTools } from '../components/dashboard/DeveloperTools';
 import { SecurityConfig } from '../components/dashboard/SecurityConfig';
-import { AuditLogsViewer } from '../components/dashboard/AuditLogsViewer';
+// import { AuditLogsViewer } from '../components/dashboard/AuditLogsViewer';
+import OneToOneTestPage from '../components/dashboard/OneToOneTestPage';
+import { AnalyticsDashboard } from '../components/dashboard/AnalyticsDashboard';
 
 const Index = () => {
   const [activeScreen, setActiveScreen] = useState('dashboard');
@@ -41,16 +43,20 @@ const Index = () => {
             onBack={() => setSelectedClientId(null)} 
           /> : 
           <ClientManagement onClientSelect={setSelectedClientId} />;
+      case 'one-to-one':
+        return <OneToOneTestPage />;
       case 'reports':
         return <ReportsAnalytics />;
+      case 'analytics':
+        return <AnalyticsDashboard />;
       case 'alerts':
         return <AlertCenterScreen />;
       case 'developer':
         return <DeveloperTools />;
       case 'security':
         return <SecurityConfig />;
-      case 'audit-logs':
-        return <AuditLogsViewer />;
+      // case 'audit-logs':
+      //   return <AuditLogsViewer />;
       default:
         return <DashboardHome />;
     }

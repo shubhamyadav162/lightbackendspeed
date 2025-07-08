@@ -621,3 +621,11 @@ Real-time UI → SSE Streams → Live gateway data
 **यह एक COMPLETE और PRODUCTION-READY integration है!** 🎉
 
 अब आप वास्तविक payments process कर सकते हैं Easebuzz gateway के साथ। 
+
+# Progress Log
+
+- [2025-06-20] Strict 1:1 gateway-to-merchant mapping enforced (no rotation, no assignment logic active)
+- SingleGatewayMapping component (admin/gateways page) add किया गया
+- Backend, Edge Function, और SQL function सभी जगह सिर्फ़ पहला active gateway (priority DESC) चुना जाता है
+- select_gateway_for_amount SQL function भी update कर दिया गया
+- कोई accidental rotation/assignment trigger नहीं हो सकता

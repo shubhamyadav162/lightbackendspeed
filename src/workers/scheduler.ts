@@ -1,13 +1,21 @@
 // @ts-nocheck
 import { Queue, Worker } from 'bullmq';
+import { parse } from 'redis-url-parser';
 import { processTransactionMonitor } from './transaction-monitor';
 import { processSettlement } from './settlement-processor';
 import { worker as walletBalanceWorker } from './wallet-balance-monitor';
 
 // Redis connection options
+const redisUrl = process.env.REDIS_URL;
+if (!redisUrl) {
+  throw new Error('REDIS_URL is not set for scheduler');
+}
+const redisOpts = parse(redisUrl);
 const connection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379')
+  host: redisOpts.host || 'localhost',
+  port: redisOpts.port || 6379,
+  password: redisOpts.password,
+  db: redisOpts.database || 0,
 };
 
 // Create queues

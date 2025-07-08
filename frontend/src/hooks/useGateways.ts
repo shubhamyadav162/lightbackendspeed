@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/api';
 
-export const useGateways = () => {
+export const useGateways = (clientId?: string) => {
   const queryClient = useQueryClient();
 
   // Fetch list of gateways
   const gatewaysQuery = useQuery({
-    queryKey: ['gateways'],
-    queryFn: apiService.getGateways,
+    queryKey: ['gateways', clientId],
+    queryFn: () => apiService.getGateways(clientId),
   });
 
   // Create gateway
@@ -29,6 +29,7 @@ export const useGateways = () => {
   });
 
   return {
+    data: gatewaysQuery.data || [],
     gateways: gatewaysQuery.data || [],
     isLoading: gatewaysQuery.isLoading,
     error: gatewaysQuery.error,

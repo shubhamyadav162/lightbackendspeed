@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 import { getCached, setCached } from '@/lib/redis';
 import { getPgPool } from '@/lib/pgPool';
+import { verifyMerchantAuth } from '@/lib/auth/merchantAuth';
 
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
@@ -39,15 +40,11 @@ export async function GET(request: NextRequest) {
     //------------------------------------------------------------------
     let legacyMerchantId: string | null = null;
     if (!authCtx?.merchantId) {
-      // Dynamic import avoids circular dependency with /settlements route
-      const settlementsModule: any = await import('../settlements/route');
-      if (typeof settlementsModule.verifyMerchantAuth === 'function') {
-        try {
-          const merchant = await settlementsModule.verifyMerchantAuth(request as any);
-          legacyMerchantId = merchant?.id ?? null;
-        } catch (_) {
-          // ignore – handled below if request ends up unauthenticated
-        }
+      try {
+        const merchant = await verifyMerchantAuth(request);
+        legacyMerchantId = merchant?.id ?? null;
+      } catch (_) {
+        // ignore – handled below if request ends up unauthenticated
       }
     }
 

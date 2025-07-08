@@ -2,39 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 import { getCached, setCached } from '@/lib/redis';
 import { getPgPool } from '@/lib/pgPool';
+import { verifyMerchantAuth } from '@/lib/auth/merchantAuth';
 
 // Force dynamic rendering to prevent static generation
 export const dynamic = 'force-dynamic';
 
 // Singleton service-role Supabase client
 const supabase = supabaseService;
-
-/**
- * Legacy header auth fallback used by existing merchant SDK integrations.
- * Returns merchant row if credentials are valid; otherwise throws.
- */
-export async function verifyMerchantAuth(request: NextRequest) {
-  const apiKey = request.headers.get('x-api-key');
-  const apiSecret = request.headers.get('x-api-secret');
-
-  if (!apiKey || !apiSecret) return null;
-
-  if (!supabase) {
-    throw new Error('Supabase client not available');
-  }
-
-  const { data, error } = await supabase
-    .from('merchants')
-    .select('*')
-    .eq('api_key', apiKey)
-    .single();
-
-  if (error || !data || data.api_salt !== apiSecret) {
-    throw new Error('Invalid API credentials');
-  }
-
-  return data;
-}
 
 /**
  * GET /api/v1/settlements

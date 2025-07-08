@@ -3,7 +3,7 @@ import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 import { getCached, setCached } from '@/lib/redis';
 
 // Singleton service-role Supabase client
-const supabase = supabaseService;
+const supabase = supabaseService!;
 
 /**
  * Legacy header auth fallback used by existing merchant SDK integrations.

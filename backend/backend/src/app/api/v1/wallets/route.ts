@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext, supabaseService } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 
-// Singleton service-role Supabase client
-const supabase = supabaseService;
+// Helper to get supabase client when needed
 
 /**
  * Legacy header auth fallback used by existing merchant SDK integrations.
@@ -14,7 +13,7 @@ async function verifyMerchantAuth(request: NextRequest) {
 
   if (!apiKey || !apiSecret) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabaseService()
     .from('merchants')
     .select('*')
     .eq('api_key', apiKey)
@@ -72,7 +71,7 @@ export async function GET(request: NextRequest) {
     if (qpMerchantId) merchantId = qpMerchantId;
 
     // --- Fetch wallets ---
-    let walletsQuery = supabase
+    let walletsQuery = getSupabaseService()
       .from('customer_wallets')
       .select('*')
       .order('updated_at', { ascending: false });
@@ -86,7 +85,7 @@ export async function GET(request: NextRequest) {
     let transactions: any[] | null = null;
     if (includeTxns && wallets && wallets.length) {
       const walletIds = wallets.map((w) => w.id);
-      const { data: txnRows, error: txnErr } = await supabase
+      const { data: txnRows, error: txnErr } = await getSupabaseService()
         .from('wallet_transactions')
         .select('*')
         .in('wallet_id', walletIds)
@@ -126,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch existing wallet
-    const { data: wallet, error: walletErr } = await supabase
+    const { data: wallet, error: walletErr } = await getSupabaseService()
       .from('customer_wallets')
       .select('*')
       .eq('id', walletId)
@@ -139,7 +138,7 @@ export async function POST(request: NextRequest) {
     const newBalance = (wallet.balance || 0) + amount;
 
     // Update wallet balance
-    const { error: updateErr } = await supabase
+    const { error: updateErr } = await getSupabaseService()
       .from('customer_wallets')
       .update({ balance: newBalance, updated_at: new Date().toISOString() })
       .eq('id', walletId);
@@ -147,7 +146,7 @@ export async function POST(request: NextRequest) {
     if (updateErr) throw new Error(updateErr.message);
 
     // Insert wallet transaction record
-    const { data: txn, error: txnErr } = await supabase
+    const { data: txn, error: txnErr } = await getSupabaseService()
       .from('wallet_transactions')
       .insert({
         wallet_id: walletId,

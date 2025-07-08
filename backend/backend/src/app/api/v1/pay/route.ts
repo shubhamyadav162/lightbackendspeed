@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 
 // Initialize Supabase client
-const supabase = supabaseService;
+const supabase = supabaseService!;
 
 // Helper function to verify merchant authentication
 async function verifyMerchantAuth(request: NextRequest) {

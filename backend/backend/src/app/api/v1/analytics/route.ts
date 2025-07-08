@@ -4,7 +4,7 @@ import { getCached, setCached } from '@/lib/redis';
 import { getPgPool } from '@/lib/pgPool';
 
 // Shared service-role Supabase client
-const supabase = supabaseService;
+const supabase = supabaseService!;
 
 /**
  * GET /api/v1/analytics

@@ -15,8 +15,14 @@ COPY package.json package-lock.json .npmrc ./
 # Using npm install instead of npm ci for better compatibility
 RUN npm install --legacy-peer-deps
 
+# DEBUG: Check if swr is installed
+RUN echo "--- Checking for swr in node_modules ---" && ls -d node_modules/swr && echo "---"
+
 # Copy source code
 COPY . .
+
+# DEBUG: List all files after copy
+RUN echo "--- Listing all files in /app ---" && ls -laR && echo "---"
 
 # Build Next.js application for Express server
 RUN npm run build

@@ -99,7 +99,7 @@ export async function POST(
         // Here you would typically enqueue the WhatsApp message
         // For now, we'll mark it as sent after a delay
         setTimeout(async () => {
-          if (whatsappNotification) {
+          if (whatsappNotification && supabaseService) {
             await supabaseService
               .from('whatsapp_notifications')
               .update({ 

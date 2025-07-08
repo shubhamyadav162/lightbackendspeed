@@ -9,20 +9,15 @@ RUN apk add --no-cache curl
 WORKDIR /app
 
 # Copy package files first (for better caching)
-COPY package.json package-lock.json .npmrc ./
+# Explicitly copy from the correct subdirectory relative to the repo root
+COPY backend/backend/package.json backend/backend/package-lock.json backend/backend/.npmrc ./
 
 # Install dependencies
 # Using npm install instead of npm ci for better compatibility
 RUN npm install --legacy-peer-deps
 
-# DEBUG: Check if swr is installed
-RUN echo "--- Checking for swr in node_modules ---" && ls -d node_modules/swr && echo "---"
-
-# Copy source code
-COPY . .
-
-# DEBUG: List all files after copy
-RUN echo "--- Listing all files in /app ---" && ls -laR && echo "---"
+# Copy source code from the correct subdirectory
+COPY backend/backend/ .
 
 # Build Next.js application for Express server
 RUN npm run build

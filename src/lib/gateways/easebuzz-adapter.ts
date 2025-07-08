@@ -1,10 +1,11 @@
 import { BaseGatewayAdapter, GatewayCredentials, PaymentRequest, PaymentResponse, PaymentStatusResponse, WebhookResponse } from './base-adapter';
 import { LightSpeedWrapper } from '../lightspeed-wrapper';
 import crypto from 'crypto';
+import { supabase } from '../lib/supabase';
 
 interface EasebuzzCredentials {
-  api_key: string;      // Merchant Key (D4SS5CFXKV)
-  api_secret: string;   // Salt (HRQ1A10K7J)
+  api_key: string;      // Merchant Key
+  api_secret: string;   // Salt
   webhook_secret?: string;
 }
 
@@ -27,10 +28,10 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
   async initiatePayment(request: PaymentRequest): Promise<PaymentResponse> {
     try {
       const txnid = LightSpeedWrapper.generateTransactionId();
-      const amount = (request.amount / 100).toFixed(2); // Convert paisa to rupees
+      const amount = (request.amount / 100).toFixed(2); // Convert paisa to rupees with exactly 2 decimals
 
       // Generate hash for Easebuzz (SHA-512)
-      // Hash format: key|txnid|amount|productinfo|firstname|email|||||||salt
+      // Hash format: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5|udf6|udf7|udf8|udf9|udf10|salt
       const hashString = [
         this.credentials.api_key,
         txnid,
@@ -38,7 +39,8 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         request.description || 'Payment',
         request.customer_info?.name || 'Customer',
         request.customer_info?.email || '',
-        '', '', '', '', '', '', '', // UDF fields (empty)
+        '', '', '', '', '',  // UDF1-5
+        '', '', '', '', '',  // UDF6-10
         this.credentials.api_secret
       ].join('|');
 
@@ -52,14 +54,27 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
         firstname: request.customer_info?.name || 'Customer',
         email: request.customer_info?.email || '',
         phone: request.customer_info?.phone || '',
-        surl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp',
-        furl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzzp',
-        hash: hash
+        surl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz',
+        furl: 'https://api.lightspeedpay.in/api/v1/callback/easebuzz',
+        hash: hash,
+        udf1: '',
+        udf2: '',
+        udf3: '',
+        udf4: '',
+        udf5: '',
+        udf6: '',
+        udf7: '',
+        udf8: '',
+        udf9: '',
+        udf10: ''
       };
 
       const apiUrl = this.isTestMode 
         ? 'https://testpay.easebuzz.in/payment/initiateLink'
         : 'https://pay.easebuzz.in/payment/initiateLink';
+
+      console.log('Easebuzz paymentData:', paymentData);
+      console.log('API URL:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -71,8 +86,10 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
 
       const result = await response.json();
 
+      console.log('Response status:', response.status);
+      console.log('Response body:', result);
+
       if (result.status === 1) {
-        // Success response - return LightSpeed branded response
         return LightSpeedWrapper.sanitizePaymentResponse({
           success: true,
           transaction_id: txnid,
@@ -186,7 +203,6 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
    */
   async processWebhook(payload: any, signature?: string): Promise<WebhookResponse> {
     try {
-      // Easebuzz webhook verification
       const {
         status,
         txnid,
@@ -199,11 +215,11 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
       } = payload;
 
       // Verify hash - Easebuzz uses reverse hash for webhook
-      // Reverse hash format: salt|status|||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
+      // Reverse hash format: salt|status|udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key
       const hashString = [
         this.credentials.api_secret,
         status || '',
-        '', '', '', '', '', '', '', // UDF fields (empty in reverse)
+        '', '', '', '', '',  // Exactly 5 empty fields for UDF5-UDF1
         email || '',
         firstname || '',
         productinfo || '',
@@ -238,12 +254,11 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
           paymentStatus = 'PENDING';
       }
 
-      // Return sanitized webhook response with LightSpeed branding
       const sanitizedResponse = LightSpeedWrapper.sanitizeWebhookResponse({
         success: true,
         transaction_id: txnid,
         status: paymentStatus,
-        amount: parseFloat(amount) * 100, // Convert to paisa
+        amount: parseFloat(amount) * 100,
         gateway_response: payload
       }, txnid, parseFloat(amount) * 100);
 
@@ -306,4 +321,14 @@ export class EasebuzzAdapter extends BaseGatewayAdapter {
       return false;
     }
   }
-} 
+}
+
+// उदाहरण:
+const credentials = {
+  api_key: 'FRQT0XKLHY',    // nextgen_techno_ventures.key
+  api_secret: 'S84LOJ3U0N', // nextgen_techno_ventures.salt
+  merchant_id: '682aefe4e352d264171612c0' // nextgen_techno_ventures.merchant_id
+};
+
+// उदाहरण:
+const easebuzz = new EasebuzzAdapter(credentials, true); // true = test mode 

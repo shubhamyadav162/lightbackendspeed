@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage --passWithNoTests",
     "workers": "ts-node src/workers/scheduler.ts",
     "workers:railway": "node -r ts-node/register src/workers/scheduler.ts",
+    "worker:simple-test": "ts-node src/workers/simple-test-worker.ts",
     "worker:queue-metrics": "ts-node src/workers/queue-metrics-recorder/index.ts",
     "worker:health-ping": "ts-node src/workers/worker-health-ping/index.ts",
     "worker:health-monitor": "ts-node src/workers/worker-health-monitor/index.ts",

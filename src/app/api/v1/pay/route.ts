@@ -130,10 +130,11 @@ export async function POST(request: NextRequest) {
     // Get active gateway
     const gateway = await getActiveGateway();
     
-    // Create EaseBuzz adapter
+    // Create EaseBuzz adapter with correct credential mapping  
+    // For Easebuzz: api_key should be merchant_key for hash generation, api_secret should be salt
     const easebuzzAdapter = new EasebuzzAdapter({
-      api_key: gateway.credentials.api_key,
-      api_secret: gateway.credentials.api_secret
+      api_key: gateway.credentials.api_key,       // Use merchant_key for hash generation
+      api_secret: gateway.credentials.api_secret  // Use salt for hash
     }, test_mode);
     
     // Create transaction record

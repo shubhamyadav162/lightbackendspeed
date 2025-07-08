@@ -13,10 +13,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service is not available.'}, { status: 500 });
+    }
+
     // Distinct-on style query to fetch latest metric for each gateway
     const { data, error } = await supabaseService.rpc('get_latest_gateway_health');
 
     if (error) {
+      if (!supabaseService) {
+        return NextResponse.json({ error: 'Database service is not available.'}, { status: 500 });
+      }
       // Fallback to raw query if RPC not available (older migrations)
       const { data: fallbackData, error: rawErr } = await supabaseService
         .from('gateway_health_metrics')

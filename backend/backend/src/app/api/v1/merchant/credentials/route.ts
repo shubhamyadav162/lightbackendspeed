@@ -18,6 +18,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'merchant_id_required' }, { status: 400 });
   }
 
+  if (!supabaseService) {
+    return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+  }
+
   const { data: client, error } = await supabaseService
     .from('clients')
     .select('client_key, webhook_url, fee_percent, usage_rate_limit')

@@ -15,6 +15,10 @@ export async function GET(request: NextRequest, { params }: { params: { merchant
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+    }
+
     const { data, error } = await supabaseService
       .from('merchants')
       .select('*')

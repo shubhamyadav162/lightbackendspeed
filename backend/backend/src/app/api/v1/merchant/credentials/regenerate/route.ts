@@ -22,6 +22,10 @@ export async function POST(request: NextRequest) {
   const newKey = crypto.randomBytes(16).toString('hex'); // 32 chars
   const newSalt = crypto.randomBytes(32).toString('hex'); // 64 chars
 
+  if (!supabaseService) {
+    return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+  }
+
   const { error } = await supabaseService
     .from('clients')
     .update({ client_key: newKey, client_salt: newSalt, updated_at: new Date().toISOString() })

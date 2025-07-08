@@ -36,6 +36,9 @@ export async function PUT(request: NextRequest) {
     const upserts = updates.map(({ id, priority }) => ({ id, priority, updated_at: new Date().toISOString() }));
 
     // Perform upsert – use ON CONFLICT (id) DO UPDATE SET priority = EXCLUDED.priority
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+    }
     const { error } = await supabaseService
       .from('payment_gateways')
       .upsert(upserts, { onConflict: 'id', ignoreDuplicates: false });
@@ -45,6 +48,9 @@ export async function PUT(request: NextRequest) {
     }
 
     // Return ordered list of gateways after update
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+    }
     const { data: gateways, error: selErr } = await supabaseService
       .from('payment_gateways')
       .select('*')

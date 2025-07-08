@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
 
+  if (!supabaseService) {
+    return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+  }
+
   // Fetch merchant data
   const { data: client, error } = await supabaseService
     .from('clients')

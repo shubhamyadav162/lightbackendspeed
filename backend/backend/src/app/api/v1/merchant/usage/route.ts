@@ -21,6 +21,10 @@ export async function GET(request: NextRequest) {
   // Aggregate transactions count & amount in last 24h
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  if (!supabaseService) {
+    return NextResponse.json({ error: 'Database service is not available.' }, { status: 500 });
+  }
+
   const { data, error } = await supabaseService
     .from('transactions')
     .select('id, amount, status')

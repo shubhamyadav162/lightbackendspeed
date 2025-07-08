@@ -23,6 +23,10 @@ export async function PATCH(
       // If body isn't JSON, ignore and use default
     }
 
+    if (!supabaseService) {
+      return NextResponse.json({ error: 'Database service is not available.'}, { status: 500 });
+    }
+
     const updates = {
       is_resolved: resolved,
       resolved_at: resolved ? new Date().toISOString() : null,

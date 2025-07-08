@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 import { Queue } from 'bullmq';
-
-const supabase = supabaseService;
 
 /**
  * POST /api/v1/admin/queues/retry
@@ -14,7 +12,13 @@ const supabase = supabaseService;
  * Stub implementation that records retry intent in audit_logs table.
  */
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseService();
   try {
+    const authCtx = await getAuthContext(request);
+    if (!authCtx || authCtx.role !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized: Not an admin' }, { status: 401 });
+    }
+
     // Simple API key check for private deployment
     const apiKey = request.headers.get('x-api-key');
     if (apiKey !== 'admin_test_key') {

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
-
-const supabase = supabaseService;
+import { getSupabaseService } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseService();
     const { searchParams } = new URL(request.url);
     const limitParam = parseInt(searchParams.get('limit') || '20', 10);
     const limit = isNaN(limitParam) ? 20 : Math.min(limitParam, 100);

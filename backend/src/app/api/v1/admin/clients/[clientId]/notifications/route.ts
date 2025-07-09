@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 
 // POST /api/v1/admin/clients/[clientId]/notifications - Send WhatsApp notification
 export async function POST(
@@ -27,12 +27,15 @@ export async function POST(
       return NextResponse.json({ error: 'Notification type is required' }, { status: 400 });
     }
 
-    if (!supabaseService) {
+    let supabase: ReturnType<typeof getSupabaseService>;
+    try {
+      supabase = getSupabaseService();
+    } catch (e) {
       return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
     }
 
     // Get client details for personalized message
-    const { data: client, error: clientError } = await supabaseService
+    const { data: client, error: clientError } = await supabase
       .from('clients')
       .select(`
         id,
@@ -78,7 +81,7 @@ export async function POST(
     if (send_whatsapp) {
       try {
         // Insert WhatsApp notification record
-        const { data: whatsappNotification, error: whatsappError } = await supabaseService
+        const { data: whatsappNotification, error: whatsappError } = await supabase
           .from('whatsapp_notifications')
           .insert({
             client_id: clientId,
@@ -100,13 +103,18 @@ export async function POST(
         // For now, we'll mark it as sent after a delay
         setTimeout(async () => {
           if (whatsappNotification) {
-            await supabaseService
-              .from('whatsapp_notifications')
-              .update({ 
-                status: 'sent',
-                sent_at: new Date().toISOString()
-              })
-              .eq('id', whatsappNotification.id);
+            try {
+              const supabase = getSupabaseService();
+              await supabase
+                .from('whatsapp_notifications')
+                .update({ 
+                  status: 'sent',
+                  sent_at: new Date().toISOString()
+                })
+                .eq('id', whatsappNotification.id);
+            } catch (e) {
+              console.error('[NOTIFICATIONS] setTimeout supabase error:', e);
+            }
           }
         }, 1000);
 
@@ -131,7 +139,7 @@ export async function POST(
     }
 
     // Insert audit log
-    await supabaseService
+    await supabase
       .from('audit_logs')
       .insert({
         action: 'NOTIFICATION_SENT',
@@ -179,12 +187,15 @@ export async function GET(
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '20');
 
-    if (!supabaseService) {
+    let supabase: ReturnType<typeof getSupabaseService>;
+    try {
+      supabase = getSupabaseService();
+    } catch (e) {
       return NextResponse.json({ error: 'Database connection error' }, { status: 500 });
     }
 
     // Get WhatsApp notifications
-    const { data: notifications, error } = await supabaseService
+    const { data: notifications, error } = await supabase
       .from('whatsapp_notifications')
       .select(`
         id,

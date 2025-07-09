@@ -41,7 +41,7 @@ export function getSupabaseService(): SupabaseClient {
 }
 
 // Export both for backward compatibility
-export { supabaseService };
+export { supabaseService, createClient };
 
 export { getPgPool }; // re-export for convenience
 

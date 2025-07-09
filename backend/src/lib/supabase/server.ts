@@ -40,9 +40,18 @@ export function getSupabaseService(): SupabaseClient {
   return supabaseService;
 }
 
-// FIX: Explicitly export `createClient` to avoid build tool resolution issues.
-// The previous re-export syntax was causing persistent build failures.
-export const createClient = supabaseCreateClient;
+/**
+ * Convenience wrapper which returns the singleton service-role client.
+ * Allows calling `createClient()` with **zero arguments** throughout the codebase.
+ * This matches earlier usage patterns and avoids TS errors where the original
+ * `@supabase/supabase-js` factory requires `(url, key)` parameters.
+ */
+export function createClient(): SupabaseClient {
+  return getSupabaseService();
+}
+// If callers still need the factory that accepts (url, key) they can import
+// it under a different name.
+export { supabaseCreateClient as createSupabaseClientFactory };
 export { supabaseService };
 
 export { getPgPool }; // re-export for convenience

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext, supabaseService } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 import { getCached, setCached } from '@/lib/redis';
 import { getPgPool } from '@/lib/pgPool';
 import { verifyMerchantAuth } from '@/lib/auth/merchantAuth';
 
 // Shared service-role Supabase client
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * GET /api/v1/analytics

@@ -1,8 +1,7 @@
+import { getSupabaseService } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
 
-// Singleton service-role Supabase client
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * Legacy header auth fallback used by existing merchant SDK integrations.

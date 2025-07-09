@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 
 /**
  * POST /api/v1/admin/gateways/auto-configure
@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    if (!supabaseService) {
+    const supabase = getSupabaseService();
+
+    if (!supabase) {
       return NextResponse.json({ 
         error: 'Database not available' 
       }, { status: 500 });
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert gateway with auto-configuration
-    const { data: gateway, error } = await supabaseService
+    const { data: gateway, error } = await supabase
       .from('payment_gateways')
       .insert({
         ...autoConfig,

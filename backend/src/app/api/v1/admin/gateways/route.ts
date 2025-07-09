@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { getSupabaseService } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/admin/gateways - List all payment gateways
  */
 export async function GET(request: NextRequest) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     console.log('[GATEWAYS] API Key received:', apiKey ? 'present' : 'missing');
@@ -51,6 +48,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext, supabaseService } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 import { EasebuzzAdapter } from '@/lib/gateways/easebuzz-adapter';
 
 // Initialize Supabase client
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 // Helper function to verify merchant authentication
 async function verifyMerchantAuth(request: NextRequest) {

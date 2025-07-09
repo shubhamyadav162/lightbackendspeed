@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { getSupabaseService } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/admin/gateways/[id] - Get gateway by ID
  */
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -42,8 +42,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 /**
  * PUT /api/v1/admin/gateways/[id] - Update gateway
  */
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [
@@ -144,8 +148,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 /**
  * DELETE /api/v1/admin/gateways/[id] - Delete gateway
  */
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [

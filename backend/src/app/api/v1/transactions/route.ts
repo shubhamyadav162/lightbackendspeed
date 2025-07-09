@@ -1,8 +1,7 @@
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext, supabaseService } from '@/lib/supabase/server';
 
-// Use shared service client (singleton)
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 // Re-use merchant header verification from the pay route
 async function verifyMerchantAuth(request: NextRequest) {

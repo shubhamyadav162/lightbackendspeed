@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthContext, supabaseService } from '@/lib/supabase/server';
+import { getAuthContext, getSupabaseService } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest, { params }: { params: { merchantId: string } }) {
   const { merchantId } = params;
@@ -15,7 +15,8 @@ export async function GET(request: NextRequest, { params }: { params: { merchant
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { data, error } = await supabaseService
+    const supabase = getSupabaseService();
+    const { data, error } = await supabase
       .from('merchants')
       .select('*')
       .eq('id', merchantId)

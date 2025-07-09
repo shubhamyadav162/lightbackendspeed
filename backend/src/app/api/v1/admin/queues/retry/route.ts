@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 import { Queue } from 'bullmq';
 
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * POST /api/v1/admin/queues/retry
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         table_name: 'queue_jobs',
         row_id: null,
         action: 'RETRY',
-        actor_id: authCtx.userId,
+        actor_id: 'admin', // Fixed: was using undefined authCtx
         new_data: { queueName, jobIds },
         created_at: new Date().toISOString(),
       })

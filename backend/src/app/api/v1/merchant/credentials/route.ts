@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/merchant/credentials
@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'merchant_id_required' }, { status: 400 });
   }
 
-  const { data: client, error } = await supabaseService
+  const supabase = getSupabaseService();
+  const { data: client, error } = await supabase
     .from('clients')
     .select('client_key, webhook_url, fee_percent, usage_rate_limit')
     .eq('id', merchantId)

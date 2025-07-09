@@ -1,17 +1,17 @@
 // @ts-nocheck
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+import { getSupabaseService } from '@/lib/supabase/server';
 
 /**
  * POST /api/v1/admin/gateways/[id]/test - Test gateway connectivity
  */
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
+    const supabase = getSupabaseService();
     // Enhanced API key validation
     const apiKey = request.headers.get('x-api-key');
     const validApiKeys = [

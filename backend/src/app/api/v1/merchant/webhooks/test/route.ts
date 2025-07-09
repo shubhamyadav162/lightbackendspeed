@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 import { Queue } from 'bullmq';
 
 const webhookQueue = new Queue('webhook-processing', { connection: { host: process.env.REDIS_HOST } });
@@ -17,7 +17,8 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
 
   // Fetch merchant data
-  const { data: client, error } = await supabaseService
+  const supabase = getSupabaseService();
+  const { data: client, error } = await supabase
     .from('clients')
     .select('webhook_url')
     .eq('id', auth.merchantId!)

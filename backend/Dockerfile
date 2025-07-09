@@ -1,6 +1,7 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
+# FORCE-REBUILD: 2025-07-09-13:45:00
 # ⚡ OPTIMIZED RAILWAY DEPLOYMENT: 2025-01-25-16:00:00 ⚡
 # FASTER STARTUP + PROPER HEALTHCHECK TIMING
 # Install curl for health checks

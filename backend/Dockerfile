@@ -15,8 +15,14 @@ COPY package.json package-lock.json .npmrc ./
 # Using npm install instead of npm ci for better compatibility
 RUN npm install --legacy-peer-deps
 
-# Copy source code
-COPY . .
+# Copy only necessary files for the build, excluding the nested frontend
+COPY src ./src
+COPY public ./public
+COPY app ./app
+COPY middleware.ts ./middleware.ts
+COPY next.config.mjs ./next.config.mjs
+COPY tsconfig.json ./tsconfig.json
+COPY next-env.d.ts ./next-env.d.ts
 
 # Build Next.js application for Express server
 RUN npm run build

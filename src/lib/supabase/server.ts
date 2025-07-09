@@ -45,6 +45,9 @@ export { supabaseService };
 
 export { getPgPool }; // re-export for convenience
 
+// Explicitly export createClient for consumers (fixes build error)
+export { createClient };
+
 export type AuthContext = {
   /** Supabase auth user id */
   userId: string;

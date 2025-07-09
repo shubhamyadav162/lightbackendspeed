@@ -10,20 +10,21 @@ RUN apk add --no-cache curl
 WORKDIR /app
 
 # Copy package files first (for better caching)
-COPY package.json package-lock.json .npmrc ./
+COPY backend/package.json backend/package-lock.json backend/.npmrc ./
 
 # Install dependencies
 # Using npm install instead of npm ci for better compatibility
 RUN npm install --legacy-peer-deps
 
 # Copy only necessary files for the build, excluding the nested frontend
-COPY src ./src
-COPY public ./public
-COPY app ./app
-COPY middleware.ts ./middleware.ts
-COPY next.config.mjs ./next.config.mjs
-COPY tsconfig.json ./tsconfig.json
-COPY next-env.d.ts ./next-env.d.ts
+COPY backend/src ./src
+COPY backend/public ./public
+# COPY backend/app ./app -- Removed as it's part of src now
+COPY backend/middleware.ts ./middleware.ts
+COPY backend/next.config.mjs ./next.config.mjs
+COPY backend/tsconfig.json ./tsconfig.json
+COPY backend/next-env.d.ts ./next-env.d.ts
+COPY backend/server-express.js ./server-express.js
 
 # Build Next.js application for Express server
 RUN npm run build

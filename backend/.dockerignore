@@ -1,42 +1,12 @@
-# Docker Ignore for LightSpeedPay Backend Service
-
-# Ignore version control history
-.git
-.github
-.gitignore
-
-# Ignore node modules (they are reinstalled in the container)
-node_modules
-
-# Ignore Next.js build output cache
-.next/
-
-# --- CRITICAL: Ignore the nested frontend project ---
-# This is the primary fix for the current build failure.
 frontend/
-# ---
-
-# Ignore local environment files
+node_modules
+.next
+.env
 .env.local
-.env*.local
+.env.production
 .env.development
-
-# Ignore test directories and reports
-tests/
-e2e/
-playwright-report/
-test-results/
-
-# Ignore logs and local configuration
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
-
-# Ignore editor and OS files
-.vscode/
-.idea/
-.DS_Store
-*.suo
-*.user 
+README.md 

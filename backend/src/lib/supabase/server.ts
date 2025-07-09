@@ -1,4 +1,4 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient as supabaseCreateClient, SupabaseClient } from '@supabase/supabase-js';
 import { getPgPool } from '@/lib/pgPool';
 import { NextRequest } from 'next/server';
 
@@ -14,7 +14,7 @@ if (!supabaseUrl || !supabaseServiceKey) {
   console.warn('[supabase/server] SUPABASE_URL present:', !!supabaseUrl);
   console.warn('[supabase/server] SUPABASE_SERVICE_ROLE_KEY present:', !!supabaseServiceKey);
 } else {
-  supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+  supabaseService = supabaseCreateClient(supabaseUrl, supabaseServiceKey);
   console.log('[supabase/server] Supabase client initialized successfully');
 }
 
@@ -40,8 +40,10 @@ export function getSupabaseService(): SupabaseClient {
   return supabaseService;
 }
 
-// Export both for backward compatibility
-export { supabaseService, createClient };
+// FIX: Explicitly export `createClient` to avoid build tool resolution issues.
+// The previous re-export syntax was causing persistent build failures.
+export const createClient = supabaseCreateClient;
+export { supabaseService };
 
 export { getPgPool }; // re-export for convenience
 

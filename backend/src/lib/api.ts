@@ -1,5 +1,4 @@
-// Simple API helper with SWR integration
-import useSWR from 'swr';
+// Server-side API utilities (no React dependencies)
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
@@ -13,7 +12,8 @@ export function buildUrl(path: string) {
   return `${API_BASE_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
 }
 
-const fetcher = async (url: string) => {
+// Server-side fetcher (no React hooks)
+export const fetcher = async (url: string) => {
   /* istanbul ignore next -- network fetch logic excluded from unit coverage */
   const res = await fetch(url, {
     credentials: 'include', // send cookies for auth if any
@@ -28,14 +28,8 @@ const fetcher = async (url: string) => {
   return res.json();
 };
 
-export function useApi<T = any>(path: string, shouldFetch = true) {
-  const url = shouldFetch ? buildUrl(path) : null;
-  const { data, error, isValidating, mutate } = useSWR<T>(url, fetcher);
-  return {
-    data,
-    error,
-    loading: !error && !data,
-    isValidating,
-    mutate,
-  };
+// Server-side API call helper (no React hooks)
+export async function apiCall<T = any>(path: string): Promise<T> {
+  const url = buildUrl(path);
+  return fetcher(url);
 } 

@@ -1,57 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { handleCors } from '@/lib/cors';
+import { getSupabaseService } from '@/lib/supabase/server';
 
-// Initialize Supabase client (service role) with build-time safety
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-// Create client only if environment variables are available
-let supabase: any = null;
-if (supabaseUrl && supabaseServiceKey) {
-  supabase = createClient(supabaseUrl, supabaseServiceKey);
-} else {
-  console.warn('[system/status] Missing Supabase credentials - returning dummy client for build time');
-}
-
-type ComponentStatus = {
-  component: string;
-  status: string; // healthy | degraded | down
-  response_time_ms?: number | null;
-  message?: string | null;
-  updated_at: string;
-};
-
-// API Key validation middleware
-function validateApiKey(request: NextRequest) {
-  const apiKey = request.headers.get('x-api-key') || request.headers.get('X-API-Key');
-  const expectedKey = process.env.API_KEY || 'admin_test_key';
-  
-  console.log('[API Key Check]', {
-    provided: apiKey ? `${apiKey.substring(0, 8)}...` : 'none',
-    expected: expectedKey ? `${expectedKey.substring(0, 8)}...` : 'none',
-    valid: apiKey === expectedKey
-  });
-  
-  if (!apiKey || apiKey !== expectedKey) {
-    return NextResponse.json(
-      { error: 'Invalid or missing API key', code: 'UNAUTHORIZED' },
-      { status: 401 }
-    );
-  }
-  return null;
-}
-
-async function handler(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    // Return build-time safe response if Supabase not available
-    if (!supabase || !supabaseUrl || !supabaseServiceKey) {
+    // Simple API key check for private deployment
+    const apiKey = request.headers.get('x-api-key');
+    if (apiKey !== 'admin_test_key') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    let supabase;
+    try {
+      supabase = getSupabaseService();
+    } catch (e) {
+      // Return operational status even if DB is not available
       return NextResponse.json({
         status: 'operational',
         components: [
           {
             label: 'Database',
-            status: 'operational', 
+            status: 'operational',
             uptime: new Date().toISOString(),
           },
           {
@@ -63,11 +31,7 @@ async function handler(req: NextRequest) {
       });
     }
 
-    // Validate API key
-    const authError = validateApiKey(req);
-    if (authError) return authError;
-
-    // Fetch the latest status entries (per component)
+    // Fetch the latest status entries
     const { data: rows, error } = await supabase
       .from('system_status')
       .select('*')
@@ -79,8 +43,8 @@ async function handler(req: NextRequest) {
     }
 
     // Reduce to latest per component
-    const latestMap: Record<string, ComponentStatus> = {};
-    for (const row of rows as ComponentStatus[]) {
+    const latestMap: Record<string, any> = {};
+    for (const row of rows || []) {
       if (!latestMap[row.component]) {
         latestMap[row.component] = row;
       }
@@ -111,17 +75,6 @@ async function handler(req: NextRequest) {
   }
 }
 
-// Wrap the handler with the CORS helper
-export async function GET(req: NextRequest) {
-  console.log('[System Status] API called');
-  
-  // Validate API key
-  const authError = validateApiKey(req);
-  if (authError) return authError;
-  
-  return handleCors(req, handler);
-}
-
 export async function OPTIONS(req: NextRequest) {
-  return handleCors(req, async () => new NextResponse(null, { status: 204 }));
+  return NextResponse.json(null, { status: 204 });
 } 

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 import { sql } from '@vercel/postgres';
 
 /**
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
   // Aggregate transactions count & amount in last 24h
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { data, error } = await supabaseService
+  const supabase = getSupabaseService();
+  const { data, error } = await supabase
     .from('transactions')
     .select('id, amount, status')
     .eq('client_id', merchantId)

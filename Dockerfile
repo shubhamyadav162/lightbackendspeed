@@ -1,22 +1,25 @@
 # Use Node.js 20 Alpine
 FROM node:20-alpine
 
-# ⚡ OPTIMIZED RAILWAY DEPLOYMENT: 2025-01-25-16:00:00 ⚡
-# FASTER STARTUP + PROPER HEALTHCHECK TIMING
+# FORCE-REBUILD: 2025-07-09-14:30:00
+# ⚡ SIMPLIFIED & ROBUST BUILD CONTEXT ⚡
 # Install curl for health checks
 RUN apk add --no-cache curl
 
 WORKDIR /app
 
 # Copy package files first (for better caching)
-COPY package.json package-lock.json .npmrc ./
+COPY backend/package.json backend/package-lock.json backend/.npmrc* ./
+# In case .npmrc is not present, the wildcard will prevent build failure
 
 # Install dependencies
 # Using npm install instead of npm ci for better compatibility
 RUN npm install --legacy-peer-deps
 
-# Copy source code
-COPY . .
+# Copy the entire backend directory content into the container.
+# This is a robust way to ensure all necessary files for the build are present,
+# including any hidden or configuration files that might have been missed before.
+COPY backend/ .
 
 # Build Next.js application for Express server
 RUN npm run build

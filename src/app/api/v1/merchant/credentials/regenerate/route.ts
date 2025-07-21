@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { randomBytes } from 'crypto';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
 /**
  * POST /api/v1/merchant/credentials/regenerate
@@ -19,10 +19,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'merchant_id_required' }, { status: 400 });
   }
 
-  const newKey = crypto.randomBytes(16).toString('hex'); // 32 chars
-  const newSalt = crypto.randomBytes(32).toString('hex'); // 64 chars
+  const newKey = randomBytes(16).toString('hex'); // 32 chars
+  const newSalt = randomBytes(32).toString('hex'); // 64 chars
 
-  const { error } = await supabaseService
+  const supabase = getSupabaseService();
+  const { error } = await supabase
     .from('clients')
     .update({ client_key: newKey, client_salt: newSalt, updated_at: new Date().toISOString() })
     .eq('id', merchantId);

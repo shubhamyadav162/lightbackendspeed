@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 import crypto from 'crypto';
 
 // POST /api/v1/callback/easebuzzp - Easebuzz webhook callback
@@ -29,11 +29,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Get gateway configuration for Easebuzz
-    if (!supabaseService) {
-      return NextResponse.json({ error: 'Database not available' }, { status: 500 });
-    }
-
-    const { data: gateway, error: gatewayError } = await supabaseService
+    const supabase = getSupabaseService();
+    
+    // Get gateway details
+    const { data: gateway, error: gatewayError } = await supabase
       .from('payment_gateways')
       .select('*')
       .eq('provider', 'easebuzz')
@@ -80,7 +79,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ Hash verification successful');
 
     // Find the transaction
-    const { data: transaction, error: txnError } = await supabaseService
+    const { data: transaction, error: txnError } = await supabase
       .from('client_transactions')
       .select('*')
       .eq('id', txnid)
@@ -109,7 +108,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update transaction
-    const { error: updateError } = await supabaseService
+    const { error: updateError } = await supabase
       .from('client_transactions')
       .update({
         status: systemStatus,
@@ -133,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (systemStatus === 'paid') {
       try {
         // Get client info for commission calculation
-        const { data: client } = await supabaseService
+        const { data: client } = await supabase
           .from('clients')
           .select('fee_percent')
           .eq('id', transaction.client_id)
@@ -144,7 +143,7 @@ export async function POST(request: NextRequest) {
           const commissionAmount = Math.round((transaction.amount * client.fee_percent) / 100);
           
           // Record commission
-          await supabaseService
+          await supabase
             .from('commission_ledger')
             .insert({
               transaction_id: txnid,

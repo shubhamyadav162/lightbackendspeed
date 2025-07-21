@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
 // Update specific gateway assignment for client (for toggle functionality)
@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: { clientId: string, gatewayId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseService();
     const headersList = headers();
     const apiKey = headersList.get('x-api-key');
 
@@ -63,7 +63,7 @@ export async function DELETE(
   { params }: { params: { clientId: string, gatewayId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseService();
     const headersList = headers();
     const apiKey = headersList.get('x-api-key');
 
@@ -98,7 +98,7 @@ export async function GET(
   { params }: { params: { clientId: string, gatewayId: string } }
 ) {
   try {
-    const supabase = createClient();
+    const supabase = getSupabaseService();
     const headersList = headers();
     const apiKey = headersList.get('x-api-key');
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
 /**
  * GET /api/v1/admin/gateways/health
@@ -13,12 +13,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const supabase = getSupabaseService();
     // Distinct-on style query to fetch latest metric for each gateway
-    const { data, error } = await supabaseService.rpc('get_latest_gateway_health');
+    const { data, error } = await supabase.rpc('get_latest_gateway_health');
 
     if (error) {
       // Fallback to raw query if RPC not available (older migrations)
-      const { data: fallbackData, error: rawErr } = await supabaseService
+      const { data: fallbackData, error: rawErr } = await supabase
         .from('gateway_health_metrics')
         .select('gateway_id, is_online, latency_ms, checked_at')
         .order('gateway_id, checked_at', { ascending: false })

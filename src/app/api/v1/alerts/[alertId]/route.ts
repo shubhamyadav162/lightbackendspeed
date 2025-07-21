@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/server';
+import { getSupabaseService } from '@/lib/supabase/server';
 
 // PATCH /api/v1/alerts/:alertId
 // Request body (optional): { resolved: boolean }
@@ -29,7 +29,8 @@ export async function PATCH(
       updated_at: new Date().toISOString(),
     } as Record<string, any>;
 
-    const { data, error } = await supabaseService
+    const supabase = getSupabaseService();
+    const { data, error } = await supabase
       .from('alerts')
       .update(updates)
       .eq('id', alertId)

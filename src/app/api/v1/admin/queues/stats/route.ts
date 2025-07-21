@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * GET /api/v1/admin/queues/stats

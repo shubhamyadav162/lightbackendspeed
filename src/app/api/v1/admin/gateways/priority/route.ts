@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService, getAuthContext } from '@/lib/supabase/server';
+import { getSupabaseService, getAuthContext } from '@/lib/supabase/server';
 
-const supabase = supabaseService;
+const supabase = getSupabaseService();
 
 /**
  * PUT /api/v1/admin/gateways/priority
@@ -36,7 +36,7 @@ export async function PUT(request: NextRequest) {
     const upserts = updates.map(({ id, priority }) => ({ id, priority, updated_at: new Date().toISOString() }));
 
     // Perform upsert – use ON CONFLICT (id) DO UPDATE SET priority = EXCLUDED.priority
-    const { error } = await supabaseService
+    const { error } = await supabase
       .from('payment_gateways')
       .upsert(upserts, { onConflict: 'id', ignoreDuplicates: false });
 
@@ -45,7 +45,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Return ordered list of gateways after update
-    const { data: gateways, error: selErr } = await supabaseService
+    const { data: gateways, error: selErr } = await supabase
       .from('payment_gateways')
       .select('*')
       .order('priority', { ascending: true });

@@ -3,16 +3,8 @@
 
 import { worker as transactionProcessor } from './transaction-processor';
 import { worker as webhookProcessor } from './webhook-processor';
-import { worker as queueMetricsRecorder } from './queue-metrics-recorder';
-import { worker as workerHealthPing } from './worker-health-ping';
-import { worker as workerHealthMonitor } from './worker-health-monitor';
-import { worker as lowBalanceNotifier } from './low-balance-notifier';
-import { worker as webhookRetry } from './webhook-retry';
-import { worker as systemHealthReport } from './system-health-report';
-import { worker as slaMonitor } from './sla-monitor';
-import { worker as commissionPayoutProcessor } from './commission-payout-processor';
-import { worker as archiveTransactions } from './archive-transactions';
-import { worker as refreshQueueMetricsView } from './refresh-queue-metrics-view';
+import { worker as whatsappSender } from './whatsapp-sender';
+import { worker as walletBalanceMonitor } from './wallet-balance-monitor';
 
 console.log('🚀 Starting LightSpeed Workers...');
 
@@ -20,16 +12,8 @@ console.log('🚀 Starting LightSpeed Workers...');
 const workers = [
   { name: 'transaction-processor', worker: transactionProcessor },
   { name: 'webhook-processor', worker: webhookProcessor },
-  { name: 'queue-metrics-recorder', worker: queueMetricsRecorder },
-  { name: 'worker-health-ping', worker: workerHealthPing },
-  { name: 'worker-health-monitor', worker: workerHealthMonitor },
-  { name: 'low-balance-notifier', worker: lowBalanceNotifier },
-  { name: 'webhook-retry', worker: webhookRetry },
-  { name: 'system-health-report', worker: systemHealthReport },
-  { name: 'sla-monitor', worker: slaMonitor },
-  { name: 'commission-payout-processor', worker: commissionPayoutProcessor },
-  { name: 'archive-transactions', worker: archiveTransactions },
-  { name: 'refresh-queue-metrics-view', worker: refreshQueueMetricsView }
+  { name: 'whatsapp-sender', worker: whatsappSender },
+  { name: 'wallet-balance-monitor', worker: walletBalanceMonitor }
 ];
 
 workers.forEach(({ name, worker }) => {

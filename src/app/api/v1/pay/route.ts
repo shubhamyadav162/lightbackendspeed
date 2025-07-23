@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
     // Create payment with EaseBuzz
     const paymentResponse = await easebuzzAdapter.initiatePayment({
       amount: amount,
+      currency: 'INR',
       order_id: transaction.txn_id,
       description: product_info,
       customer_info: {
@@ -177,7 +178,7 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('transactions')
       .update({ 
-        gateway_txn_id: paymentResponse.transaction_id,
+        gateway_txn_id: (paymentResponse as any).transaction_id || paymentResponse.payment_id,
         checkout_url: paymentResponse.checkout_url
       })
       .eq('txn_id', transaction.txn_id);

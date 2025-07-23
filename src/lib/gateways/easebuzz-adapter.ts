@@ -1,7 +1,7 @@
 import { BaseGatewayAdapter, GatewayCredentials, PaymentRequest, PaymentResponse, PaymentStatusResponse, WebhookResponse } from './base-adapter';
 import { LightSpeedWrapper } from '../lightspeed-wrapper';
 import crypto from 'crypto';
-import { supabase } from '../lib/supabase';
+import { getSupabaseService } from '../supabase/server';
 
 interface EasebuzzCredentials {
   api_key: string;      // Merchant Key

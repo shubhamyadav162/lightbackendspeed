@@ -9,7 +9,7 @@ RUN apk add --no-cache curl
 WORKDIR /app
 
 # Copy package files first (for better caching)
-COPY backend/package.json backend/package-lock.json backend/.npmrc* ./
+COPY package.json package-lock.json .npmrc* ./
 # In case .npmrc is not present, the wildcard will prevent build failure
 
 # Install dependencies
@@ -19,7 +19,7 @@ RUN npm install --legacy-peer-deps
 # Copy the entire backend directory content into the container.
 # This is a robust way to ensure all necessary files for the build are present,
 # including any hidden or configuration files that might have been missed before.
-COPY backend/ .
+COPY . .
 
 # Build Next.js application for Express server
 RUN npm run build

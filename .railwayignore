@@ -11,4 +11,8 @@ memory-bank/
 # Ignore config files
 .cursorrules
 .env
-.env.local 
+.env.local
+
+# Ignore Supabase Edge Functions (Deno runtime)
+supabase/functions/
+supabase-mcp/ 

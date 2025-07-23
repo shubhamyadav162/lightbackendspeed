@@ -9,4 +9,8 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-README.md 
+README.md
+
+# Ignore Supabase Edge Functions (Deno runtime)
+supabase/functions/
+supabase-mcp/ 

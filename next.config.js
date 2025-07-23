@@ -30,6 +30,15 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Exclude Supabase Edge Functions from Next.js build
+  webpack: (config, { isServer }) => {
+    if (isServer) {
+      config.externals = config.externals || [];
+      config.externals.push('supabase/functions/**/*');
+    }
+    return config;
+  },
+
   // ESLint configuration
   eslint: {
     ignoreDuringBuilds: true,

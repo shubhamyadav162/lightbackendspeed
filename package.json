@@ -5,9 +5,10 @@
   "scripts": {
     "dev": "next dev -p 3100",
     "build": "next build",
-    "start": "node .next/standalone/server.js",
+    "start": "node server-express.js",
+    "start:next": "node .next/standalone/server.js",
     "start:express": "node server-express.js",
-    "start:railway": "npm run build && npm run start",
+    "start:railway": "npm run build && node server-express.js",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
@@ -30,7 +31,7 @@
     "test:deno": "deno test supabase/functions/failed-transaction-alerts --allow-env",
     "test:e2e": "playwright test || echo \"Playwright tests skipped: environment unsupported\"",
     "enforce:codecov": "node scripts/enforce-codecov.js",
-    "railway:deploy": "npm run build && npm run start",
+    "railway:deploy": "npm run build && node server-express.js",
     "railway:workers": "npm run workers:railway"
   },
   "dependencies": {

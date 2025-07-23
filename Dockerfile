@@ -43,5 +43,5 @@ EXPOSE 3100
 HEALTHCHECK --interval=20s --timeout=10s --start-period=90s --retries=5 \
   CMD curl -f http://localhost:3100/health || exit 1
 
-# 🚀 EXPRESS SERVER COMMAND: Direct Express server startup
-CMD ["node", "server-express.js"] 
+# 🚀 EXPRESS SERVER COMMAND: Use npm script for proper build and start
+CMD ["npm", "run", "start:railway"] 

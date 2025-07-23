@@ -12,7 +12,7 @@ cmds = ["npm ci --legacy-peer-deps"]
 cmds = ["npm run build"]
 
 [phases.start]
-cmd = "npm start"
+cmd = "npm run start:railway"
 
 [staticAssets]
 "public" = "./"

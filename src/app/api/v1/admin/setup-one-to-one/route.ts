@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// Initialize Supabase client with service role key
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Initialize Supabase client function (not at module level)
+function getSupabaseClient() {
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY environment variables')
+  }
+  
+  return createClient(supabaseUrl, supabaseServiceRoleKey)
+}
 
 // Generate unique client credentials
 function generateClientKey(): string {
@@ -42,6 +48,9 @@ export async function POST(req: NextRequest) {
     const clientKey = generateClientKey()
     const clientSalt = generateClientSalt()
     const companyName = generateCompanyName(merchantId)
+
+    // Initialize Supabase client
+    const supabase = getSupabaseClient()
 
     // Start database transaction
     const { data: clientData, error: clientError } = await supabase

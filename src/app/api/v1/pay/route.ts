@@ -50,20 +50,35 @@ async function verifyMerchantAuth(request: NextRequest) {
   return data;
 }
 
-// Helper function to get active gateway
+// Helper function to get active gateway with enhanced logging
 async function getActiveGateway() {
+  console.log('🔍 [PAY] Searching for active gateway...');
+  
   const { data, error } = await supabase
     .from('payment_gateways')
     .select('*')
     .eq('is_active', true)
-    .eq('provider', 'easebuzz')
     .order('priority', { ascending: false })
     .limit(1)
     .single();
 
-  if (error || !data) {
-    throw new Error('No active Easebuzz gateway found');
+  if (error) {
+    console.error('❌ [PAY] Gateway query error:', error);
+    throw new Error(`Gateway query failed: ${error.message}`);
   }
+
+  if (!data) {
+    console.error('❌ [PAY] No active gateway found in database');
+    throw new Error('No active gateway found');
+  }
+
+  console.log('✅ [PAY] Found active gateway:', {
+    id: data.id,
+    name: data.name,
+    provider: data.provider,
+    priority: data.priority,
+    hasCredentials: !!data.credentials
+  });
 
   return data;
 }
@@ -83,6 +98,14 @@ async function createTransaction(params: {
   // Generate a transaction ID
   const txnId = `LSP_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   
+  console.log('📝 [PAY] Creating transaction:', {
+    txnId,
+    merchantId,
+    amount,
+    customerEmail,
+    testMode
+  });
+  
   // Create the transaction record
   const { data, error } = await supabase
     .from('transactions')
@@ -100,16 +123,21 @@ async function createTransaction(params: {
     .single();
   
   if (error) {
+    console.error('❌ [PAY] Transaction creation failed:', error);
     throw new Error(`Failed to create transaction: ${error.message}`);
   }
   
+  console.log('✅ [PAY] Transaction created successfully:', data.id);
   return data;
 }
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('💰 [PAY] === PAYMENT REQUEST START ===');
+    
     // Verify merchant authentication
     const merchant = await verifyMerchantAuth(request);
+    console.log('✅ [PAY] Merchant authenticated:', merchant.name);
     
     // Parse request body
     const { 
@@ -122,13 +150,35 @@ export async function POST(request: NextRequest) {
       product_info = 'LightSpeedPay Payment'
     } = await request.json();
     
+    console.log('📋 [PAY] Payment request:', {
+      amount,
+      customer_email,
+      customer_name,
+      test_mode,
+      product_info
+    });
+    
     // Validate required fields
     if (!amount || !customer_email) {
+      console.error('❌ [PAY] Missing required fields');
       return NextResponse.json({ error: 'Amount and customer email are required' }, { status: 400 });
     }
     
     // Get active gateway
     const gateway = await getActiveGateway();
+    
+    if (!gateway.credentials) {
+      console.error('❌ [PAY] Gateway has no credentials:', gateway.id);
+      return NextResponse.json({ 
+        success: false,
+        error: 'Selected gateway has no credentials configured' 
+      }, { status: 500 });
+    }
+    
+    console.log('🔐 [PAY] Gateway credentials available:', {
+      hasApiKey: !!gateway.credentials.api_key,
+      hasApiSecret: !!gateway.credentials.api_secret
+    });
     
     // Create EaseBuzz adapter with correct credential mapping  
     // For Easebuzz: api_key should be merchant_key for hash generation, api_secret should be salt
@@ -148,6 +198,8 @@ export async function POST(request: NextRequest) {
       testMode: test_mode
     });
     
+    console.log('🚀 [PAY] Initiating payment with Easebuzz...');
+    
     // Create payment with EaseBuzz
     const paymentResponse = await easebuzzAdapter.initiatePayment({
       amount: amount,
@@ -161,7 +213,15 @@ export async function POST(request: NextRequest) {
       }
     });
     
+    console.log('📡 [PAY] Easebuzz response:', {
+      success: paymentResponse.success,
+      hasCheckoutUrl: !!paymentResponse.checkout_url,
+      error: paymentResponse.error
+    });
+    
     if (!paymentResponse.success) {
+      console.error('❌ [PAY] Easebuzz payment failed:', paymentResponse.error);
+      
       // Update transaction status to failed
       await supabase
         .from('transactions')
@@ -183,6 +243,11 @@ export async function POST(request: NextRequest) {
       })
       .eq('txn_id', transaction.txn_id);
     
+    console.log('🎉 [PAY] Payment initiated successfully:', {
+      transactionId: transaction.txn_id,
+      checkoutUrl: paymentResponse.checkout_url
+    });
+    
     // Return success response
     return NextResponse.json({
       success: true,
@@ -194,7 +259,7 @@ export async function POST(request: NextRequest) {
     });
     
   } catch (error: any) {
-    console.error('Payment initiation error:', error);
+    console.error('❌ [PAY] Payment initiation error:', error);
     return NextResponse.json({ 
       success: false,
       error: error.message 

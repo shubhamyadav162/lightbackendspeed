@@ -9,6 +9,7 @@
     "start:next": "node .next/standalone/server.js",
     "start:express": "node server-express.js",
     "start:railway": "npm run build && node server-express.js",
+    "start:production": "node server-express.js",
     "lint": "next lint",
     "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage --passWithNoTests",
@@ -32,7 +33,8 @@
     "test:e2e": "playwright test || echo \"Playwright tests skipped: environment unsupported\"",
     "enforce:codecov": "node scripts/enforce-codecov.js",
     "railway:deploy": "npm run build && node server-express.js",
-    "railway:workers": "npm run workers:railway"
+    "railway:workers": "npm run workers:railway",
+    "check:gateways": "node scripts/check-gateways.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",

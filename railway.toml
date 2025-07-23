@@ -21,7 +21,7 @@ NEXTAUTH_URL = "$NEXTAUTH_URL"
 NEXTAUTH_SECRET = "$NEXTAUTH_SECRET"
 
 [deploy]
-startCommand = "npm run start:railway"
+startCommand = "npm run start:production"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "always"

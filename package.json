@@ -34,7 +34,8 @@
     "enforce:codecov": "node scripts/enforce-codecov.js",
     "railway:deploy": "npm run build && node server-express.js",
     "railway:workers": "npm run workers:railway",
-    "check:gateways": "node scripts/check-gateways.js"
+    "check:gateways": "node scripts/check-gateways.js",
+    "create:test-merchant": "node scripts/create-test-merchant.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
